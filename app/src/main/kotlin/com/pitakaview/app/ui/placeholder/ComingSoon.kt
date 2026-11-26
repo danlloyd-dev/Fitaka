@@ -19,8 +19,8 @@ import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
 
-// Temporary, clearly labelled screens so every tab and button already works. Each is replaced as its
-// real screen is built.
+// A temporary, clearly labelled screen so every tab already works. Each tab replaces it as its real
+// screen is built (Gastos and Kita in M3; Utang, Ipon and Baon in M4).
 
 @Composable
 fun SectionComingSoon(section: Section, onAddTransaction: () -> Unit) {
@@ -46,23 +46,6 @@ fun SectionComingSoon(section: Section, onAddTransaction: () -> Unit) {
                 style = PitakaButtonStyle.Primary,
                 icon = PitakaIcons.Add,
             )
-        }
-    }
-}
-
-@Composable
-fun AddTransactionComingSoon(onBack: () -> Unit) {
-    val c = PitakaTheme.colors
-    PitakaScreen(title = "Add transaction", onBack = onBack) {
-        item(key = "soon") {
-            PitakaCard(Modifier.fillMaxWidth()) {
-                Text("Quick entry is next", style = MaterialTheme.typography.titleMedium, color = c.ink)
-                Text(
-                    "Amount, category and wallet in a few taps — this is the next screen being built.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.inkMuted,
-                )
-            }
         }
     }
 }

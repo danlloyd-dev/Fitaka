@@ -45,6 +45,15 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun theLastUsedWalletIsRemembered() = runBlocking {
+        val (repo, job) = open(File(tmp.root, "wallet.preferences_pb"))
+        assertEquals(null, repo.lastWalletId.first())
+        repo.setLastWalletId(7)
+        assertEquals(7L, repo.lastWalletId.first())
+        job.cancelAndJoin()
+    }
+
+    @Test
     fun unknownStoredNamesFallBackToDefaults() = runBlocking {
         val file = File(tmp.root, "old.preferences_pb")
         val job = Job()

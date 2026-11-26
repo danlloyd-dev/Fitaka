@@ -42,7 +42,8 @@ data class BaonActivityRow(
 data class GoalProgress(
     val goalId: Long,
     val name: String,
-    val targetCentavos: Long,
+    /** Null for open-ended savings with no target. */
+    val targetCentavos: Long?,
     val targetDate: LocalDate?,
     val walletId: Long?,
     val savedCentavos: Long,

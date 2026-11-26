@@ -1,6 +1,15 @@
 package com.pitakaview.app.ui
 
+import androidx.compose.foundation.text.input.TextFieldState
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.pitakaview.app.data.DefaultData
+import com.pitakaview.app.data.db.entity.CategoryEntity
+import com.pitakaview.app.domain.CategoryKind
+import com.pitakaview.app.domain.EntryKind
+import com.pitakaview.app.domain.EntryProblem
+import com.pitakaview.app.ui.entry.EntryEditorContent
+import com.pitakaview.app.ui.entry.EntryEditorUi
+import com.pitakaview.app.ui.wallets.WalletsContent
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.dao.WalletWithBalance
 import com.pitakaview.app.data.db.entity.WalletEntity
@@ -62,6 +71,47 @@ class ScreensScreenshotTest {
     @Test fun homeMangoLight() = home(ThemeId.MANGO, DarkModePref.LIGHT, sample, "home_mango_light")
     @Test fun homeUbeDark() = home(ThemeId.UBE, DarkModePref.DARK, sample, "home_ube_dark")
     @Test fun homeEmptyFirstRun() = home(ThemeId.MANGO, DarkModePref.LIGHT, HomeState(wallets = sample.wallets.take(1).map { it.copy(balanceCentavos = 0) }), "home_empty")
+
+    private val entryCategories = DefaultData.expenseCategories.mapIndexed { i, (name, icon) ->
+        CategoryEntity(id = i + 1L, name = name, kind = CategoryKind.EXPENSE, iconKey = icon)
+    }
+
+    private fun entry(theme: ThemeId, mode: DarkModePref, ui: EntryEditorUi, amount: String, name: String) =
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
+            PitakaTheme(theme, mode) {
+                EntryEditorContent(
+                    ui, TextFieldState(amount), TextFieldState(),
+                    onKind = {}, onCategory = {}, onFromWallet = {}, onToWallet = {}, onDate = {},
+                    onSave = {}, onDelete = {}, onBack = {}, onOpenWallets = {},
+                )
+            }
+        }
+
+    @Test
+    fun entryFilledMangoLight() = entry(
+        ThemeId.MANGO, DarkModePref.LIGHT,
+        EntryEditorUi(
+            isEdit = false, kind = EntryKind.EXPENSE, categories = entryCategories, wallets = sample.wallets.map { it.wallet },
+            categoryId = 1, fromWalletId = 2, toWalletId = null, date = today, today = today,
+        ),
+        amount = "250", name = "entry_mango_light",
+    )
+
+    @Test
+    fun entryWithProblemsKapeDark() = entry(
+        ThemeId.KAPE, DarkModePref.DARK,
+        EntryEditorUi(
+            isEdit = true, kind = EntryKind.EXPENSE, categories = entryCategories, wallets = sample.wallets.map { it.wallet },
+            categoryId = null, fromWalletId = 1, toWalletId = null, date = today.minusDays(3), today = today,
+            problems = setOf(EntryProblem.AMOUNT, EntryProblem.CATEGORY),
+        ),
+        amount = "", name = "entry_problems_kape_dark",
+    )
+
+    @Test
+    fun walletsCalamansiLight() = captureRoboImage("build/outputs/roborazzi/screen_wallets_calamansi_light.png") {
+        PitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) { WalletsContent(sample.wallets, onBack = {}, onAdd = {}, onOpen = {}) }
+    }
 
     @Test
     fun settingsDagatLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_dagat_light.png") {

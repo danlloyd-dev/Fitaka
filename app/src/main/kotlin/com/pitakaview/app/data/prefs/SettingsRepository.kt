@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pitakaview.app.domain.AppearanceSettings
@@ -21,15 +22,20 @@ import java.io.IOException
 /** App settings in a small on-device DataStore file. A damaged or unreadable file falls back to defaults. */
 class SettingsRepository(private val store: DataStore<Preferences>) {
 
-    val appearance: Flow<AppearanceSettings> = store.data
+    private val prefs: Flow<Preferences> = store.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
-        .map { prefs ->
+
+    val appearance: Flow<AppearanceSettings> = prefs
+        .map {
             AppearanceSettings(
-                theme = prefs[THEME].toEnumOr(ThemeId.MANGO),
-                darkMode = prefs[DARK_MODE].toEnumOr(DarkModePref.SYSTEM),
+                theme = it[THEME].toEnumOr(ThemeId.MANGO),
+                darkMode = it[DARK_MODE].toEnumOr(DarkModePref.SYSTEM),
             )
         }
         .distinctUntilChanged()
+
+    /** The wallet used for the last saved entry; quick entry offers it first next time. */
+    val lastWalletId: Flow<Long?> = prefs.map { it[LAST_WALLET] }.distinctUntilChanged()
 
     suspend fun setTheme(theme: ThemeId) {
         store.edit { it[THEME] = theme.name }
@@ -39,9 +45,14 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { it[DARK_MODE] = mode.name }
     }
 
+    suspend fun setLastWalletId(id: Long) {
+        store.edit { it[LAST_WALLET] = id }
+    }
+
     companion object {
         internal val THEME = stringPreferencesKey("theme")
         internal val DARK_MODE = stringPreferencesKey("dark_mode")
+        internal val LAST_WALLET = longPreferencesKey("last_wallet_id")
 
         /** One instance per app (DataStore forbids two on the same file). */
         fun create(context: Context) = SettingsRepository(

@@ -221,6 +221,17 @@ class LedgerDatabaseTest {
     }
 
     @Test
+    fun savingsWithoutATargetStillAddUp() = runTest {
+        val cash = wallet("Cash", WalletType.CASH, opening = 300_000)
+        val pot = db.savingsGoalDao().insert(SavingsGoalEntity(name = "Rainy day", createdAt = now))
+        ledger.depositToGoal(pot, fromWalletId = cash, amountCentavos = 50_000, on = nov15, now = now)
+
+        val progress = db.savingsGoalDao().observeProgress().first().single()
+        assertEquals(null, progress.targetCentavos)
+        assertEquals(50_000L, progress.savedCentavos)
+    }
+
+    @Test
     fun addAllKeepsEveryRowOrNone() = runTest {
         val cash = wallet("Cash", WalletType.CASH, opening = 100_000)
         val food = category("Food", CategoryKind.EXPENSE)

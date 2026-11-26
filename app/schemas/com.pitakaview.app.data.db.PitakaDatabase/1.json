@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5fbb7ca312fcab014973d0c5067c7ebd",
+    "identityHash": "dcffe3a34ad6eab4e0ceef41a2738b77",
     "entities": [
       {
         "tableName": "wallets",
@@ -349,7 +349,7 @@
       },
       {
         "tableName": "savings_goals",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `targetCentavos` INTEGER NOT NULL, `targetDate` INTEGER, `walletId` INTEGER, `iconKey` TEXT NOT NULL, `isArchived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `targetCentavos` INTEGER, `targetDate` INTEGER, `walletId` INTEGER, `iconKey` TEXT NOT NULL, `isArchived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`walletId`) REFERENCES `wallets`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -366,8 +366,7 @@
           {
             "fieldPath": "targetCentavos",
             "columnName": "targetCentavos",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "targetDate",
@@ -863,7 +862,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5fbb7ca312fcab014973d0c5067c7ebd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dcffe3a34ad6eab4e0ceef41a2738b77')"
     ]
   }
 }

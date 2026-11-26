@@ -32,6 +32,7 @@ import com.pitakaview.app.data.db.dao.signedCentavos
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.AmountText
+import com.pitakaview.app.ui.components.EmptyState
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
@@ -62,13 +63,15 @@ fun HomeRoute(
     onOpenSection: (Section) -> Unit,
     onAddTransaction: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenEntry: (Long) -> Unit,
+    onOpenWallets: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val vm = viewModel { HomeViewModel(container.database, container.dayClock.today) }
     val state by vm.state.collectAsStateWithLifecycle()
     // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings)
+    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets)
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {
@@ -96,6 +99,8 @@ fun HomeContent(
     onOpenSection: (Section) -> Unit,
     onAddTransaction: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenEntry: (Long) -> Unit = {},
+    onOpenWallets: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     PitakaScreen(
@@ -103,7 +108,7 @@ fun HomeContent(
         subtitle = greeting,
         actions = { PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings) },
     ) {
-        item(key = "hero") { WholeWalletCard(state) }
+        item(key = "hero") { WholeWalletCard(state, onOpenWallets) }
         item(key = "add") {
             PitakaButton(
                 "Add transaction",
@@ -130,16 +135,19 @@ fun HomeContent(
         item(key = "upcoming-title") { SectionHeader("Coming up") }
         item(key = "upcoming") { UpcomingCard(state.upcoming, today) }
         item(key = "recent-title") { SectionHeader("Recent") }
-        item(key = "recent") { RecentCard(state.recent, today) }
+        item(key = "recent") { RecentCard(state.recent, today, onOpenEntry) }
     }
 }
 
 @Composable
-private fun WholeWalletCard(state: HomeState) {
+private fun WholeWalletCard(state: HomeState, onOpenWallets: () -> Unit) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth()) {
-        Text("Your whole wallet", style = type.labelLarge, color = c.inkMuted)
+    PitakaCard(Modifier.fillMaxWidth(), onClick = onOpenWallets) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Your whole wallet", style = type.labelLarge, color = c.inkMuted, modifier = Modifier.weight(1f))
+            Icon(PitakaIcons.ChevronRight, contentDescription = "Manage wallets", tint = c.inkMuted, modifier = Modifier.size(20.dp))
+        }
         AnimatedAmountText(state.totalCentavos, style = type.displaySmall)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -224,18 +232,14 @@ private fun UpcomingCard(items: List<UpcomingItem>, today: LocalDate) {
 }
 
 @Composable
-private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate) {
+private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEntry: (Long) -> Unit) {
     val c = PitakaTheme.colors
     PitakaCard(
         Modifier.fillMaxWidth().animateContentSize(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (rows.isEmpty()) 16.dp else 4.dp),
     ) {
         if (rows.isEmpty()) {
-            Text(
-                "No entries yet. Tap Add transaction to log your first one.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.inkMuted,
-            )
+            EmptyState("No entries yet", "Tap Add transaction to log your first one.")
         }
         rows.forEachIndexed { i, row ->
             key(row.id) {
@@ -249,6 +253,7 @@ private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate) {
                     leading = { if (section != null) SectionBadge(section, section.icon) else TransferBadge() },
                     // Moves between your own wallets are neither in nor out, so they get no sign.
                     trailing = { AmountText(row.signedCentavos, signed = !row.isMove) },
+                    onClick = { onOpenEntry(row.id) },
                 )
             }
         }

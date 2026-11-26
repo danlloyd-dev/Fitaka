@@ -22,7 +22,8 @@ import java.time.LocalDate
 data class SavingsGoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val targetCentavos: Long,
+    /** The amount to reach, or null for open-ended savings with no target. */
+    val targetCentavos: Long? = null,
     val targetDate: LocalDate? = null,
     /** Where the saved money is kept (e.g. a MariBank savings wallet), or null to earmark only. */
     val walletId: Long? = null,

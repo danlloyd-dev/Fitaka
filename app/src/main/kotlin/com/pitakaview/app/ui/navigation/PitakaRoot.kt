@@ -33,16 +33,22 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.pitakaview.app.domain.AppearanceSettings
+import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
+import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.ui.categories.CategoriesRoute
+import com.pitakaview.app.ui.categories.CategoryEditorRoute
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
 import com.pitakaview.app.ui.components.LocalHazeState
 import com.pitakaview.app.ui.components.PitakaBottomBar
+import com.pitakaview.app.ui.entry.EntryEditorRoute
 import com.pitakaview.app.ui.home.HomeRoute
 import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.placeholder.AddTransactionComingSoon
 import com.pitakaview.app.ui.placeholder.SectionComingSoon
 import com.pitakaview.app.ui.settings.SettingsScreen
+import com.pitakaview.app.ui.wallets.WalletEditorRoute
+import com.pitakaview.app.ui.wallets.WalletsRoute
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import dev.chrisbanes.haze.rememberHazeState
@@ -51,7 +57,13 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeKey : NavKey
 @Serializable data class SectionKey(val section: Section) : NavKey
 @Serializable data object SettingsKey : NavKey
-@Serializable data class AddTransactionKey(val section: Section? = null) : NavKey
+
+/** Quick entry. No id = a new entry starting as [startKind]; an id = edit that entry. */
+@Serializable data class EntryEditorKey(val transactionId: Long? = null, val startKind: EntryKind = EntryKind.EXPENSE) : NavKey
+@Serializable data object WalletsKey : NavKey
+@Serializable data class WalletEditorKey(val walletId: Long? = null) : NavKey
+@Serializable data object CategoriesKey : NavKey
+@Serializable data class CategoryEditorKey(val categoryId: Long? = null, val kind: CategoryKind = CategoryKind.EXPENSE) : NavKey
 
 /** Tab index for a key (Home = 0, then the sections in order), or null for pushed screens. */
 fun NavKey.tabIndex(): Int? = when (this) {
@@ -124,18 +136,51 @@ fun PitakaRoot(
                     entry<HomeKey>(metadata = tabMetadata) {
                         HomeRoute(
                             onOpenSection = { backStack.goToTab(1 + it.ordinal) },
-                            onAddTransaction = { backStack.add(AddTransactionKey()) },
+                            onAddTransaction = { backStack.add(EntryEditorKey()) },
                             onOpenSettings = { backStack.add(SettingsKey) },
+                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                            onOpenWallets = { backStack.add(WalletsKey) },
                         )
                     }
                     entry<SectionKey>(metadata = tabMetadata) { key ->
-                        SectionComingSoon(key.section, onAddTransaction = { backStack.add(AddTransactionKey(key.section)) })
+                        // Kita opens quick entry on income; the other tabs open it on spending.
+                        val kind = if (key.section == Section.KITA) EntryKind.INCOME else EntryKind.EXPENSE
+                        SectionComingSoon(key.section, onAddTransaction = { backStack.add(EntryEditorKey(startKind = kind)) })
                     }
                     entry<SettingsKey> {
-                        SettingsScreen(appearance, onThemeChange, onDarkModeChange, onBack = { backStack.removeLastOrNull() })
+                        SettingsScreen(
+                            appearance, onThemeChange, onDarkModeChange,
+                            onBack = { backStack.removeLastOrNull() },
+                            onOpenWallets = { backStack.add(WalletsKey) },
+                            onOpenCategories = { backStack.add(CategoriesKey) },
+                        )
                     }
-                    entry<AddTransactionKey> {
-                        AddTransactionComingSoon(onBack = { backStack.removeLastOrNull() })
+                    entry<EntryEditorKey> { key ->
+                        EntryEditorRoute(
+                            key.transactionId, key.startKind,
+                            onDone = { backStack.removeLastOrNull() },
+                            onOpenWallets = { backStack.add(WalletsKey) },
+                        )
+                    }
+                    entry<WalletsKey> {
+                        WalletsRoute(
+                            onBack = { backStack.removeLastOrNull() },
+                            onAdd = { backStack.add(WalletEditorKey()) },
+                            onOpen = { backStack.add(WalletEditorKey(it)) },
+                        )
+                    }
+                    entry<WalletEditorKey> { key ->
+                        WalletEditorRoute(key.walletId, onDone = { backStack.removeLastOrNull() })
+                    }
+                    entry<CategoriesKey> {
+                        CategoriesRoute(
+                            onBack = { backStack.removeLastOrNull() },
+                            onAdd = { backStack.add(CategoryEditorKey(kind = it)) },
+                            onOpen = { backStack.add(CategoryEditorKey(it.id, it.kind)) },
+                        )
+                    }
+                    entry<CategoryEditorKey> { key ->
+                        CategoryEditorRoute(key.categoryId, key.kind, onDone = { backStack.removeLastOrNull() })
                     }
                 },
             )

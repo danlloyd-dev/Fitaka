@@ -19,6 +19,13 @@ interface CategoryDao {
     @Update
     suspend fun update(category: CategoryEntity)
 
+    @Query("SELECT * FROM categories WHERE id = :id")
+    suspend fun get(id: Long): CategoryEntity?
+
+    /** Every category of a kind, hidden ones last, for the category management screen. */
+    @Query("SELECT * FROM categories WHERE kind = :kind ORDER BY isArchived, sortOrder, id")
+    fun observeAll(kind: CategoryKind): Flow<List<CategoryEntity>>
+
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun count(): Int
 

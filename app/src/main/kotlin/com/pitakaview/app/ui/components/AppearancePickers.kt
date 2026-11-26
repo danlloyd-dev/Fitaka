@@ -1,6 +1,5 @@
 package com.pitakaview.app.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,7 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
@@ -88,37 +86,19 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
 }
 
 @Composable
-private fun Dot(color: androidx.compose.ui.graphics.Color) {
+private fun Dot(color: Color) {
     Box(Modifier.size(16.dp).sketchBox(CircleShape, color, PitakaTheme.colors.ink, 1.5.dp))
 }
 
-/** Light / Dark / Follow system, as one outlined segmented control. Selected = ink fill. */
+private val DarkModeOptions = listOf(DarkModePref.LIGHT to "Light", DarkModePref.DARK to "Dark", DarkModePref.SYSTEM to "System")
+
+/** Light / Dark / Follow system. */
 @Composable
 fun DarkModePicker(selected: DarkModePref, onSelect: (DarkModePref) -> Unit, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
-    val shape = RoundedCornerShape(PitakaDimens.corner)
-    val shadow = PitakaDimens.shadow
-    val options = listOf(DarkModePref.LIGHT to "Light", DarkModePref.DARK to "Dark", DarkModePref.SYSTEM to "System")
-    Row(
-        modifier = modifier
-            .padding(end = shadow, bottom = shadow)
-            .fillMaxWidth()
-            .sketchBox(shape, c.card, c.ink, shadow = c.shadow, shadowOffset = shadow)
-            .clip(shape)
-            .selectableGroup(),
-    ) {
-        options.forEach { (pref, label) ->
-            val isSelected = pref == selected
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 48.dp)
-                    .background(if (isSelected) c.ink else c.card)
-                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(pref) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(label, style = MaterialTheme.typography.labelLarge, color = if (isSelected) c.card else c.ink)
-            }
-        }
-    }
+    PitakaSegmented(
+        options = DarkModeOptions.map { it.second },
+        selectedIndex = DarkModeOptions.indexOfFirst { it.first == selected },
+        onSelect = { onSelect(DarkModeOptions[it].first) },
+        modifier = modifier,
+    )
 }
