@@ -25,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,10 +63,22 @@ fun PitakaTextField(
     val outline = if (isError) c.fill(Section.GASTOS) else c.ink
 
     Column(modifier.semantics(mergeDescendants = true) {}) {
-        Text(label, style = type.labelLarge, color = c.ink, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+        // The label is drawn above the box for the eye. A screen reader gets it from the box itself (below),
+        // so it hears "Name, edit box" once instead of a loose word followed by a nameless box.
+        Text(
+            label, style = type.labelLarge, color = c.ink,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).semantics { hideFromAccessibility() },
+        )
         BasicTextField(
             state = state,
-            modifier = Modifier.fillMaxWidth().padding(end = shadow, bottom = shadow),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = shadow, bottom = shadow)
+                .semantics {
+                    contentDescription = label
+                    // What is wrong is spoken with the box, not only shown under it.
+                    if (isError && supportingText != null) error(supportingText)
+                },
             inputTransformation = inputTransformation,
             textStyle = type.bodyLarge.copy(color = c.ink),
             keyboardOptions = keyboardOptions,

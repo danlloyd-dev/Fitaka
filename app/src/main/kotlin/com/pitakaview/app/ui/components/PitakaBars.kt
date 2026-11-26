@@ -31,6 +31,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,9 +79,13 @@ fun PitakaTopBar(
             PitakaIconButton(navigationIcon, navigationLabel, onNavigationClick)
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = type.headlineSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // Marked as a heading, so a screen reader can jump from title to title.
+            Text(
+                title, style = type.headlineSmall, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
             // Full ink on glass: muted ink drops below 4.5:1 when dark content scrolls under (ThemeContrastTest).
-            if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = c.ink, maxLines = 1)
+            if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         actions()
     }

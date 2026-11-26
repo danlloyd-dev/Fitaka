@@ -7,7 +7,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
@@ -22,6 +24,13 @@ import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.ThemePicker
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.theme.PitakaTheme
+
+/** The version of the app that is installed, as Android knows it: never a number typed into the screen that can go stale. */
+@Composable
+fun rememberAppVersion(): String {
+    val context = LocalContext.current
+    return remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty() }
+}
 
 /** Settings: money set-up (wallets, categories), reminders, and the look (theme, light/dark). */
 @Composable
@@ -39,6 +48,7 @@ fun SettingsScreen(
     onOpenPhoneSettings: () -> Unit = {},
     lock: LockSettingsUi = LockSettingsUi(),
     onLockChange: (Boolean) -> Unit = {},
+    version: String = rememberAppVersion(),
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -89,7 +99,7 @@ fun SettingsScreen(
         item(key = "about-title") { SectionHeader("About") }
         item(key = "about") {
             PitakaCard(Modifier.fillMaxWidth()) {
-                Text("PitakaView 0.1.0", style = type.titleSmall, color = c.ink)
+                Text("PitakaView $version", style = type.titleSmall, color = c.ink)
                 Text("Your whole wallet, one view.", style = type.bodyMedium, color = c.inkMuted)
                 Text("All your data stays on this phone.", style = type.bodyMedium, color = c.inkMuted)
                 Text("Font: Mali, SIL Open Font License 1.1", style = type.bodySmall, color = c.inkMuted)

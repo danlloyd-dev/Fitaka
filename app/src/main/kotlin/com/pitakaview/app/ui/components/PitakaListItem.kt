@@ -57,7 +57,7 @@ fun PitakaListItem(
         Column(Modifier.weight(1f)) {
             Text(title, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle != null) {
-                Text(subtitle, style = type.bodySmall, color = c.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, style = type.bodySmall, color = c.inkMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         trailing?.invoke()
