@@ -67,13 +67,14 @@ fun PitakaToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    enabled: Boolean = true,
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .heightIn(min = 56.dp)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,

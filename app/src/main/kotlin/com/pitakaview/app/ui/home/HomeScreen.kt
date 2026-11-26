@@ -48,6 +48,7 @@ import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.EntryListItem
 import com.pitakaview.app.ui.ledger.walletsText
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.theme.PitakaDimens
@@ -293,7 +294,7 @@ private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEn
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (rows.isEmpty()) 16.dp else 4.dp),
     ) {
         if (rows.isEmpty()) {
-            EmptyState("No entries yet", "Tap Add transaction to log your first one.")
+            EmptyState("No entries yet", "Tap Add transaction to log your first one.", mascot = SleepyAlkansya)
         }
         rows.forEachIndexed { i, row ->
             key(row.id) {

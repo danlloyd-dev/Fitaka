@@ -3,24 +3,36 @@ package com.pitakaview.app
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.pitakaview.app.di.LocalAppContainer
+import com.pitakaview.app.lock.LockSupport
+import com.pitakaview.app.lock.UnlockResult
 import com.pitakaview.app.reminders.ReminderIntents
 import com.pitakaview.app.reminders.ReminderOpen
+import com.pitakaview.app.ui.lock.LockScreen
 import com.pitakaview.app.ui.navigation.PitakaRoot
+import com.pitakaview.app.ui.onboarding.OnboardingLogic
+import com.pitakaview.app.ui.onboarding.OnboardingRoute
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.resolve
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +49,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as PitakaApp).container
         val settings = container.settings
+        val appLock = container.appLock
         // Only on a fresh start: after a rotation the same intent is still attached, and the owner has
         // already been taken where the reminder pointed.
         if (savedInstanceState == null) reminderToOpen = ReminderIntents.read(intent)
@@ -59,11 +72,41 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // The app lock. With it on, the app starts locked and locks again after a while out of sight.
+        lifecycleScope.launch { appLock.load() }
+        lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    // A rotation also stops and starts the screen; that is not leaving.
+                    Lifecycle.Event.ON_STOP -> if (!isChangingConfigurations) appLock.onLeft()
+                    Lifecycle.Event.ON_START -> appLock.onReturned()
+                    else -> Unit
+                }
+            },
+        )
+        // While the lock is on, the phone keeps the app out of screenshots and shows it blank in the list
+        // of recent apps: the lock would mean little if the last screen could be read from there.
+        lifecycleScope.launch {
+            settings.lockOn.collect { on ->
+                if (on) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+
         setContent {
-            // Nothing is drawn until settings load, so a saved theme never flashes the default first.
+            // Nothing is drawn until settings load, so a saved theme never flashes the default first and
+            // a locked app never shows its content first.
             val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = null)
+            val locked by appLock.locked.collectAsStateWithLifecycle()
+            // Whether to show the first-run welcome. Decided once and kept across a rotation, so turning
+            // the phone in the middle of it neither restarts it nor ends it.
+            var welcome by rememberSaveable { mutableStateOf<Boolean?>(null) }
+            LaunchedEffect(Unit) {
+                if (welcome == null) welcome = OnboardingLogic.isNeeded(settings, container.database)
+            }
             val current = appearance
-            if (current != null) {
+            val isLocked = locked
+            val showWelcome = welcome
+            if (current != null && isLocked != null && showWelcome != null) {
                 val dark = current.darkMode.resolve()
                 // Status-bar icons follow the app's light/dark choice, not just the phone's.
                 LaunchedEffect(dark) {
@@ -77,13 +120,24 @@ class MainActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 CompositionLocalProvider(LocalAppContainer provides container) {
                     PitakaTheme(current.theme, current.darkMode) {
-                        PitakaRoot(
-                            appearance = current,
-                            onThemeChange = { scope.launch { settings.setTheme(it) } },
-                            onDarkModeChange = { scope.launch { settings.setDarkMode(it) } },
-                            reminderToOpen = reminderToOpen,
-                            onReminderOpened = { reminderToOpen = null },
-                        )
+                        Box(Modifier.fillMaxSize()) {
+                            // The app stays as it was under the lock screen (an unsaved form is still there
+                            // after unlocking) but is hidden from screen readers while locked.
+                            Box(if (isLocked) Modifier.fillMaxSize().clearAndSetSemantics { } else Modifier.fillMaxSize()) {
+                                if (showWelcome) {
+                                    OnboardingRoute(onDone = { welcome = false })
+                                } else {
+                                    PitakaRoot(
+                                        appearance = current,
+                                        onThemeChange = { scope.launch { settings.setTheme(it) } },
+                                        onDarkModeChange = { scope.launch { settings.setDarkMode(it) } },
+                                        reminderToOpen = reminderToOpen,
+                                        onReminderOpened = { reminderToOpen = null },
+                                    )
+                                }
+                            }
+                            if (isLocked) LockScreen(onUnlock = ::askToUnlock, onLeave = { moveTaskToBack(true) })
+                        }
                     }
                 }
             }
@@ -95,5 +149,18 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         ReminderIntents.read(intent)?.let { reminderToOpen = it }
+    }
+
+    private fun askToUnlock() {
+        val container = (application as PitakaApp).container
+        // The phone's own screen lock was removed since: there is nothing left to ask for, and keeping the
+        // app shut would lock the owner out of their own data.
+        if (container.unlocker.support() != LockSupport.READY) {
+            container.appLock.onUnlocked()
+            return
+        }
+        container.unlocker.ask(this, "Unlock PitakaView") { result ->
+            if (result == UnlockResult.UNLOCKED) container.appLock.onUnlocked()
+        }
     }
 }

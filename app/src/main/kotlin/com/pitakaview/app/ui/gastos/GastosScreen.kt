@@ -27,13 +27,14 @@ import com.pitakaview.app.ui.ledger.MonthTotalCard
 import com.pitakaview.app.ui.ledger.dayGroups
 import com.pitakaview.app.ui.ledger.monthLedgerFlow
 import com.pitakaview.app.ui.ledger.monthName
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
+import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
-import java.time.YearMonth
 
 /** The Gastos tab: one month of spending, from one database query. */
 class GastosViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
@@ -81,6 +82,7 @@ fun GastosContent(
                     EmptyState(
                         "No spending in ${monthName(ledger.month)}",
                         if (ledger.isThisMonth) "Tap Add expense to log what you spend." else "Nothing was logged for this month.",
+                        mascot = SleepyAlkansya,
                     )
                 }
             }

@@ -30,6 +30,7 @@ import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
 import com.pitakaview.app.ui.sections.ItemDetailContent
 import com.pitakaview.app.ui.sections.ItemDetailUi
@@ -39,11 +40,11 @@ import com.pitakaview.app.ui.sections.dateInText
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
 
 /** One loan as the Utang tab lists it. */
 data class LoanRowUi(
@@ -154,7 +155,7 @@ fun UtangContent(ui: UtangUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearc
         }
         if (ui.loaded && ui.isEmpty) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No loans", "Add money you borrowed or lent, and its payments are tracked here.") }
+                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No loans", "Add money you borrowed or lent, and its payments are tracked here.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("You owe" to ui.iOwe, "Owed to you" to ui.owedToMe, "Settled" to ui.settled)) {

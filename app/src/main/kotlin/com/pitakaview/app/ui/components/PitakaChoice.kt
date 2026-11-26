@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -91,7 +93,7 @@ fun PitakaChip(
 
 /**
  * What a list shows when it has nothing yet: a short title, one line of help, and room above for the
- * mascot (drawn from M7 on; empty until then).
+ * mascot, which the main lists pass in.
  */
 @Composable
 fun EmptyState(
@@ -102,7 +104,10 @@ fun EmptyState(
 ) {
     val c = PitakaTheme.colors
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        mascot?.invoke()
+        if (mascot != null) {
+            mascot()
+            Spacer(Modifier.height(8.dp))
+        }
         Text(title, style = MaterialTheme.typography.titleSmall, color = c.ink, textAlign = TextAlign.Center)
         Text(body, style = MaterialTheme.typography.bodyMedium, color = c.inkMuted, textAlign = TextAlign.Center)
     }

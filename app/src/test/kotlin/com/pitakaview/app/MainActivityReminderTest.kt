@@ -47,6 +47,8 @@ class MainActivityReminderTest {
     fun aReminderOpensItsScreenFromAClosedAppAndFromAnOpenOneAndIsNotFollowedTwice() {
         val loanId = runBlocking {
             withTimeout(10_000) { app.container.database.walletDao().observeAllWithBalance().first { it.isNotEmpty() } }
+            // Someone tapping a reminder is long past the first-run welcome.
+            app.container.settings.setOnboardingDone()
             app.container.database.loanDao().insert(
                 LoanEntity(
                     direction = LoanDirection.I_OWE, counterparty = "Tita Baby", principalCentavos = 150_000, totalPayableCentavos = 150_000,

@@ -10,6 +10,9 @@ import com.pitakaview.app.data.db.createPitakaDatabase
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.DayClock
+import com.pitakaview.app.lock.AndroidUnlocker
+import com.pitakaview.app.lock.AppLock
+import com.pitakaview.app.lock.Unlocker
 import com.pitakaview.app.reminders.AndroidReminderNotifier
 import com.pitakaview.app.reminders.ReminderAlarm
 import com.pitakaview.app.reminders.ReminderNotifier
@@ -41,6 +44,10 @@ class AppContainer(context: Context) {
     val reminders: Reminders by lazy {
         Reminders(database = { database }, settings = settings, notifier = { reminderNotifier }, alarm = { reminderAlarm }, now = { reminderClock() })
     }
+
+    /** The app lock, and what asks the phone to check who is holding it (a property so tests can stand in for the phone). */
+    var unlocker: Unlocker = AndroidUnlocker(appContext)
+    val appLock: AppLock by lazy { AppLock(settings) }
 
     /**
      * Closes this process and opens the app fresh. Used after a restore, when everything in memory

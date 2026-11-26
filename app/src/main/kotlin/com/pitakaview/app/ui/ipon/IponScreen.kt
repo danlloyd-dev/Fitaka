@@ -28,6 +28,7 @@ import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
 import com.pitakaview.app.ui.sections.ItemDetailContent
 import com.pitakaview.app.ui.sections.ItemDetailUi
@@ -36,11 +37,11 @@ import com.pitakaview.app.ui.sections.SectionTotalsCard
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
 
 /** One savings goal as the Ipon tab lists it. */
 data class GoalRowUi(
@@ -141,7 +142,7 @@ fun IponContent(ui: IponUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch:
         }
         if (ui.loaded && ui.goals.isEmpty() && ui.hidden.isEmpty()) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No savings goals", "Add one, with or without a target, and put money toward it.") }
+                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No savings goals", "Add one, with or without a target, and put money toward it.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("Goals" to ui.goals, "Hidden" to ui.hidden)) {

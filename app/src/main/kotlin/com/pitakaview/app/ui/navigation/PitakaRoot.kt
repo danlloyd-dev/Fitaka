@@ -62,6 +62,7 @@ import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.search.SearchRoute
 import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
+import com.pitakaview.app.ui.settings.rememberLockSettings
 import com.pitakaview.app.ui.settings.rememberReminderSettings
 import com.pitakaview.app.ui.summary.SummaryRoute
 import com.pitakaview.app.ui.theme.PitakaTheme
@@ -300,6 +301,7 @@ fun PitakaRoot(
                     }
                     entry<SettingsKey> {
                         val reminders = rememberReminderSettings()
+                        val lock = rememberLockSettings()
                         SettingsScreen(
                             appearance, onThemeChange, onDarkModeChange,
                             onBack = { backStack.removeLastOrNull() },
@@ -309,6 +311,8 @@ fun PitakaRoot(
                             reminders = reminders.ui,
                             onRemindersChange = reminders.onChange,
                             onOpenPhoneSettings = reminders.onOpenPhoneSettings,
+                            lock = lock.ui,
+                            onLockChange = lock.onChange,
                         )
                     }
                     entry<EntryEditorKey> { key ->

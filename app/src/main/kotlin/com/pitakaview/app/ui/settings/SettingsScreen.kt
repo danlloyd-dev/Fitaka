@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.lock.LockSupport
 import com.pitakaview.app.ui.components.DarkModePicker
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaDivider
@@ -35,6 +36,8 @@ fun SettingsScreen(
     reminders: ReminderSettingsUi = ReminderSettingsUi(),
     onRemindersChange: (Boolean) -> Unit = {},
     onOpenPhoneSettings: () -> Unit = {},
+    lock: LockSettingsUi = LockSettingsUi(),
+    onLockChange: (Boolean) -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -66,6 +69,11 @@ fun SettingsScreen(
         }
         item(key = "reminders-title") { SectionHeader("Reminders") }
         item(key = "reminders") { RemindersCard(reminders, onRemindersChange, onOpenPhoneSettings) }
+        // Not offered on a phone that cannot do it (before Android 10).
+        if (lock.support != LockSupport.TOO_OLD) {
+            item(key = "lock-title") { SectionHeader("App lock") }
+            item(key = "lock") { LockCard(lock, onLockChange) }
+        }
         item(key = "theme-title") { SectionHeader("Theme") }
         item(key = "theme") { ThemePicker(appearance.theme, onThemeChange) }
         item(key = "mode-title") { SectionHeader("Light or dark") }

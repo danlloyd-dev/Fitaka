@@ -32,6 +32,10 @@ interface WalletDao {
     @Query("SELECT COUNT(*) FROM wallets")
     suspend fun count(): Int
 
+    /** Every wallet as stored, for set-up steps that run inside one write. */
+    @Query("SELECT * FROM wallets ORDER BY sortOrder, id")
+    suspend fun all(): List<WalletEntity>
+
     @Query("SELECT COUNT(*) FROM wallets WHERE isArchived = 0")
     suspend fun countActive(): Int
 

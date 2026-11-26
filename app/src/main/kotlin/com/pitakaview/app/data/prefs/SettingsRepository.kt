@@ -86,7 +86,23 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         }
     }
 
+    /** Whether the first-run welcome has been finished or skipped. It is shown at most once. */
+    val onboardingDone: Flow<Boolean> = prefs.map { it[ONBOARDING_DONE] ?: false }.distinctUntilChanged()
+
+    suspend fun setOnboardingDone() {
+        store.edit { it[ONBOARDING_DONE] = true }
+    }
+
+    /** Whether opening the app asks for the phone's fingerprint, face or PIN. */
+    val lockOn: Flow<Boolean> = prefs.map { it[LOCK_ON] ?: false }.distinctUntilChanged()
+
+    suspend fun setLockOn(on: Boolean) {
+        store.edit { it[LOCK_ON] = on }
+    }
+
     companion object {
+        internal val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        internal val LOCK_ON = booleanPreferencesKey("lock_on")
         internal val THEME = stringPreferencesKey("theme")
         internal val DARK_MODE = stringPreferencesKey("dark_mode")
         internal val LAST_WALLET = longPreferencesKey("last_wallet_id")

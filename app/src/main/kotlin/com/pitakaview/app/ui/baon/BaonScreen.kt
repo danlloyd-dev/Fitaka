@@ -32,6 +32,7 @@ import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
 import com.pitakaview.app.ui.sections.ItemDetailContent
 import com.pitakaview.app.ui.sections.ItemDetailUi
@@ -40,15 +41,15 @@ import com.pitakaview.app.ui.sections.SectionTotalsCard
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** One baon as the Baon tab lists it, for its current period. */
 data class BaonRowUi(
@@ -189,7 +190,7 @@ fun BaonContent(
         }
         if (ui.loaded && ui.isEmpty) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No baon set up", "Add an allowance you receive or give, and see what is left of it.") }
+                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No baon set up", "Add an allowance you receive or give, and see what is left of it.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("You receive" to ui.receiving, "You give" to ui.giving, "Stopped" to ui.stopped)) {

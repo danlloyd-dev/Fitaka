@@ -40,18 +40,19 @@ import com.pitakaview.app.ui.ledger.MonthTotalCard
 import com.pitakaview.app.ui.ledger.dayGroups
 import com.pitakaview.app.ui.ledger.monthLedgerFlow
 import com.pitakaview.app.ui.ledger.monthName
+import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.dateInText
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import java.time.LocalDate
-import java.time.YearMonth
-import java.time.ZoneId
 
 /** One pay schedule as the Kita tab shows it: the payday it is waiting for, if any. */
 data class PaydayRow(val scheduleId: Long, val name: String, val expectedCentavos: Long, val next: WaitingPayday?)
@@ -160,6 +161,7 @@ fun KitaContent(
                     EmptyState(
                         "No income in ${monthName(ledger.month)}",
                         if (ledger.isThisMonth) "Tap Add income, or Received on a payday." else "Nothing was logged for this month.",
+                        mascot = SleepyAlkansya,
                     )
                 }
             }

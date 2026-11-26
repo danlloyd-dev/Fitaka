@@ -137,6 +137,10 @@ interface TransactionDao {
     @Query("$ENTRY_ROWS WHERE t.baonId = :baonId ORDER BY t.occurredOn DESC, t.id DESC")
     fun observeForBaon(baonId: Long): Flow<List<RecentTransaction>>
 
+    /** How many entries there are in all. Asked once, on a first launch, to decide whether to show the welcome. */
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun count(): Int
+
     @Query("SELECT COUNT(*) FROM transactions WHERE loanId = :loanId")
     suspend fun countForLoan(loanId: Long): Int
 

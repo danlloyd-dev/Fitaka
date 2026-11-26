@@ -4,6 +4,9 @@
 
     <!-- Reminders about paydays and payments due. Asked for only when the owner switches reminders on. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The app lock: lets the app show the phone's own fingerprint / face / PIN question. The app is only
+         told yes or no; it never sees a fingerprint or a PIN. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
         android:name=".PitakaApp"
