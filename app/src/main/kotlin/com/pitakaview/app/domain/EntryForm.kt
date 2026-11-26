@@ -20,6 +20,8 @@ data class EntryForm(
     val toWalletId: Long? = null,
     val date: LocalDate,
     val note: String = "",
+    /** Set when an income entry is the pay received for a pay schedule. */
+    val payScheduleId: Long? = null,
 )
 
 enum class EntryProblem { AMOUNT, CATEGORY, WALLET, SAME_WALLET }
@@ -66,7 +68,7 @@ object EntryFormLogic {
             EntryKind.INCOME -> base.copy(
                 purpose = TxPurpose.INCOME, amountCentavos = amount, occurredOn = form.date,
                 fromWalletId = null, toWalletId = form.toWalletId, categoryId = form.categoryId, note = note,
-                baonId = null,
+                baonId = null, payScheduleId = form.payScheduleId,
             )
             EntryKind.TRANSFER -> base.copy(
                 purpose = TxPurpose.TRANSFER, amountCentavos = amount, occurredOn = form.date,
@@ -87,6 +89,7 @@ object EntryFormLogic {
         return EntryForm(
             kind = kind, amountText = plainAmount(tx.amountCentavos), categoryId = tx.categoryId,
             fromWalletId = tx.fromWalletId, toWalletId = tx.toWalletId, date = tx.occurredOn, note = tx.note.orEmpty(),
+            payScheduleId = tx.payScheduleId,
         )
     }
 

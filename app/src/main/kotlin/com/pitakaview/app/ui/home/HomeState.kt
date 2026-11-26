@@ -3,6 +3,7 @@ package com.pitakaview.app.ui.home
 import com.pitakaview.app.data.db.dao.BaonActivityRow
 import com.pitakaview.app.data.db.dao.GoalProgress
 import com.pitakaview.app.data.db.dao.LoanWithPaid
+import com.pitakaview.app.data.db.dao.PayReceipt
 import com.pitakaview.app.data.db.dao.PurposeTotal
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.dao.WalletWithBalance
@@ -12,10 +13,11 @@ import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.domain.BaonDirection
 import com.pitakaview.app.domain.BaonMath
 import com.pitakaview.app.domain.LoanDirection
-import com.pitakaview.app.domain.PayCalendar
+import com.pitakaview.app.domain.PaydayTracker
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.theme.Section
 import java.time.LocalDate
+import java.time.ZoneId
 
 /** Something due soon: a payday or a loan due date. */
 data class UpcomingItem(
@@ -64,14 +66,22 @@ object HomeStateBuilder {
         paySchedules: List<PayScheduleEntity>,
         recent: List<RecentTransaction>,
         lastBackupOn: LocalDate? = null,
+        payReceipts: List<PayReceipt> = emptyList(),
+        zone: ZoneId = ZoneId.systemDefault(),
     ): HomeState {
         val totals = monthTotals.associate { it.purpose to it.totalCentavos }
         val horizon = today.plusDays(UPCOMING_DAYS)
 
+        val receivedOn = payReceipts.groupBy({ it.payScheduleId }, { it.occurredOn })
+        // A payday marked received drops out. One that is due and not yet received stays, like an unpaid loan,
+        // until the next payday's days begin.
         val paydays = paySchedules.filter { it.isActive }.flatMap { schedule ->
-            PayCalendar.upcoming(schedule.rule(), from = today, count = 2)
-                .filter { it <= horizon }
-                .map { UpcomingItem(it, schedule.name, "Payday", Section.KITA, schedule.expectedAmountCentavos) }
+            val setUpOn = schedule.createdAt.atZone(zone).toLocalDate()
+            PaydayTracker.waiting(schedule.rule(), receivedOn[schedule.id].orEmpty(), today, setUpOn, count = 2)
+                .filter { it.date <= horizon }
+                .map {
+                    UpcomingItem(it.date, schedule.name, if (it.date < today) "Payday · due" else "Payday", Section.KITA, schedule.expectedAmountCentavos)
+                }
         }
         // Overdue loans stay listed (date in the past) until paid.
         val loanDues = openLoans.mapNotNull { row ->

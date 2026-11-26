@@ -65,6 +65,12 @@ data class RecentTransaction(
     val toWalletName: String?,
 )
 
+/** Pay for [payScheduleId] was received on [occurredOn]. */
+data class PayReceipt(
+    val payScheduleId: Long,
+    val occurredOn: LocalDate,
+)
+
 /** True when money only moved between your own wallets (a transfer or a savings move): neither in nor out. */
 val RecentTransaction.isMove: Boolean get() = fromWalletName != null && toWalletName != null
 

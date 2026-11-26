@@ -21,6 +21,13 @@ interface PayScheduleDao {
     @Update
     suspend fun update(schedule: PayScheduleEntity)
 
+    /** Income already logged for the schedule stays; those rows only lose their link (ON DELETE SET NULL). */
+    @Delete
+    suspend fun delete(schedule: PayScheduleEntity)
+
+    @Query("SELECT * FROM pay_schedules WHERE id = :id")
+    suspend fun get(id: Long): PayScheduleEntity?
+
     @Query("SELECT * FROM pay_schedules WHERE isActive = 1 ORDER BY id")
     fun observeActive(): Flow<List<PayScheduleEntity>>
 }

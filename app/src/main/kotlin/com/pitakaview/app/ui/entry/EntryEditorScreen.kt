@@ -71,15 +71,19 @@ data class EntryEditorUi(
     val problems: Set<EntryProblem> = emptySet(),
     val saveError: String? = null,
     val editable: Boolean = true,
+    /** Set when this entry is the pay received for a payday. */
+    val paydayName: String? = null,
+    /** True when opened from a payday's "Received" button: the kind is not offered. */
+    val kindLocked: Boolean = false,
 )
 
 @Composable
-fun EntryEditorRoute(transactionId: Long?, startKind: EntryKind, onDone: () -> Unit, onOpenWallets: () -> Unit) {
+fun EntryEditorRoute(transactionId: Long?, startKind: EntryKind, payScheduleId: Long?, onDone: () -> Unit, onOpenWallets: () -> Unit) {
     val container = LocalAppContainer.current
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     val vm = viewModel {
         EntryEditorViewModel(
-            container.database, container.ledger, container.settings, container.dayClock.today.value, transactionId, startKind,
+            container.database, container.ledger, container.settings, container.dayClock.today.value, transactionId, startKind, payScheduleId,
         )
     }
     val wallets by vm.wallets.collectAsStateWithLifecycle()
@@ -97,6 +101,7 @@ fun EntryEditorRoute(transactionId: Long?, startKind: EntryKind, onDone: () -> U
             categories = if (vm.kind == EntryKind.INCOME) income else expense,
             wallets = wallets, categoryId = vm.categoryId, fromWalletId = vm.fromWalletId, toWalletId = vm.toWalletId,
             date = vm.date, today = today, problems = vm.problems, saveError = vm.saveError, editable = vm.editable,
+            paydayName = vm.paydayName, kindLocked = vm.kindLocked,
         ),
         amount = vm.amount, note = vm.note,
         onKind = vm::selectKind, onCategory = vm::selectCategory,
@@ -129,6 +134,7 @@ fun EntryEditorContent(
 
     PitakaScreen(
         title = if (ui.isEdit) "Edit entry" else "Add entry",
+        subtitle = ui.paydayName?.let { "Pay received · $it" },
         onBack = onBack,
         // Save stays above the keyboard: type the amount, tap a category, tap Save.
         pinnedAction = if (!ui.editable) {
@@ -166,8 +172,10 @@ fun EntryEditorContent(
             return@PitakaScreen
         }
 
-        item(key = "kind") {
-            PitakaSegmented(EntryKind.entries.map { it.label }, ui.kind.ordinal, onSelect = { onKind(EntryKind.entries[it]) })
+        if (!ui.kindLocked) {
+            item(key = "kind") {
+                PitakaSegmented(EntryKind.entries.map { it.label }, ui.kind.ordinal, onSelect = { onKind(EntryKind.entries[it]) })
+            }
         }
 
         item(key = "amount") {

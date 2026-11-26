@@ -38,6 +38,7 @@ class EntryEditorViewModel(
     today: LocalDate,
     transactionId: Long?,
     startKind: EntryKind,
+    payScheduleId: Long? = null,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -72,6 +73,16 @@ class EntryEditorViewModel(
 
     private var existing: TransactionEntity? = null
 
+    /** The pay schedule this entry is the pay received for, if any. Saved with an income entry. */
+    private var linkedScheduleId: Long? = null
+
+    /** That schedule's name, for the line under the title. */
+    var paydayName by mutableStateOf<String?>(null)
+        private set
+
+    /** Opened from a payday's "Received" button: it is income, so the kind is not offered. */
+    val kindLocked = payScheduleId != null && transactionId == null
+
     val wallets: StateFlow<List<WalletEntity>> = db.walletDao().observeActiveWithBalance()
         .map { rows -> rows.map { it.wallet } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -98,6 +109,8 @@ class EntryEditorViewModel(
                     fromWalletId = form.fromWalletId
                     toWalletId = form.toWalletId
                     date = form.date
+                    linkedScheduleId = form.payScheduleId
+                    paydayName = form.payScheduleId?.let { db.payScheduleDao().get(it) }?.name
                 }
             } else {
                 // Offer the wallet used last time; fall back to the first wallet.
@@ -105,6 +118,15 @@ class EntryEditorViewModel(
                 val preferred = settings.lastWalletId.first()?.takeIf { it in active } ?: active.firstOrNull()
                 fromWalletId = preferred
                 toWalletId = if (startKind == EntryKind.TRANSFER) active.firstOrNull { it != preferred } else preferred
+                // Pay received for a payday: start from what the schedule expects. Every part can still be changed.
+                payScheduleId?.let { db.payScheduleDao().get(it) }?.let { schedule ->
+                    kind = EntryKind.INCOME
+                    amount.setTextAndPlaceCursorAtEnd(EntryFormLogic.plainAmount(schedule.expectedAmountCentavos))
+                    categoryId = schedule.categoryId
+                    if (schedule.walletId in active) toWalletId = schedule.walletId
+                    linkedScheduleId = schedule.id
+                    paydayName = schedule.name
+                }
             }
             loaded = true
         }
@@ -146,6 +168,7 @@ class EntryEditorViewModel(
         val form = EntryForm(
             kind = kind, amountText = amount.text.toString(), categoryId = categoryId,
             fromWalletId = fromWalletId, toWalletId = toWalletId, date = date, note = note.text.toString(),
+            payScheduleId = linkedScheduleId,
         )
         problems = EntryFormLogic.problems(form)
         if (problems.isNotEmpty()) return

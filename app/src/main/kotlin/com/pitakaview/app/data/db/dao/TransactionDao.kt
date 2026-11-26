@@ -10,6 +10,16 @@ import com.pitakaview.app.domain.TxPurpose
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
+/** A ledger row with its category and wallet names. Shared by Recent, the month lists and search. */
+private const val ENTRY_ROWS = """
+    SELECT t.id AS id, t.purpose AS purpose, t.amountCentavos AS amountCentavos, t.occurredOn AS occurredOn,
+        t.note AS note, c.name AS categoryName, fw.name AS fromWalletName, tw.name AS toWalletName
+    FROM transactions t
+    LEFT JOIN categories c ON c.id = t.categoryId
+    LEFT JOIN wallets fw ON fw.id = t.fromWalletId
+    LEFT JOIN wallets tw ON tw.id = t.toWalletId
+"""
+
 /** Writes go through LedgerRepository, which validates each row first. */
 @Dao
 interface TransactionDao {
@@ -85,19 +95,43 @@ interface TransactionDao {
     fun observeBaonActivity(since: LocalDate): Flow<List<BaonActivityRow>>
 
     /** Latest rows with their category and wallet names, for the Home "Recent" list. */
+    @Query("$ENTRY_ROWS ORDER BY t.occurredOn DESC, t.id DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<RecentTransaction>>
+
+    /** One purpose's rows in a date range, newest first: the Gastos and Kita month lists. */
     @Query(
-        """
-        SELECT t.id AS id, t.purpose AS purpose, t.amountCentavos AS amountCentavos, t.occurredOn AS occurredOn,
-            t.note AS note, c.name AS categoryName, fw.name AS fromWalletName, tw.name AS toWalletName
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.categoryId
-        LEFT JOIN wallets fw ON fw.id = t.fromWalletId
-        LEFT JOIN wallets tw ON tw.id = t.toWalletId
+        """$ENTRY_ROWS
+        WHERE t.purpose = :purpose AND t.occurredOn BETWEEN :start AND :end
+        ORDER BY t.occurredOn DESC, t.id DESC
+        """,
+    )
+    fun observeEntries(purpose: TxPurpose, start: LocalDate, end: LocalDate): Flow<List<RecentTransaction>>
+
+    /**
+     * Search across every entry, newest first: [pattern] (from SearchQuery.pattern) is matched against
+     * the note, the category and the wallet names; [amountCentavos], when given, matches the amount exactly.
+     */
+    @Query(
+        """$ENTRY_ROWS
+        WHERE t.note LIKE :pattern ESCAPE '\'
+            OR c.name LIKE :pattern ESCAPE '\'
+            OR fw.name LIKE :pattern ESCAPE '\'
+            OR tw.name LIKE :pattern ESCAPE '\'
+            OR (:amountCentavos IS NOT NULL AND t.amountCentavos = :amountCentavos)
         ORDER BY t.occurredOn DESC, t.id DESC
         LIMIT :limit
         """,
     )
-    fun observeRecent(limit: Int): Flow<List<RecentTransaction>>
+    fun search(pattern: String, amountCentavos: Long?, limit: Int): Flow<List<RecentTransaction>>
+
+    /** When pay was received for each schedule: the income rows that carry a pay schedule. */
+    @Query(
+        """
+        SELECT payScheduleId, occurredOn FROM transactions
+        WHERE payScheduleId IS NOT NULL AND purpose = :income AND occurredOn >= :since
+        """,
+    )
+    fun observePayReceipts(since: LocalDate, income: TxPurpose = TxPurpose.INCOME): Flow<List<PayReceipt>>
 
     @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE externalRef = :externalRef)")
     suspend fun existsExternalRef(externalRef: String): Boolean

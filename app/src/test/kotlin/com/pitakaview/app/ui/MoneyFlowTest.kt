@@ -68,7 +68,7 @@ class MoneyFlowTest : FlowTestBase() {
         start()
         rule.onNode(hasText("Kita") and isSelectable()).performClick() // the Kita tab
         waitFor("Income & paydays")
-        tapButton("Add transaction")
+        tapButton("Add income")
         waitFor("Salary") // quick entry opens on Kita, offering income categories
         field(0).performTextInput("15000")
         rule.onNode(hasText("Salary") and isSelectable()).performClick()

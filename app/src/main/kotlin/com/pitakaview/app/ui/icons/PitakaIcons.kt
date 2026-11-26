@@ -56,6 +56,8 @@ object PitakaIcons {
     val Back by lazy { strokeIcon("Back", "M19 12 H5", "M11 6 L5 12 L11 18") }
     val Check by lazy { strokeIcon("Check", "M5 12.5 L10 17.5 L19 7") }
     val ChevronRight by lazy { strokeIcon("ChevronRight", "M9 6 L15 12 L9 18") }
+    val ChevronLeft by lazy { strokeIcon("ChevronLeft", "M15 6 L9 12 L15 18") }
+    val Search by lazy { strokeIcon("Search", "M4.5 10.5 A6 6 0 1 0 16.5 10.5 A6 6 0 1 0 4.5 10.5", "M15 15 L20 20") }
 }
 
 /** The icon that stands for each section. */

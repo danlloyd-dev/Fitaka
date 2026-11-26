@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pitakaview.app.data.db.dao.RecentTransaction
-import com.pitakaview.app.data.db.dao.isMove
-import com.pitakaview.app.data.db.dao.signedCentavos
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.AmountText
@@ -45,13 +42,13 @@ import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
+import com.pitakaview.app.ui.ledger.EntryListItem
+import com.pitakaview.app.ui.ledger.walletsText
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
-import com.pitakaview.app.ui.theme.label
-import com.pitakaview.app.ui.theme.section
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -66,13 +63,14 @@ fun HomeRoute(
     onOpenEntry: (Long) -> Unit,
     onOpenWallets: () -> Unit,
     onOpenBackup: () -> Unit,
+    onSearch: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val vm = viewModel { HomeViewModel(container.database, container.dayClock.today, container.settings.lastBackupAt) }
     val state by vm.state.collectAsStateWithLifecycle()
     // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup)
+    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch)
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {
@@ -103,12 +101,16 @@ fun HomeContent(
     onOpenEntry: (Long) -> Unit = {},
     onOpenWallets: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
+    onSearch: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     PitakaScreen(
         title = "PitakaView",
         subtitle = greeting,
-        actions = { PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings) },
+        actions = {
+            PitakaIconButton(PitakaIcons.Search, "Search", onSearch)
+            PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings)
+        },
     ) {
         item(key = "hero") { WholeWalletCard(state, onOpenWallets) }
         item(key = "add") {
@@ -272,29 +274,13 @@ private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEn
         rows.forEachIndexed { i, row ->
             key(row.id) {
                 if (i > 0) PitakaDivider()
-                val section = row.purpose.section
                 // The badge already shows the section, so the subtitle is just where and when.
-                val wallets = listOfNotNull(row.fromWalletName, row.toWalletName).joinToString(" → ")
-                PitakaListItem(
-                    title = row.categoryName ?: row.purpose.label,
-                    subtitle = listOf(wallets, friendlyDate(row.occurredOn, today)).filter { it.isNotEmpty() }.joinToString(" · "),
-                    leading = { if (section != null) SectionBadge(section, section.icon) else TransferBadge() },
-                    // Moves between your own wallets are neither in nor out, so they get no sign.
-                    trailing = { AmountText(row.signedCentavos, signed = !row.isMove) },
+                EntryListItem(
+                    row,
+                    subtitle = listOf(row.walletsText(), friendlyDate(row.occurredOn, today)).filter { it.isNotEmpty() }.joinToString(" · "),
                     onClick = { onOpenEntry(row.id) },
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun TransferBadge() {
-    val c = PitakaTheme.colors
-    Box(
-        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(22.dp))
     }
 }

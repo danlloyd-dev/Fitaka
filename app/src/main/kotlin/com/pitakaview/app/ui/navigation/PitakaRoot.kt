@@ -44,9 +44,13 @@ import com.pitakaview.app.ui.components.LocalBottomBarPadding
 import com.pitakaview.app.ui.components.LocalHazeState
 import com.pitakaview.app.ui.components.PitakaBottomBar
 import com.pitakaview.app.ui.entry.EntryEditorRoute
+import com.pitakaview.app.ui.gastos.GastosRoute
 import com.pitakaview.app.ui.home.HomeRoute
+import com.pitakaview.app.ui.kita.KitaRoute
+import com.pitakaview.app.ui.kita.PayScheduleEditorRoute
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.placeholder.SectionComingSoon
+import com.pitakaview.app.ui.search.SearchRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
 import com.pitakaview.app.ui.wallets.WalletEditorRoute
 import com.pitakaview.app.ui.wallets.WalletsRoute
@@ -59,8 +63,17 @@ import kotlinx.serialization.Serializable
 @Serializable data class SectionKey(val section: Section) : NavKey
 @Serializable data object SettingsKey : NavKey
 
-/** Quick entry. No id = a new entry starting as [startKind]; an id = edit that entry. */
-@Serializable data class EntryEditorKey(val transactionId: Long? = null, val startKind: EntryKind = EntryKind.EXPENSE) : NavKey
+/**
+ * Quick entry. No id = a new entry starting as [startKind]; an id = edit that entry.
+ * With [payScheduleId], a new entry is the pay received for that payday, filled in from it.
+ */
+@Serializable data class EntryEditorKey(
+    val transactionId: Long? = null,
+    val startKind: EntryKind = EntryKind.EXPENSE,
+    val payScheduleId: Long? = null,
+) : NavKey
+@Serializable data object SearchKey : NavKey
+@Serializable data class PayScheduleEditorKey(val scheduleId: Long? = null) : NavKey
 @Serializable data object WalletsKey : NavKey
 @Serializable data class WalletEditorKey(val walletId: Long? = null) : NavKey
 @Serializable data object BackupKey : NavKey
@@ -143,15 +156,40 @@ fun PitakaRoot(
                             onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
                             onOpenWallets = { backStack.add(WalletsKey) },
                             onOpenBackup = { backStack.add(BackupKey) },
+                            onSearch = { backStack.add(SearchKey) },
                         )
+                    }
+                    entry<SearchKey> {
+                        SearchRoute(
+                            onBack = { backStack.removeLastOrNull() },
+                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                        )
+                    }
+                    entry<PayScheduleEditorKey> { key ->
+                        PayScheduleEditorRoute(key.scheduleId, onDone = { backStack.removeLastOrNull() })
                     }
                     entry<BackupKey> {
                         BackupRoute(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<SectionKey>(metadata = tabMetadata) { key ->
-                        // Kita opens quick entry on income; the other tabs open it on spending.
-                        val kind = if (key.section == Section.KITA) EntryKind.INCOME else EntryKind.EXPENSE
-                        SectionComingSoon(key.section, onAddTransaction = { backStack.add(EntryEditorKey(startKind = kind)) })
+                        val openEntry: (Long) -> Unit = { backStack.add(EntryEditorKey(transactionId = it)) }
+                        when (key.section) {
+                            Section.GASTOS -> GastosRoute(
+                                onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE)) },
+                                onOpenEntry = openEntry,
+                                onSearch = { backStack.add(SearchKey) },
+                            )
+                            Section.KITA -> KitaRoute(
+                                onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME)) },
+                                onOpenEntry = openEntry,
+                                onSearch = { backStack.add(SearchKey) },
+                                onAddPayday = { backStack.add(PayScheduleEditorKey()) },
+                                onOpenPayday = { backStack.add(PayScheduleEditorKey(it)) },
+                                onReceived = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME, payScheduleId = it)) },
+                            )
+                            // Utang, Ipon and Baon get their own screens in M4.
+                            else -> SectionComingSoon(key.section, onAddTransaction = { backStack.add(EntryEditorKey()) })
+                        }
                     }
                     entry<SettingsKey> {
                         SettingsScreen(
@@ -164,7 +202,7 @@ fun PitakaRoot(
                     }
                     entry<EntryEditorKey> { key ->
                         EntryEditorRoute(
-                            key.transactionId, key.startKind,
+                            key.transactionId, key.startKind, key.payScheduleId,
                             onDone = { backStack.removeLastOrNull() },
                             onOpenWallets = { backStack.add(WalletsKey) },
                         )

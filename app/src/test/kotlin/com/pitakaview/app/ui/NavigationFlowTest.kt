@@ -59,7 +59,7 @@ class NavigationFlowTest {
         rule.onNode(tab("Home")).assertIsSelected()
 
         rule.onNode(tab("Gastos")).performClick()
-        rule.onNodeWithText("Being built next").assertIsDisplayed()
+        rule.onNodeWithText("Add expense").assertIsDisplayed()
         rule.onNode(tab("Gastos")).assertIsSelected()
 
         // System back from a tab returns to Home.
