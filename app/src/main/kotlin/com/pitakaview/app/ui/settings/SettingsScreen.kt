@@ -25,6 +25,12 @@ import com.pitakaview.app.ui.components.ThemePicker
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.theme.PitakaTheme
 
+/** The credit lines in the About card, here so a test can hold them to the licences' wording. */
+object AboutText {
+    const val FONT = "Font: Shantell Sans, SIL Open Font License 1.1"
+    const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
+}
+
 /** The version of the app that is installed, as Android knows it: never a number typed into the screen that can go stale. */
 @Composable
 fun rememberAppVersion(): String {
@@ -104,7 +110,9 @@ fun SettingsScreen(
                 Text("PitakaView $version", style = type.titleSmall, color = c.ink)
                 Text("Your whole wallet, one view.", style = type.bodyMedium, color = c.inkMuted)
                 Text("All your data stays on this phone.", style = type.bodyMedium, color = c.inkMuted)
-                Text("Font: Mali, SIL Open Font License 1.1", style = type.bodySmall, color = c.inkMuted)
+                Text(AboutText.FONT, style = type.bodySmall, color = c.inkMuted)
+                // The icon set's licence (CC BY 4.0) asks for this line: who made them, where, and that some were changed.
+                Text(AboutText.ICONS, style = type.bodySmall, color = c.inkMuted)
             }
         }
     }

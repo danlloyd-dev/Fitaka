@@ -87,7 +87,7 @@ class RoughEdgesFlowTest : FlowTestBase() {
         rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Kape at merienda"))
         rule.onNode(hasText("Kape at merienda") and hasClickAction()).performClick()
         waitFor("Edit category")
-        icon("Star").performClick()
+        icon("Game controller").performClick()
         tapButton("Save")
         rule.waitUntil(10_000) { expenseCategories().single { it.name == "Kape at merienda" }.iconKey == "fun" }
         assertEquals("the starter categories keep theirs", "food", expenseCategories().single { it.name == "Food" }.iconKey)

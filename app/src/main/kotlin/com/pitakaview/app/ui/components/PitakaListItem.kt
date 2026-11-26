@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -71,10 +72,10 @@ fun SectionBadge(section: Section, icon: ImageVector, modifier: Modifier = Modif
     Box(
         modifier = modifier
             .size(size)
-            .sketchBox(RoundedCornerShape(12.dp), fill = c.fill(section), border = c.ink, borderWidth = PitakaDimens.borderThin),
+            .sketchBox(RoundedCornerShape(12.dp), fill = c.fill(section), border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = Gloss.Badge),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(size * 0.55f))
+        Icon(icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(icon.sizeFor(size * 0.55f)))
     }
 }
 

@@ -56,19 +56,54 @@ class ThemeContrastTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
-    /** Frosted bars: even with solid ink scrolled right under the glass, bar text must stay readable. */
+    /** The frosted top bar: even with solid ink scrolled right under the glass, its text must stay readable. */
     @Test
-    fun glassBarsStayReadableInTheWorstCase() {
+    fun theGlassTopBarStaysReadableInTheWorstCase() {
         for (c in all) {
             val alpha = if (c.isDark) com.pitakaview.app.ui.components.GLASS_TINT_DARK else com.pitakaview.app.ui.components.GLASS_TINT_LIGHT
-            val topBar = mix(c.background, c.ink, alpha)
-            val bottomBar = mix(c.card, c.ink, alpha)
-            // All text on glass is full ink (title, subtitle, every tab label): text needs 4.5.
-            need(c, "text on top-bar glass", c.ink, topBar, 4.5)
-            need(c, "tab label on bottom-bar glass", c.ink, bottomBar, 4.5)
-            // Unselected tab icons are muted ink: graphics need 3.0.
-            need(c, "unselected tab icon on bottom-bar glass", c.inkMuted, bottomBar, 3.0)
+            // All text on glass is full ink (title and subtitle): text needs 4.5.
+            need(c, "text on top-bar glass", c.ink, mix(c.background, c.ink, alpha), 4.5)
         }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /**
+     * The floating bottom bar is solid, in the card colour. Its words are full ink on the card; each
+     * icon sits on a dab of its section's tint, and the chosen one on a solid tile.
+     */
+    @Test
+    fun theFloatingBottomBarStaysReadable() {
+        for (c in all) {
+            need(c, "tab label on the bar", c.ink, c.card, 4.5)
+            need(c, "icon on the Home dab", c.ink, c.homeTint, 3.0)
+            need(c, "icon on the chosen Home tile", c.onPrimary, c.primary, 3.0)
+            Section.entries.forEach {
+                need(c, "icon on the ${it.label} dab", c.ink, c.tint(it), 3.0)
+                need(c, "icon on the chosen ${it.label} tile", c.onSectionFill, c.fill(it), 3.0)
+            }
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /**
+     * The tints grew stronger with the gloss (30% and 34% of the section colour). Muted ink on them falls
+     * to 3.0:1, so small text on a tinted card is full ink ([PitakaColors.captionOnTint]): every caption there keeps 4.5.
+     */
+    @Test
+    fun captionsOnTintedCardsAreFullInkAndMeetAA() {
+        for (c in all) {
+            Section.entries.forEach { need(c, "caption on ${it.label} tint", c.captionOnTint, c.tint(it), 4.5) }
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+        // What the rule is for: without it, at least one caption would fall below AA.
+        val unreadable = all.any { c -> Section.entries.any { ratio(c.inkMuted, c.tint(it)) < 4.5 } }
+        assertTrue("muted ink would have been enough: the rule is not needed any more", unreadable)
+    }
+
+    /** Round icon buttons are a pale share of the primary colour: their ink icon is a graphic, 3.0. */
+    @Test
+    fun roundIconButtonsKeepTheirIconReadable() {
+        for (c in all) need(c, "icon on a round button", c.ink, c.iconButton, 3.0)
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 

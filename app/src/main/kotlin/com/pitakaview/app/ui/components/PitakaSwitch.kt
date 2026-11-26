@@ -49,7 +49,10 @@ fun PitakaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(TrackWidth, TrackHeight)
-            .sketchBox(RoundedCornerShape(50), fill = if (checked) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin),
+            .sketchBox(
+                RoundedCornerShape(50), fill = if (checked) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin,
+                gloss = if (checked) Gloss.Switch else null,
+            ),
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(Modifier.offset(x = knobAt).size(Knob).background(if (checked) c.card else c.ink, CircleShape))

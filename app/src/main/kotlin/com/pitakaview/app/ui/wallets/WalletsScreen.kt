@@ -43,6 +43,7 @@ import com.pitakaview.app.domain.WalletProvider
 import com.pitakaview.app.domain.WalletRules
 import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.ui.components.AmountText
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
@@ -56,6 +57,7 @@ import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
@@ -113,9 +115,9 @@ fun WalletsContent(wallets: List<WalletWithBalance>, onBack: () -> Unit, onAdd: 
                                 subtitle = row.wallet.type.label + if (row.wallet.isArchived) " · hidden" else "",
                                 leading = {
                                     Box(
-                                        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin),
+                                        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin, gloss = Gloss.Badge),
                                         contentAlignment = Alignment.Center,
-                                    ) { Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(22.dp)) }
+                                    ) { Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(PitakaIcons.Wallet.sizeFor(22.dp))) }
                                 },
                                 trailing = { AmountText(row.balanceCentavos) },
                                 onClick = { onOpen(row.wallet.id) },

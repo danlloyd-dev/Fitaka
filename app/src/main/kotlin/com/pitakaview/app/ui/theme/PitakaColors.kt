@@ -29,20 +29,37 @@ data class PitakaColors(
     val onPrimary: Color,
     /** Icons and text drawn on a solid section colour. */
     val onSectionFill: Color,
+    /** The round icon buttons: a pale share of the primary colour, not the card colour, so their gloss shows. */
+    val iconButton: Color,
+    /** The Home tab's dab in the bottom bar: the primary colour, as pale as a section's tint. */
+    val homeTint: Color,
     private val fills: List<Color>,
     private val tints: List<Color>,
 ) {
     /** The bright section colour, for small elements: icons, chart bars, tags. */
     fun fill(section: Section): Color = fills[section.ordinal]
 
-    /** A pale tint of the section colour, for card backgrounds. */
+    /** A tint of the section colour, for card backgrounds and the bottom bar's dabs. */
     fun tint(section: Section): Color = tints[section.ordinal]
+
+    /**
+     * Secondary text on a section-tinted card: full ink. Muted ink on a tint is as low as 3.0:1 (yellow
+     * in dark mode); full ink keeps every caption there at 4.5:1 or better (ThemeContrastTest).
+     * Use this, not [inkMuted], for any small text drawn on [tint] (TintedCardCaptionsTest reads the screens).
+     */
+    val captionOnTint: Color get() = ink
 }
 
-/** Share of section colour mixed into the card colour for tints, and of ink for muted text. */
-internal const val TINT_LIGHT = 0.18f
-internal const val TINT_DARK = 0.24f
+/**
+ * Share of section colour mixed into the card colour for tints, and of ink for muted text.
+ * The tints were 18% and 24% before the gloss: the streak of light on a tile needs colour to show on.
+ */
+internal const val TINT_LIGHT = 0.30f
+internal const val TINT_DARK = 0.34f
 internal const val MUTED_INK = 0.72f
+
+/** Share of the primary colour in a round icon button. */
+internal const val ICON_BUTTON_TINT = 0.26f
 
 fun pitakaColors(theme: ThemeId, dark: Boolean): PitakaColors {
     val base = Palette.base(theme, dark)
@@ -59,6 +76,8 @@ fun pitakaColors(theme: ThemeId, dark: Boolean): PitakaColors {
         primary = base.primary,
         onPrimary = base.onPrimary,
         onSectionFill = if (dark) base.background else base.ink,
+        iconButton = mix(base.primary, base.card, ICON_BUTTON_TINT),
+        homeTint = mix(base.primary, base.card, tintShare),
         fills = fills,
         tints = fills.map { mix(it, base.card, tintShare) },
     )

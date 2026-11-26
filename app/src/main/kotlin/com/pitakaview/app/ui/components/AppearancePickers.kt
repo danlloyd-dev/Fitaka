@@ -61,6 +61,7 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
                             borderWidth = if (isSelected) 3.dp else PitakaDimens.borderThin,
                             shadow = c.shadow,
                             shadowOffset = if (isSelected) shadow else 0.dp,
+                            gloss = Gloss.Swatch,
                         ),
                     contentAlignment = Alignment.Center,
                 ) {

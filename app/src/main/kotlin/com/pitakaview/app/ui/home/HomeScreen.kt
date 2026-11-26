@@ -3,7 +3,6 @@ package com.pitakaview.app.ui.home
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,8 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,7 +43,6 @@ import com.pitakaview.app.ui.components.PitakaListItem
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.EntryListItem
@@ -52,7 +50,6 @@ import com.pitakaview.app.ui.ledger.homeSubtitle
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import kotlinx.coroutines.launch
@@ -221,15 +218,15 @@ private fun WholeWalletCard(state: HomeState, onOpenWallets: () -> Unit) {
         }
         AnimatedAmountText(state.totalCentavos, style = type.displaySmall)
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            state.wallets.forEach { w ->
-                Column(
-                    Modifier
-                        .sketchBox(RoundedCornerShape(PitakaDimens.cornerSmall), c.background, c.ink, PitakaDimens.borderThin)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Text(w.wallet.name, style = type.labelMedium, color = c.inkMuted)
-                    Text(Peso.format(w.balanceCentavos), style = type.labelLarge, color = c.ink)
+        // One row per wallet, name on the left and amount on the right: three wallets or six read the
+        // same, and nothing is squeezed into a row of boxes that scrolls sideways.
+        state.wallets.forEach { w ->
+            key(w.wallet.id) {
+                PitakaDivider()
+                Row(Modifier.fillMaxWidth().heightIn(min = 38.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(w.wallet.name, style = type.labelLarge, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(12.dp))
+                    Text(Peso.format(w.balanceCentavos), style = type.labelLarge, color = c.ink, maxLines = 1)
                 }
             }
         }
@@ -252,7 +249,7 @@ private fun SectionTile(
             Text(section.label, style = type.titleSmall, color = c.ink)
         }
         Spacer(Modifier.height(8.dp))
-        Text(caption, style = type.bodySmall, color = c.inkMuted)
+        Text(caption, style = type.bodySmall, color = c.captionOnTint)
         if (centavos != null) AnimatedAmountText(centavos) else Text("—", style = type.titleMedium, color = c.ink)
     }
 }
@@ -269,11 +266,11 @@ private fun UtangTile(state: HomeState, onOpen: (Section) -> Unit) {
         Spacer(Modifier.height(8.dp))
         Row {
             Column(Modifier.weight(1f)) {
-                Text("You owe", style = type.bodySmall, color = c.inkMuted)
+                Text("You owe", style = type.bodySmall, color = c.captionOnTint)
                 AnimatedAmountText(state.iOweCentavos)
             }
             Column(Modifier.weight(1f)) {
-                Text("Owed to you", style = type.bodySmall, color = c.inkMuted)
+                Text("Owed to you", style = type.bodySmall, color = c.captionOnTint)
                 AnimatedAmountText(state.owedToMeCentavos)
             }
         }

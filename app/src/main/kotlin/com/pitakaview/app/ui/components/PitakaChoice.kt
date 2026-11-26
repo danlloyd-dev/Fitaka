@@ -51,6 +51,7 @@ fun PitakaSegmented(
                     .weight(1f)
                     .heightIn(min = 48.dp)
                     .background(if (isSelected) c.ink else c.card)
+                    .then(if (isSelected) Modifier.gloss(Gloss.Segment, on = c.ink) else Modifier)
                     .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(index) }),
                 contentAlignment = Alignment.Center,
             ) {
@@ -76,7 +77,7 @@ fun PitakaChip(
     Box(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin)
+            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null)
             .clip(shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),

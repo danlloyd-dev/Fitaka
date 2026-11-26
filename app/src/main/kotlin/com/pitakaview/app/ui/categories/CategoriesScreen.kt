@@ -38,6 +38,7 @@ import com.pitakaview.app.data.db.PitakaDatabase
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.CategoryKind
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
@@ -50,6 +51,7 @@ import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.CategoryIcons
 import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -225,12 +227,12 @@ private fun IconPicker(picked: String, onPick: (String) -> Unit) {
             Box(
                 Modifier
                     .size(48.dp)
-                    .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin)
+                    .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Badge else null)
                     .clip(shape)
                     .selectable(selected = selected, role = Role.RadioButton, onClick = { onPick(icon.key) }),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon.image, contentDescription = icon.label, tint = if (selected) c.card else c.ink, modifier = Modifier.size(26.dp))
+                Icon(icon.image, contentDescription = icon.label, tint = if (selected) c.card else c.ink, modifier = Modifier.size(icon.image.sizeFor(26.dp)))
             }
         }
     }

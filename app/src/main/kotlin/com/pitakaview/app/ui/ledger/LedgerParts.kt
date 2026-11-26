@@ -29,6 +29,9 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +41,7 @@ import com.pitakaview.app.data.db.dao.isMove
 import com.pitakaview.app.data.db.dao.signedCentavos
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.AmountText
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaDivider
 import com.pitakaview.app.ui.components.PitakaIconButton
@@ -48,6 +52,7 @@ import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.CategoryIcons
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.theme.PitakaDimens
@@ -131,7 +136,7 @@ fun MonthTotalCard(section: Section, caption: String, ledger: MonthLedger, modif
         }
         Spacer(Modifier.height(8.dp))
         AnimatedAmountText(ledger.totalCentavos, style = type.displaySmall)
-        Text(if (ledger.loaded) entriesText(ledger.entryCount) else " ", style = type.bodySmall, color = c.inkMuted)
+        Text(if (ledger.loaded) entriesText(ledger.entryCount) else " ", style = type.bodySmall, color = c.captionOnTint)
     }
 }
 
@@ -146,7 +151,8 @@ fun CategoryBreakdownCard(categories: List<CategoryShare>, totalCentavos: Long, 
                 if (i > 0) Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // The name beside it says what it is; a row without a category of its own gets the three dots.
-                    Icon(CategoryIcons.forKey(category.iconKey), contentDescription = null, tint = c.ink, modifier = Modifier.size(20.dp))
+                    val icon = CategoryIcons.forKey(category.iconKey)
+                    Icon(icon, contentDescription = null, tint = c.ink, modifier = Modifier.size(icon.sizeFor(20.dp)))
                     Spacer(Modifier.width(8.dp))
                     Text(category.name, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Text(
@@ -175,7 +181,12 @@ fun ShareBar(fraction: Float, section: Section) {
             .sketchBox(shape, fill = c.background, border = c.ink, borderWidth = PitakaDimens.borderThin)
             .clip(shape),
     ) {
-        Box(Modifier.fillMaxWidth(shown).fillMaxHeight().background(c.fill(section)))
+        // The fill, with a paler band along its top half: the same gloss the buttons have.
+        Box(
+            Modifier.fillMaxWidth(shown).fillMaxHeight().background(c.fill(section)).drawBehind {
+                drawRect(Color.White.copy(alpha = 0.55f), size = Size(size.width, size.height * 0.45f))
+            },
+        )
     }
 }
 
@@ -231,9 +242,9 @@ fun EntryListItem(row: RecentTransaction, subtitle: String, onClick: () -> Unit)
 fun TransferBadge() {
     val c = PitakaTheme.colors
     Box(
-        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin),
+        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin, gloss = Gloss.Badge),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(22.dp))
+        Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(PitakaIcons.Wallet.sizeFor(22.dp)))
     }
 }

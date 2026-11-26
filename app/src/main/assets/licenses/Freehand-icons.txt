@@ -1,0 +1,18 @@
+Streamline Freehand icons
+https://streamlinehq.com
+
+The hand-drawn icons in PitakaView come from the Freehand set by Streamline (https://streamlinehq.com).
+They are used under the Creative Commons Attribution 4.0 International licence (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Changes made for PitakaView:
+- Money bag, receipt, piggy bank and banknote: the dollar sign was taken out of each drawing and a peso
+  sign was drawn in its place.
+- Coin: the peso sign's two bars were added across its letter P.
+- All of them are drawn in the colours of the app's themes.
+
+Icons used (Freehand names): home, money-bag, money-coin-purse, saving-piggy-bank, receipt,
+synchronize-arrows, money-wallet, settings-cog, add-sign-bold, search-magnifier, connect-flash,
+shopping-cart-trolley, shopping-bag-side, send-email-paper-plane-1, water-fountain-sink,
+mobile-phone-smartphone, business-metaphor-lucky-cat, video-game-controller, book-flip-page,
+money-cash-bill, laptop-computer-1, discount-point-coin, menu-navigation-horizontal.

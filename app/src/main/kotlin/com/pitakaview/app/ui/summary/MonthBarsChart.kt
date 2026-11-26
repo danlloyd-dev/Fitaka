@@ -19,6 +19,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -63,6 +66,15 @@ private val IN_SECTION = Section.KITA
 private val OUT_SECTION = Section.GASTOS
 
 /**
+ * A column's colour with a paler stripe down its left side: the gloss the buttons have, turned upright.
+ * The stripe is placed by the column's own width, so every column has it in the same place.
+ */
+private fun glossyColumn(color: Color): Brush {
+    val light = lerp(color, Color.White, 0.55f)
+    return Brush.horizontalGradient(0f to color, 0.28f to color, 0.28f to light, 0.5f to light, 0.5f to color, 1f to color)
+}
+
+/**
  * Money in and money out for the last six months, as pairs of bars in the app's sketch style: section
  * colours, thick ink outlines, the handwritten font. Drawn with Vico.
  *
@@ -91,8 +103,8 @@ fun MonthBarsChart(bars: List<MonthBar>, modifier: Modifier = Modifier) {
     val linePlacer = remember(lineGap) { VerticalAxis.ItemPlacer.step({ lineGap }) }
     val barShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
     val ink = Fill(c.ink)
-    val moneyIn = rememberLineComponent(fill = Fill(c.fill(IN_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
-    val moneyOut = rememberLineComponent(fill = Fill(c.fill(OUT_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val moneyIn = rememberLineComponent(fill = Fill(glossyColumn(c.fill(IN_SECTION))), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val moneyOut = rememberLineComponent(fill = Fill(glossyColumn(c.fill(OUT_SECTION))), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
     val label = rememberAxisLabelComponent(style = type.labelMedium.copy(color = c.ink))
     val axisLine = rememberAxisLineComponent(fill = ink, thickness = 2.dp)
     val guideline = rememberAxisGuidelineComponent(fill = Fill(c.ink.copy(alpha = 0.25f)))

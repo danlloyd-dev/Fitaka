@@ -1,63 +1,49 @@
 package com.pitakaview.app.ui.icons
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Simple round-stroke icons drawn in code (24×24), so the app needs no icon library.
- * Black strokes are recoloured by Icon's tint.
+ * The app's icons (24×24), all built in code, so the app needs no icon library. Black is recoloured by
+ * Icon's tint.
+ *
+ * Most are hand-drawn ([HandDrawn], from Streamline Freehand). The small arrows and the tick stay plain
+ * round strokes: they are controls, and read best as simple lines.
  */
 object PitakaIcons {
-    val Home by lazy { strokeIcon("Home", "M4 10.5 L12 4 L20 10.5 V20 H14.5 V14.5 H9.5 V20 H4 Z") }
+    val Home: ImageVector get() = HandDrawn.Home
 
-    /** Kita: money coming in. */
-    val Kita by lazy { strokeIcon("Kita", "M4 14 V19 H20 V14", "M12 4 V14", "M8 10 L12 14 L16 10") }
+    /** Kita: a bag of money. */
+    val Kita: ImageVector get() = HandDrawn.MoneyBag
 
-    /** Baon: a lunch box. */
-    val Baon by lazy { strokeIcon("Baon", "M4 9 H20 V19 H4 Z", "M9 9 V6 H15 V9", "M4 13.5 H20") }
+    /** Baon: a coin purse. */
+    val Baon: ImageVector get() = HandDrawn.CoinPurse
 
-    /** Ipon: an alkansya jar with a coin slot. */
-    val Ipon by lazy {
-        strokeIcon("Ipon", "M7 8 H17 V18.5 Q17 20 15.5 20 H8.5 Q7 20 7 18.5 Z", "M8.5 4.5 H15.5 V8 H8.5 Z", "M10 12.5 H14")
-    }
+    /** Ipon: an alkansya. */
+    val Ipon: ImageVector get() = HandDrawn.PiggyBank
 
     /** Gastos: a receipt. */
-    val Gastos by lazy {
-        strokeIcon(
-            "Gastos",
-            "M6 3 H18 V21 L16 19.5 L14 21 L12 19.5 L10 21 L8 19.5 L6 21 Z",
-            "M9 8 H15",
-            "M9 12 H15",
-            "M9 16 H12",
-        )
-    }
+    val Gastos: ImageVector get() = HandDrawn.Receipt
 
     /** Utang: money changing hands. */
-    val Utang by lazy { strokeIcon("Utang", "M4 8 H17", "M14 5 L17 8 L14 11", "M20 16 H7", "M10 13 L7 16 L10 19") }
+    val Utang: ImageVector get() = HandDrawn.Exchange
 
-    val Wallet by lazy {
-        strokeIcon("Wallet", "M4 7 H18 Q20 7 20 9 V18 Q20 20 18 20 H6 Q4 20 4 18 Z", "M4 7 Q4 4 7 4 H16 V7", "M15 13.5 H17")
-    }
+    val Wallet: ImageVector get() = HandDrawn.Wallet
+    val Settings: ImageVector get() = HandDrawn.Cog
+    val Add: ImageVector get() = HandDrawn.Plus
+    val Search: ImageVector get() = HandDrawn.Magnifier
 
-    val Settings by lazy {
-        strokeIcon(
-            "Settings",
-            "M4 7 H6.5", "M11.5 7 H20", "M6.5 7 A2.5 2.5 0 1 0 11.5 7 A2.5 2.5 0 1 0 6.5 7",
-            "M4 17 H12.5", "M17.5 17 H20", "M12.5 17 A2.5 2.5 0 1 0 17.5 17 A2.5 2.5 0 1 0 12.5 17",
-        )
-    }
-
-    val Add by lazy { strokeIcon("Add", "M12 5 V19", "M5 12 H19") }
     val Back by lazy { strokeIcon("Back", "M19 12 H5", "M11 6 L5 12 L11 18") }
     val Check by lazy { strokeIcon("Check", "M5 12.5 L10 17.5 L19 7") }
     val ChevronRight by lazy { strokeIcon("ChevronRight", "M9 6 L15 12 L9 18") }
     val ChevronLeft by lazy { strokeIcon("ChevronLeft", "M15 6 L9 12 L15 18") }
-    val Search by lazy { strokeIcon("Search", "M4.5 10.5 A6 6 0 1 0 16.5 10.5 A6 6 0 1 0 4.5 10.5", "M15 15 L20 20") }
 }
 
 /** The icon that stands for each section. */
@@ -70,17 +56,67 @@ val com.pitakaview.app.ui.theme.Section.icon: ImageVector
         com.pitakaview.app.ui.theme.Section.UTANG -> PitakaIcons.Utang
     }
 
-internal fun strokeIcon(name: String, vararg paths: String): ImageVector =
+/** The line of the app's own stroke icons. */
+internal const val STROKE = 2.2f
+
+/**
+ * The line of the eight category icons the hand-drawn set has no match for (food, bus, health, family,
+ * gift, coffee, heart, shirt): lighter, so they sit beside the hand-drawn ones.
+ */
+internal const val STROKE_BESIDE_HAND_DRAWN = 1.7f
+
+internal fun strokeIcon(name: String, vararg paths: String, width: Float = STROKE): ImageVector =
     ImageVector.Builder(name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
         .apply {
             paths.forEach {
                 addPath(
                     pathData = addPathNodes(it),
                     stroke = SolidColor(Color.Black),
-                    strokeLineWidth = 2.2f,
+                    strokeLineWidth = width,
                     strokeLineCap = StrokeCap.Round,
                     strokeLineJoin = StrokeJoin.Round,
                 )
             }
         }
         .build()
+
+/** One piece of a hand-drawn icon: a filled outline ([Shape]), or a line drawn with a round pen ([PenLine]). */
+internal sealed interface Piece
+
+internal class Shape(val path: String, val evenOdd: Boolean = false) : Piece
+
+internal class PenLine(val path: String, val width: Float) : Piece
+
+private const val HAND_DRAWN = "HandDrawn-"
+
+/** Builds a hand-drawn icon from its pieces, in the order given. */
+internal fun drawnIcon(name: String, vararg pieces: Piece): ImageVector =
+    ImageVector.Builder(name = HAND_DRAWN + name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
+        .apply {
+            pieces.forEach { piece ->
+                when (piece) {
+                    is Shape -> addPath(
+                        pathData = addPathNodes(piece.path),
+                        fill = SolidColor(Color.Black),
+                        pathFillType = if (piece.evenOdd) PathFillType.EvenOdd else PathFillType.NonZero,
+                    )
+                    is PenLine -> addPath(
+                        pathData = addPathNodes(piece.path),
+                        stroke = SolidColor(Color.Black),
+                        strokeLineWidth = piece.width,
+                        strokeLineCap = StrokeCap.Round,
+                        strokeLineJoin = StrokeJoin.Round,
+                    )
+                }
+            }
+        }
+        .build()
+
+/** True for the hand-drawn icons, whose lines are thinner than the app's own strokes. */
+val ImageVector.isHandDrawn: Boolean get() = name.startsWith(HAND_DRAWN)
+
+/**
+ * The size to draw this icon at where a stroke icon would be [base]: hand-drawn icons are shown a little
+ * larger ([more]) because their lines are thinner (26 in a 40 badge where a stroke icon is 22).
+ */
+fun ImageVector.sizeFor(base: Dp, more: Dp = 4.dp): Dp = if (isHandDrawn) base + more else base

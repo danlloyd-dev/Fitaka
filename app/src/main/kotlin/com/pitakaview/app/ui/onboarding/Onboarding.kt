@@ -47,6 +47,7 @@ import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.EntryFormLogic
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WalletType
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
@@ -58,6 +59,7 @@ import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.mascot.Alkansya
 import com.pitakaview.app.ui.mascot.AlkansyaMood
 import com.pitakaview.app.ui.theme.PitakaDimens
@@ -322,10 +324,10 @@ fun OnboardingContent(
                         Section.entries.forEach { section ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    Modifier.size(40.dp).sketchBox(RoundedCornerShape(PitakaDimens.cornerSmall), c.fill(section), c.ink, borderWidth = PitakaDimens.borderThin),
+                                    Modifier.size(40.dp).sketchBox(RoundedCornerShape(PitakaDimens.cornerSmall), c.fill(section), c.ink, borderWidth = PitakaDimens.borderThin, gloss = Gloss.Badge),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Icon(section.icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(22.dp))
+                                    Icon(section.icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(section.icon.sizeFor(22.dp)))
                                 }
                                 Spacer(Modifier.width(12.dp))
                                 Column {

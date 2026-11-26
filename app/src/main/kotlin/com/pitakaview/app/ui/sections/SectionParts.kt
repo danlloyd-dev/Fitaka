@@ -58,7 +58,7 @@ fun SectionTotalsCard(section: Section, totals: List<Pair<String, Long>>, modifi
         Row {
             totals.forEach { (caption, centavos) ->
                 Column(Modifier.weight(1f)) {
-                    Text(caption, style = type.bodySmall, color = c.inkMuted)
+                    Text(caption, style = type.bodySmall, color = c.captionOnTint)
                     AnimatedAmountText(centavos, style = if (totals.size == 1) type.displaySmall else type.titleLarge)
                 }
             }

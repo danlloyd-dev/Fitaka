@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.ButtonLabelStyle
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
@@ -73,6 +74,7 @@ fun PitakaButton(
                 border = c.ink,
                 shadow = c.shadow,
                 shadowOffset = if (enabled) shadow - push else 0.dp,
+                gloss = Gloss.Button,
             )
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .defaultMinSize(minHeight = 56.dp)
@@ -80,13 +82,16 @@ fun PitakaButton(
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (icon != null) Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
+            if (icon != null) Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(icon.sizeFor(22.dp, more = 2.dp)))
             Text(text, style = ButtonLabelStyle, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
-/** A round outlined icon button (48dp touch target) for top bars and small actions. */
+/**
+ * A round outlined icon button (48dp touch target) for top bars and small actions. Its fill is a pale
+ * share of the primary colour, not the card colour: gloss on white would show nothing.
+ */
 @Composable
 fun PitakaIconButton(
     icon: ImageVector,
@@ -105,11 +110,11 @@ fun PitakaIconButton(
             .padding(end = shadow, bottom = shadow)
             .offset(x = push, y = push)
             .size(size)
-            .sketchBox(CircleShape, c.card, c.ink, PitakaDimens.borderThin, c.shadow, shadow - push)
+            .sketchBox(CircleShape, c.iconButton, c.ink, PitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = c.ink, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = c.ink, modifier = Modifier.size(icon.sizeFor(22.dp, more = 2.dp)))
     }
 }
