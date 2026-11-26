@@ -35,6 +35,7 @@ import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.CsvExport
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaScreen
@@ -294,27 +295,23 @@ fun BackupContent(
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
+    // Replacing everything cannot be undone: asked over the whole screen, not in the footer.
+    if (pending != null) {
+        PitakaConfirmDialog(
+            title = "Replace everything on this phone?",
+            lines = listOf(describe(pending, today), "What is on this phone now will be removed. This cannot be undone."),
+            confirmLabel = "Yes, restore",
+            dismissLabel = "Cancel",
+            onConfirm = onConfirmRestore,
+            onDismiss = onCancelRestore,
+            enabled = !busy,
+        )
+    }
+
     PitakaScreen(
         title = "Backup",
         subtitle = "Keep a copy of your data",
         onBack = onBack,
-        // The yes/no for a restore sits in the footer, always on screen.
-        pinnedAction = if (pending == null) {
-            null
-        } else {
-            {
-                Column {
-                    Text("Replace everything on this phone?", style = type.titleSmall, color = c.ink)
-                    Text(describe(pending, today), style = type.bodySmall, color = c.ink)
-                    Text("What is on this phone now will be removed. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, restore", onClick = onConfirmRestore, modifier = Modifier.weight(1f), enabled = !busy)
-                        PitakaButton("Cancel", onClick = onCancelRestore, modifier = Modifier.weight(1f), enabled = !busy)
-                    }
-                }
-            }
-        },
     ) {
         item(key = "why") {
             PitakaCard(Modifier.fillMaxWidth()) {

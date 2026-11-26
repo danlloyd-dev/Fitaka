@@ -36,6 +36,9 @@ import androidx.navigation3.ui.NavDisplay
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
+import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.ReminderKind
 import com.pitakaview.app.domain.ThemeId
@@ -66,6 +69,7 @@ import com.pitakaview.app.ui.settings.SettingsScreen
 import com.pitakaview.app.ui.settings.rememberLockSettings
 import com.pitakaview.app.ui.settings.rememberReminderSettings
 import com.pitakaview.app.ui.summary.SummaryRoute
+import com.pitakaview.app.ui.theme.FullSize
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.utang.LoanDetailRoute
@@ -152,6 +156,9 @@ fun PitakaRoot(
     appearance: AppearanceSettings,
     onThemeChange: (ThemeId) -> Unit,
     onDarkModeChange: (DarkModePref) -> Unit,
+    onSizeChange: (UiSize) -> Unit = {},
+    onStyleChange: (UiStyle) -> Unit = {},
+    onFontChange: (FontChoice) -> Unit = {},
     /** The screen a tapped reminder asked for; [onReminderOpened] is called once the app is there. */
     reminderToOpen: ReminderOpen? = null,
     onReminderOpened: () -> Unit = {},
@@ -319,6 +326,9 @@ fun PitakaRoot(
                             onOpenPhoneSettings = reminders.onOpenPhoneSettings,
                             lock = lock.ui,
                             onLockChange = lock.onChange,
+                            onSizeChange = onSizeChange,
+                            onStyleChange = onStyleChange,
+                            onFontChange = onFontChange,
                         )
                     }
                     entry<EntryEditorKey> { key ->
@@ -358,12 +368,15 @@ fun PitakaRoot(
                 exit = slideOutVertically(tween(PitakaMotion.SHORT, easing = PitakaMotion.Exit)) { it } +
                     fadeOut(tween(PitakaMotion.SHORT)),
             ) {
-                PitakaBottomBar(
-                    items = MainTabs,
-                    selectedIndex = currentTab ?: lastTab,
-                    onSelect = { backStack.goToTab(it) },
-                    modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
-                )
+                // The size setting leaves the bar alone: it is drawn at the phone's own size.
+                FullSize {
+                    PitakaBottomBar(
+                        items = MainTabs,
+                        selectedIndex = currentTab ?: lastTab,
+                        onSelect = { backStack.goToTab(it) },
+                        modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
+                    )
+                }
             }
         }
     }

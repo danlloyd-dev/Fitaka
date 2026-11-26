@@ -61,9 +61,9 @@ class ThemeScreenshotTest {
         }
     }
 
-    /** All ten theme/mode pairs side by side, for comparing at a glance. */
+    /** Every theme in light and dark side by side, for comparing at a glance. */
     @Test
-    @Config(qualifiers = "w1600dp-h560dp-mdpi")
+    @Config(qualifiers = "w1920dp-h560dp-mdpi")
     fun allThemesSideBySide() {
         captureRoboImage("build/outputs/roborazzi/themes_overview.png") {
             Row {

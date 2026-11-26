@@ -49,6 +49,7 @@ import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.PitakaTextField
@@ -309,27 +310,26 @@ fun MoveEditorContent(
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
 
+    // A question about something that cannot be undone is asked over the whole screen, not in the footer.
+    if (confirmDelete) {
+        PitakaConfirmDialog(
+            title = "Delete this entry?",
+            lines = listOf("It is removed from your totals. This cannot be undone."),
+            confirmLabel = "Yes, delete",
+            dismissLabel = "Keep",
+            onConfirm = onDelete,
+            onDismiss = { confirmDelete = false },
+        )
+    }
+
     PitakaScreen(
         title = ui.title,
         subtitle = ui.subtitle,
         onBack = onBack,
         pinnedAction = {
-            if (confirmDelete) {
-                // In the footer, so the question is always on screen.
-                Column {
-                    Text("Delete this entry?", style = type.titleSmall, color = c.ink)
-                    Text("It is removed from your totals. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
-                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
-                    }
-                }
-            } else {
-                Column {
-                    if (ui.saveError != null) ProblemText(ui.saveError)
-                    PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-                }
+            Column {
+                if (ui.saveError != null) ProblemText(ui.saveError)
+                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
             }
         },
     ) {
@@ -358,7 +358,7 @@ fun MoveEditorContent(
         }
         item(key = "date") { DateChoice(ui.date, ui.today, onDate) }
         item(key = "note") { PitakaTextField(state = note, label = "Note", placeholder = "Optional") }
-        if (ui.isEdit && !confirmDelete) {
+        if (ui.isEdit) {
             item(key = "delete") {
                 PitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
             }

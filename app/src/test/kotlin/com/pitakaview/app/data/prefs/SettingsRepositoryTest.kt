@@ -4,6 +4,9 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
+import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.ThemeId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,10 +40,16 @@ class SettingsRepositoryTest {
         first.setTheme(ThemeId.UBE)
         first.setDarkMode(DarkModePref.DARK)
         assertEquals(AppearanceSettings(ThemeId.UBE, DarkModePref.DARK), first.appearance.first())
+        // The size, the font and the style are kept the same way; until chosen they are Large, Shantell Sans and Glossy.
+        assertEquals(AppearanceSettings(ThemeId.UBE, DarkModePref.DARK, UiSize.LARGE, FontChoice.SHANTELL, UiStyle.GLOSSY), first.appearance.first())
+        first.setUiSize(UiSize.SMALL)
+        first.setFont(FontChoice.ITIM)
+        first.setUiStyle(UiStyle.SKETCH)
+        first.setTheme(ThemeId.ROSAS)
         firstJob.cancelAndJoin()
 
         val (second, secondJob) = open(file)
-        assertEquals(AppearanceSettings(ThemeId.UBE, DarkModePref.DARK), second.appearance.first())
+        assertEquals(AppearanceSettings(ThemeId.ROSAS, DarkModePref.DARK, UiSize.SMALL, FontChoice.ITIM, UiStyle.SKETCH), second.appearance.first())
         secondJob.cancelAndJoin()
     }
 

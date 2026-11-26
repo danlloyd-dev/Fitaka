@@ -123,6 +123,7 @@ fun HomeContent(
     PitakaScreen(
         title = "PitakaView",
         subtitle = greeting,
+        showLogo = true,
         actions = {
             PitakaIconButton(PitakaIcons.Search, "Search", onSearch)
             PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings)

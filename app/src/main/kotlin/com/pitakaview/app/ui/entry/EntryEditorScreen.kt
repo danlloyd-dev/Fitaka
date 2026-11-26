@@ -39,6 +39,7 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaChip
@@ -142,6 +143,18 @@ fun EntryEditorContent(
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
 
+    // A question about something that cannot be undone is asked over the whole screen, not in the footer.
+    if (confirmDelete) {
+        PitakaConfirmDialog(
+            title = "Delete this entry?",
+            lines = listOf("It is removed from your totals. This cannot be undone."),
+            confirmLabel = "Yes, delete",
+            dismissLabel = "Keep",
+            onConfirm = onDelete,
+            onDismiss = { confirmDelete = false },
+        )
+    }
+
     PitakaScreen(
         title = if (ui.isEdit) "Edit entry" else "Add entry",
         // What the entry is tied to, said at the top where it cannot scroll under the keyboard.
@@ -150,23 +163,9 @@ fun EntryEditorContent(
         onBack = onBack,
         // Save stays above the keyboard: type the amount, tap a category, tap Save.
         pinnedAction = {
-            if (confirmDelete) {
-                // The confirmation lives in the pinned bar, so it is always on screen. Inside the list it
-                // opened below the bar on a phone and could not be reached.
-                Column {
-                    Text("Delete this entry?", style = type.titleSmall, color = c.ink)
-                    Text("It is removed from your totals. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
-                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
-                    }
-                }
-            } else {
-                Column {
-                    if (ui.saveError != null) ProblemText(ui.saveError)
-                    PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-                }
+            Column {
+                if (ui.saveError != null) ProblemText(ui.saveError)
+                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
             }
         },
     ) {
@@ -253,7 +252,7 @@ fun EntryEditorContent(
             PitakaTextField(state = note, label = "Note", placeholder = "Optional")
         }
 
-        if (ui.isEdit && !confirmDelete) {
+        if (ui.isEdit) {
             item(key = "delete") {
                 PitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
             }

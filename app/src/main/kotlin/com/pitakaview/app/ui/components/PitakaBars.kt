@@ -3,6 +3,7 @@ package com.pitakaview.app.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,21 +33,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pitakaview.app.R
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.theme.PitakaDimens
@@ -65,6 +74,10 @@ fun PitakaTopBar(
     navigationLabel: String = "Back",
     onNavigationClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
+    /** The app's logo at the far left, where a screen with no way back has room for it (Home). */
+    showLogo: Boolean = false,
+    /** The page under this bar carries the Glassy style's patches of colour ([glassyPage]), which then run on over the bar. */
+    onGlassyPage: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val c = PitakaTheme.colors
@@ -74,6 +87,7 @@ fun PitakaTopBar(
         modifier = modifier
             .fillMaxWidth()
             .glassBackground(c.background)
+            .glassyBar(onGlassyPage)
             .drawBehind {
                 if (divider > 0f) {
                     val w = PitakaDimens.borderThin.toPx()
@@ -88,6 +102,8 @@ fun PitakaTopBar(
     ) {
         if (navigationIcon != null && onNavigationClick != null) {
             PitakaIconButton(navigationIcon, navigationLabel, onNavigationClick)
+        } else if (showLogo) {
+            PitakaLogo()
         }
         Column(Modifier.weight(1f)) {
             // Marked as a heading, so a screen reader can jump from title to title.
@@ -99,6 +115,38 @@ fun PitakaTopBar(
             if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         actions()
+    }
+}
+
+/** What tests find the logo by: it is a picture beside the app's name, so it has no words of its own. */
+internal const val LOGO_TAG = "PitakaLogo"
+
+/** The paper colour of the logo's own picture, so the tile around it has no seam. */
+private val LogoPaper = Color(0xFFF9F1DE)
+
+/**
+ * The app's logo, the owner's drawing of the wallet, as a small outlined tile. It is the picture the
+ * launcher icon uses (already in the app), drawn larger inside the tile: the launcher keeps the drawing
+ * to the middle two thirds of its picture.
+ */
+@Composable
+fun PitakaLogo(modifier: Modifier = Modifier, size: Dp = 44.dp) {
+    val c = PitakaTheme.colors
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier
+            .testTag(LOGO_TAG)
+            .padding(end = 3.dp, bottom = 3.dp)
+            .size(size)
+            .sketchBox(shape, fill = LogoPaper, border = c.ink, borderWidth = PitakaDimens.borderThin, shadow = c.shadow, shadowOffset = 3.dp)
+            .clip(shape),
+    ) {
+        Image(
+            painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = 1.45f; scaleY = 1.45f },
+        )
     }
 }
 

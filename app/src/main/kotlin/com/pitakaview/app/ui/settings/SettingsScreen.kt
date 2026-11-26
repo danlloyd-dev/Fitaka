@@ -13,9 +13,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
+import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.lock.LockSupport
 import com.pitakaview.app.ui.components.DarkModePicker
+import com.pitakaview.app.ui.components.FontPicker
+import com.pitakaview.app.ui.components.SizePicker
+import com.pitakaview.app.ui.components.StylePicker
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaDivider
 import com.pitakaview.app.ui.components.PitakaListItem
@@ -27,7 +33,7 @@ import com.pitakaview.app.ui.theme.PitakaTheme
 
 /** The credit lines in the About card, here so a test can hold them to the licences' wording. */
 object AboutText {
-    const val FONT = "Font: Shantell Sans, SIL Open Font License 1.1"
+    const val FONT = "Fonts: Shantell Sans, Mali, Pangolin, Fuzzy Bubbles, Itim. SIL Open Font License 1.1"
     const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
 }
 
@@ -55,6 +61,9 @@ fun SettingsScreen(
     lock: LockSettingsUi = LockSettingsUi(),
     onLockChange: (Boolean) -> Unit = {},
     version: String = rememberAppVersion(),
+    onSizeChange: (UiSize) -> Unit = {},
+    onStyleChange: (UiStyle) -> Unit = {},
+    onFontChange: (FontChoice) -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -97,6 +106,12 @@ fun SettingsScreen(
         item(key = "theme") { ThemePicker(appearance.theme, onThemeChange) }
         item(key = "mode-title") { SectionHeader("Light or dark") }
         item(key = "mode") { DarkModePicker(appearance.darkMode, onDarkModeChange) }
+        item(key = "size-title") { SectionHeader("Size") }
+        item(key = "size") { SizePicker(appearance.size, onSizeChange) }
+        item(key = "style-title") { SectionHeader("Style") }
+        item(key = "style") { StylePicker(appearance.style, onStyleChange) }
+        item(key = "font-title") { SectionHeader("Font") }
+        item(key = "font") { FontPicker(appearance.font, onFontChange) }
         // Kept well apart from the Reminders switch: with the two one above the other, a thumb aiming
         // at one could flip the other, and switching reminders off asks for nothing.
         // Not offered on a phone that cannot do it (before Android 10).

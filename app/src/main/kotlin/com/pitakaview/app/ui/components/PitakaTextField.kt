@@ -96,6 +96,7 @@ fun PitakaTextField(
                             borderWidth = if (focused || isError) 3.dp else PitakaDimens.border,
                             shadow = c.shadow,
                             shadowOffset = lift,
+                            glass = true,
                         )
                         .heightIn(min = 56.dp)
                         .padding(horizontal = 16.dp, vertical = 14.dp),

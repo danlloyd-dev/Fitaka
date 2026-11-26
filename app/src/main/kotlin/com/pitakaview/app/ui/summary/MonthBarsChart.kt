@@ -51,9 +51,11 @@ import com.patrykandpatrick.vico.compose.common.component.LineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.ledger.monthName
 import com.pitakaview.app.ui.ledger.monthTitle
+import com.pitakaview.app.ui.theme.LocalUiStyle
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -103,8 +105,9 @@ fun MonthBarsChart(bars: List<MonthBar>, modifier: Modifier = Modifier) {
     val linePlacer = remember(lineGap) { VerticalAxis.ItemPlacer.step({ lineGap }) }
     val barShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
     val ink = Fill(c.ink)
-    val moneyIn = rememberLineComponent(fill = Fill(glossyColumn(c.fill(IN_SECTION))), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
-    val moneyOut = rememberLineComponent(fill = Fill(glossyColumn(c.fill(OUT_SECTION))), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val glossy = LocalUiStyle.current == UiStyle.GLOSSY
+    val moneyIn = rememberLineComponent(fill = if (glossy) Fill(glossyColumn(c.fill(IN_SECTION))) else Fill(c.fill(IN_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val moneyOut = rememberLineComponent(fill = if (glossy) Fill(glossyColumn(c.fill(OUT_SECTION))) else Fill(c.fill(OUT_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
     val label = rememberAxisLabelComponent(style = type.labelMedium.copy(color = c.ink))
     val axisLine = rememberAxisLineComponent(fill = ink, thickness = 2.dp)
     val guideline = rememberAxisGuidelineComponent(fill = Fill(c.ink.copy(alpha = 0.25f)))

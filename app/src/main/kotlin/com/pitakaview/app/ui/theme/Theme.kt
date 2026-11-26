@@ -14,6 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
+import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.ThemeId
 
 /** Sizes shared by the sketch-style components. */
@@ -42,13 +45,20 @@ val PitakaShapes = Shapes(
 fun PitakaTheme(
     theme: ThemeId = ThemeId.MANGO,
     darkMode: DarkModePref = DarkModePref.SYSTEM,
+    font: FontChoice = FontChoice.SHANTELL,
+    style: UiStyle = UiStyle.GLOSSY,
+    size: UiSize = UiSize.LARGE,
     content: @Composable () -> Unit,
 ) {
     val dark = darkMode.resolve()
-    val colors = remember(theme, dark) { pitakaColors(theme, dark) }
+    val colors = remember(theme, dark, style) { pitakaColors(theme, dark).let { if (style == UiStyle.GLASSY) it.forGlass() else it } }
     val scheme = remember(colors) { colors.toColorScheme() }
-    CompositionLocalProvider(LocalPitakaColors provides colors) {
-        MaterialTheme(colorScheme = scheme, typography = PitakaTypography, shapes = PitakaShapes, content = content)
+    val typography = remember(font) { pitakaTypography(font.family()) }
+    CompositionLocalProvider(LocalPitakaColors provides colors, LocalUiStyle provides style) {
+        MaterialTheme(colorScheme = scheme, typography = typography, shapes = PitakaShapes) {
+            // Everything inside is drawn at the chosen size; the bottom bar steps back out of it (FullSize).
+            ScaledUi(size, content)
+        }
     }
 }
 

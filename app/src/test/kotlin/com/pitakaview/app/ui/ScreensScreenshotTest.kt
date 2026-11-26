@@ -54,6 +54,7 @@ import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.ui.home.BackupNudge
@@ -242,6 +243,16 @@ class ScreensScreenshotTest {
             SearchContent(TextFieldState("food"), SearchUi(asked = true, count = found.size, days = MonthLedgerBuilder.groupByDay(found)), today, {}, {})
         }
     }
+
+    /** Home in the styles that change most what a screen looks like: the glass needs the page's colour behind it. */
+    private fun homeStyled(theme: ThemeId, mode: DarkModePref, style: UiStyle, name: String) =
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
+            PitakaTheme(theme, mode, style = style) { HomeContent(sample, today, "Magandang hapon!", {}, {}, {}) }
+        }
+
+    @Test fun homeGlassyMangoLight() = homeStyled(ThemeId.MANGO, DarkModePref.LIGHT, UiStyle.GLASSY, "home_glassy_mango_light")
+    @Test fun homeGlassyDagatDark() = homeStyled(ThemeId.DAGAT, DarkModePref.DARK, UiStyle.GLASSY, "home_glassy_dagat_dark")
+    @Test fun homeSketchRosasLight() = homeStyled(ThemeId.ROSAS, DarkModePref.LIGHT, UiStyle.SKETCH, "home_sketch_rosas_light")
 
     // ---------- Utang, Ipon, Baon ----------
 

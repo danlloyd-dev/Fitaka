@@ -3,6 +3,7 @@ package com.pitakaview.app.ui.components
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
@@ -12,13 +13,20 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
@@ -26,11 +34,22 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.pitakaview.app.domain.UiStyle
+import com.pitakaview.app.ui.theme.LocalUiStyle
 import com.pitakaview.app.ui.theme.PitakaDimens
+import kotlin.math.max
+import kotlin.math.sin
 
 /**
- * The sketch look in one modifier: a solid shadow offset down-right, the fill, an optional [gloss] on
- * the fill, and a thick outline.
+ * The app's look in one modifier: a solid shadow offset down-right, the fill, and a thick outline,
+ * finished in the style chosen in Settings:
+ *
+ * - **Plain**: just that.
+ * - **Glossy**: a [gloss] on the fill (a paler band and a white glint), where the part asks for one.
+ * - **Glassy**: a part that says it is a pane of [glass] has a see-through fill and a line of light
+ *   inside its top edge; every other part is as in Plain.
+ * - **Sketch**: the outline is drawn by an unsteady hand, twice over, and the shadow is pencil strokes.
+ *
  * The shadow is drawn outside this node's bounds, so callers reserve room for it with
  * `padding(end = offset, bottom = offset)` *before* this modifier.
  *
@@ -47,24 +66,117 @@ fun Modifier.sketchBox(
     shadowOffset: Dp = 0.dp,
     gloss: Gloss? = null,
     outlineUnderContent: Boolean = false,
-): Modifier = this
-    .drawWithCache {
-        // Built once per size, not on every frame.
-        val outline = shape.createOutline(size, layoutDirection, this)
-        val offset = shadowOffset.toPx()
-        val shine = gloss?.let { glossFor(it, fill, inset = borderWidth.toPx()) }
-        val width = borderWidth.toPx()
-        val line = if (outlineUnderContent) insideEdge(outline, width) else null
-        onDrawBehind {
-            if (offset > 0f && shadow.isSpecified) {
-                translate(offset, offset) { drawOutline(outline, shadow) }
+    /**
+     * A pane of glass in the Glassy style: cards, fields, plain buttons. A part whose colour says
+     * something (a section's badge, the primary button, a theme's dots) is not, and neither is the
+     * bottom bar, which lists scroll behind.
+     */
+    glass: Boolean = false,
+): Modifier = composed {
+    sketchBox(LocalUiStyle.current, shape, fill, border, borderWidth, shadow, shadowOffset, gloss, outlineUnderContent, glass)
+}
+
+/** How much of a fill's own colour is left in the Glassy style: the rest is what lies behind it. */
+internal const val GLASS_FILL = 0.62f
+
+private fun Modifier.sketchBox(
+    style: UiStyle,
+    shape: Shape,
+    fill: Color,
+    border: Color,
+    borderWidth: Dp,
+    shadow: Color,
+    shadowOffset: Dp,
+    gloss: Gloss?,
+    outlineUnderContent: Boolean,
+    pane: Boolean,
+): Modifier {
+    val glass = style == UiStyle.GLASSY && pane
+    val rough = style == UiStyle.SKETCH
+    val drawnFill = if (glass) fill.copy(alpha = fill.alpha * GLASS_FILL) else fill
+    val drawOwnOutline = rough || outlineUnderContent
+    return this
+        .drawWithCache {
+            // Built once per size, not on every frame.
+            val outline = shape.createOutline(size, layoutDirection, this)
+            val offset = shadowOffset.toPx()
+            val width = borderWidth.toPx()
+            val shine = if (style == UiStyle.GLOSSY) gloss?.let { glossFor(it, fill, inset = width) } else null
+            val lines = when {
+                rough -> roughEdges(outline, width, density)
+                outlineUnderContent -> listOf(RoughLine(insideEdge(outline, width), width, 1f))
+                else -> emptyList()
             }
-            drawOutline(outline, fill)
-            shine?.invoke(this)
-            if (line != null) drawPath(line, border, style = Stroke(width))
+            // Under a see-through fill the shadow must not show through: it is cut out where the part lies.
+            // The Sketch style's shadow is pencil strokes, kept to where the solid shadow would show.
+            val shadowed = offset > 0f && shadow.isSpecified
+            val body = if ((glass || rough) && shadowed) Path().apply { addOutline(outline) } else null
+            val cast = if (rough && body != null) Path().apply { addPath(body, Offset(offset, offset)) } else null
+            val strokes = if (cast != null) hatching(size, offset, density) else null
+            val rim = if (glass) insideEdge(outline, width + 2 * density) else null
+            val drawLines: DrawScope.() -> Unit = {
+                lines.forEach { drawPath(it.path, border.copy(alpha = border.alpha * it.alpha), style = Stroke(it.width, cap = StrokeCap.Round, join = StrokeJoin.Round)) }
+            }
+            onDrawWithContent {
+                if (shadowed) {
+                    when {
+                        body != null && cast != null && strokes != null -> clipPath(body, ClipOp.Difference) {
+                            clipPath(cast) { drawPath(strokes, shadow, style = Stroke(HATCH_WIDTH * density, cap = StrokeCap.Round)) }
+                        }
+                        body != null -> clipPath(body, ClipOp.Difference) { translate(offset, offset) { drawOutline(outline, shadow) } }
+                        else -> translate(offset, offset) { drawOutline(outline, shadow) }
+                    }
+                }
+                drawOutline(outline, drawnFill)
+                shine?.invoke(this)
+                if (rim != null) {
+                    clipRect(bottom = size.height * 0.5f) { drawPath(rim, Color.White.copy(alpha = 0.55f), style = Stroke(1.5f * density)) }
+                }
+                if (outlineUnderContent) {
+                    drawLines()
+                    drawContent()
+                } else {
+                    drawContent()
+                    drawLines()
+                }
+            }
         }
+        .then(if (drawOwnOutline) Modifier else Modifier.border(borderWidth, border, shape))
+}
+
+private class RoughLine(val path: Path, val width: Float, val alpha: Float)
+
+/** The Sketch style's shadow strokes: how thick each is and how far apart, in dp. */
+private const val HATCH_WIDTH = 1.2f
+private const val HATCH_STEP = 4f
+
+/**
+ * The Sketch style's shadow: slanted pencil strokes down the right side and along the bottom, where the
+ * solid shadow would be. Only short strokes across those two strips are made (a part 350 wide gets about
+ * 120 of them, each a few dp long), not lines across the whole part; the caller clips them to the shadow's
+ * shape. Both strips take their strokes from one family of lines, so they meet at the corner.
+ */
+private fun hatching(size: Size, offset: Float, density: Float): Path = Path().apply {
+    val step = HATCH_STEP * density
+    // Past the strip, to fill the wider corner left by a rounded part.
+    val reach = offset + 8f * density
+    val right = size.width + offset
+    val bottom = size.height + offset
+    var line = step
+    while (line < right + bottom) {
+        if (line > right) {
+            val y = line - right
+            moveTo(right, y)
+            lineTo(right - reach, y + reach)
+        }
+        if (line > bottom) {
+            val x = line - bottom
+            moveTo(x, bottom)
+            lineTo(x + reach, bottom - reach)
+        }
+        line += step
     }
-    .then(if (outlineUnderContent) Modifier else Modifier.border(borderWidth, border, shape))
+}
 
 /** The line down the middle of an outline [width] thick drawn just inside [outline], as `border` draws it. */
 private fun insideEdge(outline: Outline, width: Float): Path = Path().apply {
@@ -85,10 +197,42 @@ private fun insideEdge(outline: Outline, width: Float): Path = Path().apply {
     }
 }
 
+/**
+ * The Sketch style's outline: the part's edge gone over twice by an unsteady hand. Each pass wanders a
+ * little to either side of the true edge, in slow waves, and the second is fainter and off the first.
+ * The waves depend only on the part's size, so an outline does not shimmer from frame to frame.
+ */
+private fun roughEdges(outline: Outline, width: Float, density: Float): List<RoughLine> {
+    val measure = PathMeasure().apply { setPath(insideEdge(outline, width), forceClosed = true) }
+    val length = measure.length
+    if (length <= 0f) return emptyList()
+    fun pass(sway: Float, shift: Float): Path = Path().apply {
+        val steps = max(12, (length / (4f * density)).toInt())
+        for (i in 0..steps) {
+            val at = length * i / steps
+            val point = measure.getPosition(at)
+            val along = measure.getTangent(at)
+            val wander = sway * density * (0.6f * sin(at / (21f * density) + shift) + 0.4f * sin(at / (8f * density) + shift * 1.7f))
+            val x = point.x - along.y * wander
+            val y = point.y + along.x * wander
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    val seed = length * 0.011f
+    return listOf(RoughLine(pass(0.9f, seed), width * 0.8f, 1f), RoughLine(pass(1.4f, seed + 2.3f), width * 0.45f, 0.6f))
+}
+
 /** The gloss alone, for a part that has no outline of its own (the chosen part of a segmented control). */
-fun Modifier.gloss(gloss: Gloss, on: Color): Modifier = drawWithCache {
-    val shine = glossFor(gloss, on, inset = 0f)
-    onDrawBehind { shine() }
+fun Modifier.gloss(gloss: Gloss, on: Color): Modifier = composed {
+    if (LocalUiStyle.current != UiStyle.GLOSSY) {
+        this
+    } else {
+        drawWithCache {
+            val shine = glossFor(gloss, on, inset = 0f)
+            onDrawBehind { shine() }
+        }
+    }
 }
 
 /**
@@ -167,22 +311,28 @@ private fun CacheDrawScope.glossFor(gloss: Gloss, fill: Color, inset: Float): Dr
 }
 
 /**
- * The light on a section-tinted card: a thin streak along its top edge and a dot at the end of it,
- * inside the outline. Fainter in dark mode, where the tint itself is dark.
+ * The light on a section-tinted card in the Glossy style: a thin streak along its top edge and a dot at
+ * the end of it, inside the outline. Fainter in dark mode, where the tint itself is dark.
  */
-fun Modifier.tileShine(dark: Boolean, inset: Dp = PitakaDimens.border): Modifier = drawBehind {
-    val edge = inset.toPx()
-    val top = edge + 4.dp.toPx()
-    val thick = 6.dp.toPx()
-    val streak = Size(size.width - 2 * edge - 9.dp.toPx() - 30.dp.toPx(), thick)
-    if (streak.width > 0f) {
-        drawRoundRect(
-            color = Color.White.copy(alpha = if (dark) 0.20f else 0.72f),
-            topLeft = Offset(edge + 9.dp.toPx(), top),
-            size = streak,
-            cornerRadius = CornerRadius(thick / 2),
-        )
+fun Modifier.tileShine(dark: Boolean, inset: Dp = PitakaDimens.border): Modifier = composed {
+    if (LocalUiStyle.current != UiStyle.GLOSSY) {
+        this
+    } else {
+        drawBehind {
+            val edge = inset.toPx()
+            val top = edge + 4.dp.toPx()
+            val thick = 6.dp.toPx()
+            val streak = Size(size.width - 2 * edge - 9.dp.toPx() - 30.dp.toPx(), thick)
+            if (streak.width > 0f) {
+                drawRoundRect(
+                    color = Color.White.copy(alpha = if (dark) 0.20f else 0.72f),
+                    topLeft = Offset(edge + 9.dp.toPx(), top),
+                    size = streak,
+                    cornerRadius = CornerRadius(thick / 2),
+                )
+            }
+            val dot = Size(10.dp.toPx(), thick)
+            drawOval(Color.White.copy(alpha = if (dark) 0.34f else 0.92f), Offset(size.width - edge - 13.dp.toPx() - dot.width, top), dot)
+        }
     }
-    val dot = Size(10.dp.toPx(), thick)
-    drawOval(Color.White.copy(alpha = if (dark) 0.34f else 0.92f), Offset(size.width - edge - 13.dp.toPx() - dot.width, top), dot)
 }

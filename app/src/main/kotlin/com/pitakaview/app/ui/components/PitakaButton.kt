@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -75,6 +76,7 @@ fun PitakaButton(
                 shadow = c.shadow,
                 shadowOffset = if (enabled) shadow - push else 0.dp,
                 gloss = Gloss.Button,
+                glass = style != PitakaButtonStyle.Primary,
             )
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .defaultMinSize(minHeight = 56.dp)
@@ -83,7 +85,7 @@ fun PitakaButton(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (icon != null) Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(icon.sizeFor(22.dp, more = 2.dp)))
-            Text(text, style = ButtonLabelStyle, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text, style = ButtonLabelStyle.copy(fontFamily = MaterialTheme.typography.labelLarge.fontFamily), color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -110,7 +112,7 @@ fun PitakaIconButton(
             .padding(end = shadow, bottom = shadow)
             .offset(x = push, y = push)
             .size(size)
-            .sketchBox(CircleShape, c.iconButton, c.ink, PitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton)
+            .sketchBox(CircleShape, c.iconButton, c.ink, PitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton, glass = true)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,

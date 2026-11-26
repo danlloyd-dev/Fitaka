@@ -2,6 +2,8 @@ package com.pitakaview.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.ui.components.GLASS_FILL
+import com.pitakaview.app.ui.components.GLASS_PAGE_COLOUR
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -104,6 +106,29 @@ class ThemeContrastTest {
     @Test
     fun roundIconButtonsKeepTheirIconReadable() {
         for (c in all) need(c, "icon on a round button", c.ink, c.iconButton, 3.0)
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /**
+     * Glassy: a card is partly its own colour and partly the page behind it, and the page carries up to
+     * [GLASS_PAGE_COLOUR] of a patch of colour. Even over the strongest patch, the text on the card and
+     * on the page itself keeps 4.5: full ink, and the secondary text at the 80% this style gives it
+     * (at the usual 72% it was 3.8 on the page, which is why the style darkens it).
+     */
+    @Test
+    fun glassyCardsStayReadableOverTheStrongestPatchOfColour() {
+        for (c in all) {
+            for (patch in listOf(c.primary, c.fill(Section.IPON), c.fill(Section.UTANG), c.fill(Section.KITA))) {
+                val page = mix(patch, c.background, GLASS_PAGE_COLOUR)
+                val card = mix(c.card, page, GLASS_FILL)
+                need(c, "ink on a glass card", c.ink, card, 4.5)
+                need(c, "muted ink on a glass card", c.forGlass().inkMuted, card, 4.5)
+                need(c, "ink on the glassy page", c.ink, page, 4.5)
+                need(c, "muted ink on the glassy page", c.forGlass().inkMuted, page, 4.5)
+                for (section in Section.entries) need(c, "ink on a glass ${section.label} card", c.ink, mix(c.tint(section), page, GLASS_FILL), 4.5)
+                need(c, "icon on a glass round button", c.ink, mix(c.iconButton, page, GLASS_FILL), 3.0)
+            }
+        }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 

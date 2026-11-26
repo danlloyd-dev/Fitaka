@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 CompositionLocalProvider(LocalAppContainer provides container) {
-                    PitakaTheme(current.theme, current.darkMode) {
+                    PitakaTheme(current.theme, current.darkMode, current.font, current.style, current.size) {
                         Box(Modifier.fillMaxSize()) {
                             // The app stays as it was under the lock screen (an unsaved form is still there
                             // after unlocking) but is hidden from screen readers while locked.
@@ -131,6 +131,9 @@ class MainActivity : ComponentActivity() {
                                         appearance = current,
                                         onThemeChange = { scope.launch { settings.setTheme(it) } },
                                         onDarkModeChange = { scope.launch { settings.setDarkMode(it) } },
+                                        onSizeChange = { scope.launch { settings.setUiSize(it) } },
+                                        onStyleChange = { scope.launch { settings.setUiStyle(it) } },
+                                        onFontChange = { scope.launch { settings.setFont(it) } },
                                         reminderToOpen = reminderToOpen,
                                         onReminderOpened = { reminderToOpen = null },
                                     )

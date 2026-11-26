@@ -39,6 +39,7 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.PitakaTextField
@@ -188,24 +189,23 @@ fun GoalEditorContent(
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
+    // A question about something that cannot be undone is asked over the whole screen, not in the footer.
+    if (confirmDelete) {
+        PitakaConfirmDialog(
+            title = "Delete this goal?",
+            lines = listOf("Nothing is logged for it, so no totals change. This cannot be undone."),
+            confirmLabel = "Yes, delete",
+            dismissLabel = "Keep",
+            onConfirm = onDelete,
+            onDismiss = { confirmDelete = false },
+        )
+    }
+
     PitakaScreen(
         title = if (ui.isEdit) "Edit goal" else "Add a goal",
         onBack = onBack,
         pinnedAction = {
-            if (confirmDelete) {
-                // In the footer, so the question is always on screen.
-                Column {
-                    Text("Delete this goal?", style = type.titleSmall, color = c.ink)
-                    Text("Nothing is logged for it, so no totals change. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
-                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
-                    }
-                }
-            } else {
-                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-            }
+            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
         },
     ) {
         item(key = "name") {
@@ -233,7 +233,7 @@ fun GoalEditorContent(
                 hint = "With No wallet, money is only set aside inside the wallet it is already in.",
             )
         }
-        if (ui.isEdit && !confirmDelete) {
+        if (ui.isEdit) {
             item(key = "hide") {
                 Column {
                     PitakaButton(if (ui.hidden) "Show goal again" else "Hide goal", onClick = onToggleHidden, modifier = Modifier.fillMaxWidth())

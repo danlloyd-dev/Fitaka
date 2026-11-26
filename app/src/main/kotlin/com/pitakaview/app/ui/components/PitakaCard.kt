@@ -36,7 +36,7 @@ fun PitakaCard(
     Column(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)
-            .sketchBox(shape, fill = section?.let(c::tint) ?: c.card, border = c.ink, shadow = c.shadow, shadowOffset = shadow)
+            .sketchBox(shape, fill = section?.let(c::tint) ?: c.card, border = c.ink, shadow = c.shadow, shadowOffset = shadow, glass = true)
             .then(if (section != null) Modifier.tileShine(c.isDark) else Modifier)
             .clip(shape)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)

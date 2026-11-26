@@ -13,6 +13,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pitakaview.app.domain.AppearanceSettings
+import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +39,9 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
             AppearanceSettings(
                 theme = it[THEME].toEnumOr(ThemeId.MANGO),
                 darkMode = it[DARK_MODE].toEnumOr(DarkModePref.SYSTEM),
+                size = it[UI_SIZE].toEnumOr(UiSize.LARGE),
+                font = it[FONT].toEnumOr(FontChoice.SHANTELL),
+                style = it[UI_STYLE].toEnumOr(UiStyle.GLOSSY),
             )
         }
         .distinctUntilChanged()
@@ -49,6 +55,18 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
 
     suspend fun setDarkMode(mode: DarkModePref) {
         store.edit { it[DARK_MODE] = mode.name }
+    }
+
+    suspend fun setUiSize(size: UiSize) {
+        store.edit { it[UI_SIZE] = size.name }
+    }
+
+    suspend fun setFont(font: FontChoice) {
+        store.edit { it[FONT] = font.name }
+    }
+
+    suspend fun setUiStyle(style: UiStyle) {
+        store.edit { it[UI_STYLE] = style.name }
     }
 
     suspend fun setLastWalletId(id: Long) {
@@ -116,6 +134,9 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         internal val LOCK_ON = booleanPreferencesKey("lock_on")
         internal val THEME = stringPreferencesKey("theme")
         internal val DARK_MODE = stringPreferencesKey("dark_mode")
+        internal val UI_SIZE = stringPreferencesKey("ui_size")
+        internal val FONT = stringPreferencesKey("font")
+        internal val UI_STYLE = stringPreferencesKey("ui_style")
         internal val LAST_WALLET = longPreferencesKey("last_wallet_id")
         internal val LAST_BACKUP = longPreferencesKey("last_backup_at")
         internal val REMINDERS_ON = booleanPreferencesKey("reminders_on")

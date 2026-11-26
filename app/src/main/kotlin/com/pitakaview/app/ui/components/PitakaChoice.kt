@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,7 +41,7 @@ fun PitakaSegmented(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)
             .fillMaxWidth()
-            .sketchBox(shape, c.card, c.ink, shadow = c.shadow, shadowOffset = shadow)
+            .sketchBox(shape, c.card, c.ink, shadow = c.shadow, shadowOffset = shadow, glass = true)
             .clip(shape)
             .selectableGroup(),
     ) {
@@ -50,7 +51,8 @@ fun PitakaSegmented(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 48.dp)
-                    .background(if (isSelected) c.ink else c.card)
+                    // Only the chosen one paints itself: the strip behind already has the card colour (or is glass).
+                    .then(if (isSelected) Modifier.background(c.ink) else Modifier)
                     .then(if (isSelected) Modifier.gloss(Gloss.Segment, on = c.ink) else Modifier)
                     .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(index) }),
                 contentAlignment = Alignment.Center,
@@ -71,13 +73,15 @@ fun PitakaChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The words are drawn in this font, not the app's: the font choices in Settings each show themselves. */
+    fontFamily: FontFamily? = null,
 ) {
     val c = PitakaTheme.colors
     val shape = RoundedCornerShape(50)
     Box(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null)
+            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null, glass = !selected)
             .clip(shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -85,7 +89,8 @@ fun PitakaChip(
     ) {
         Text(
             text,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold)
+                .let { if (fontFamily != null) it.copy(fontFamily = fontFamily) else it },
             color = if (selected) c.card else c.ink,
             maxLines = 1,
         )

@@ -95,6 +95,9 @@ class AppLockFlowTest : FlowTestBase() {
 
         settle()
         assertTrue("switching the lock on and off left reminders as they were", runBlocking { container.settings.remindersOn.first() })
+        // The Size, Style and Font rows now sit between the two switches, so the reminder one is off the
+        // screen while the lock one is in view: scroll back up to it, as someone checking would.
+        scrollTo("Remind me")
         rule.onNode(hasText("Remind me") and isToggleable()).assertIsOn()
     }
 

@@ -46,6 +46,7 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WeekendRule
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaChip
 import com.pitakaview.app.ui.components.PitakaScreen
@@ -278,24 +279,23 @@ fun PayScheduleEditorContent(
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val chips = Arrangement.spacedBy(8.dp)
 
+    // A question about something that cannot be undone is asked over the whole screen, not in the footer.
+    if (confirmRemove) {
+        PitakaConfirmDialog(
+            title = "Remove this payday?",
+            lines = listOf("Income you already logged for it stays in your totals."),
+            confirmLabel = "Yes, remove",
+            dismissLabel = "Keep",
+            onConfirm = onRemove,
+            onDismiss = { confirmRemove = false },
+        )
+    }
+
     PitakaScreen(
         title = if (ui.isEdit) "Edit payday" else "Add a payday",
         onBack = onBack,
         pinnedAction = {
-            if (confirmRemove) {
-                // In the footer, so the question is always on screen.
-                Column {
-                    Text("Remove this payday?", style = type.titleSmall, color = c.ink)
-                    Text("Income you already logged for it stays in your totals.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, remove", onClick = onRemove, modifier = Modifier.weight(1f))
-                        PitakaButton("Keep", onClick = { confirmRemove = false }, modifier = Modifier.weight(1f))
-                    }
-                }
-            } else {
-                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-            }
+            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
         },
     ) {
         item(key = "name") {
@@ -402,7 +402,7 @@ fun PayScheduleEditorContent(
             )
         }
 
-        if (ui.isEdit && !confirmRemove) {
+        if (ui.isEdit) {
             item(key = "remove") {
                 PitakaButton("Remove payday", onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth())
             }

@@ -40,6 +40,7 @@ import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.dao.isMove
 import com.pitakaview.app.data.db.dao.signedCentavos
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.PitakaCard
@@ -55,6 +56,7 @@ import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
+import com.pitakaview.app.ui.theme.LocalUiStyle
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -174,6 +176,7 @@ fun ShareBar(fraction: Float, section: Section) {
     val c = PitakaTheme.colors
     val shape = RoundedCornerShape(50)
     val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized), label = "share")
+    val glossy = LocalUiStyle.current == UiStyle.GLOSSY
     Box(
         Modifier
             .fillMaxWidth()
@@ -184,7 +187,7 @@ fun ShareBar(fraction: Float, section: Section) {
         // The fill, with a paler band along its top half: the same gloss the buttons have.
         Box(
             Modifier.fillMaxWidth(shown).fillMaxHeight().background(c.fill(section)).drawBehind {
-                drawRect(Color.White.copy(alpha = 0.55f), size = Size(size.width, size.height * 0.45f))
+                if (glossy) drawRect(Color.White.copy(alpha = 0.55f), size = Size(size.width, size.height * 0.45f))
             },
         )
     }

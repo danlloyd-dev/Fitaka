@@ -61,6 +61,7 @@ import com.pitakaview.app.domain.importing.ImportStatus
 import com.pitakaview.app.domain.importing.StatementWallet
 import com.pitakaview.app.domain.importing.WalletFit
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaChip
@@ -275,6 +276,18 @@ fun ImportContent(
     val toUndo = batches.firstOrNull { it.id == undoId }
     val password = rememberTextFieldState()
 
+    // Taking an import back out cannot be undone: asked over the whole screen, not in the footer.
+    if (toUndo != null) {
+        PitakaConfirmDialog(
+            title = "Take ${toUndo.fileName} back out?",
+            lines = listOf("The ${ImportText.entries(toUndo.entryCount)} it added will be removed. Entries you typed yourself stay."),
+            confirmLabel = "Yes, remove",
+            dismissLabel = "Keep",
+            onConfirm = { onUndo(toUndo); undoId = null },
+            onDismiss = { undoId = null },
+        )
+    }
+
     PitakaScreen(
         title = "Import",
         subtitle = "Bring in entries from a file",
@@ -291,20 +304,6 @@ fun ImportContent(
                                 "Import ${ImportText.entries(stage.picked)}", onClick = onImport, modifier = Modifier.weight(2f),
                                 style = PitakaButtonStyle.Primary, enabled = stage.canImport,
                             )
-                        }
-                    }
-                }
-            }
-            toUndo != null -> {
-                {
-                    // In the footer, so the question is always on screen.
-                    Column {
-                        Text("Take ${toUndo.fileName} back out?", style = type.titleSmall, color = c.ink)
-                        Text("The ${ImportText.entries(toUndo.entryCount)} it added will be removed. Entries you typed yourself stay.", style = type.bodySmall, color = c.ink)
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PitakaButton("Yes, remove", onClick = { onUndo(toUndo); undoId = null }, modifier = Modifier.weight(1f))
-                            PitakaButton("Keep", onClick = { undoId = null }, modifier = Modifier.weight(1f))
                         }
                     }
                 }

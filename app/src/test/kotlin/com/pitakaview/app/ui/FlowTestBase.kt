@@ -48,6 +48,9 @@ abstract class FlowTestBase {
     /** What a tapped reminder asks the app to open. A test sets it the way MainActivity does from the intent. */
     protected var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
 
+    /** The look chosen in Settings, kept and handed back the way MainActivity does, so a test can change it by tapping. */
+    protected var appearance by mutableStateOf(AppearanceSettings(ThemeId.MANGO, DarkModePref.LIGHT))
+
     /** Lets a subclass put something around the app, such as a stand-in for Android's file picker. */
     @Composable
     protected open fun Surroundings(content: @Composable () -> Unit) = content()
@@ -57,9 +60,14 @@ abstract class FlowTestBase {
         val appContainer = (LocalContext.current.applicationContext as PitakaApp).container
         Surroundings {
             CompositionLocalProvider(LocalAppContainer provides appContainer) {
-                PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+                PitakaTheme(appearance.theme, appearance.darkMode, appearance.font, appearance.style, appearance.size) {
                     PitakaRoot(
-                        AppearanceSettings(), onThemeChange = {}, onDarkModeChange = {},
+                        appearance,
+                        onThemeChange = { appearance = appearance.copy(theme = it) },
+                        onDarkModeChange = { appearance = appearance.copy(darkMode = it) },
+                        onSizeChange = { appearance = appearance.copy(size = it) },
+                        onStyleChange = { appearance = appearance.copy(style = it) },
+                        onFontChange = { appearance = appearance.copy(font = it) },
                         reminderToOpen = reminderToOpen, onReminderOpened = { reminderToOpen = null },
                     )
                 }

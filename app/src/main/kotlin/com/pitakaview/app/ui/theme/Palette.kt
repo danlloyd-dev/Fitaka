@@ -36,6 +36,7 @@ internal object Palette {
         ThemeId.CALAMANSI -> BaseColors(Color(0xFFF6FBE9), Color(0xFF9CCC3D), Color(0xFFFFFFFF), Color(0xFF1F2A14), Color(0xFF1F2A14))
         ThemeId.DAGAT -> BaseColors(Color(0xFFEAF6F8), Color(0xFF2BA8B8), Color(0xFFFFFFFF), Color(0xFF0F2A33), Color(0xFF0F2A33))
         ThemeId.KAPE -> BaseColors(Color(0xFFF7F1EA), Color(0xFFA0703F), Color(0xFFFFFFFF), Color(0xFF2B1D12), Color(0xFFFFFFFF))
+        ThemeId.ROSAS -> BaseColors(Color(0xFFFFF1F6), Color(0xFFF06A9E), Color(0xFFFFFFFF), Color(0xFF3A1626), Color(0xFF3A1626))
     }
 
     /** Dark mode: text on primary is the theme's dark background colour. */
@@ -45,6 +46,7 @@ internal object Palette {
         ThemeId.CALAMANSI -> BaseColors(Color(0xFF161C10), Color(0xFFB5E05A), Color(0xFF222B19), Color(0xFFEEF6DC), Color(0xFF161C10))
         ThemeId.DAGAT -> BaseColors(Color(0xFF0F1E23), Color(0xFF3CC4D4), Color(0xFF183039), Color(0xFFE3F4F7), Color(0xFF0F1E23))
         ThemeId.KAPE -> BaseColors(Color(0xFF1C1611), Color(0xFFC99566), Color(0xFF2A211A), Color(0xFFF3E9DE), Color(0xFF1C1611))
+        ThemeId.ROSAS -> BaseColors(Color(0xFF21121A), Color(0xFFFF8FB8), Color(0xFF301B26), Color(0xFFFFE8F0), Color(0xFF21121A))
     }
 
     fun section(section: Section, dark: Boolean): Color = if (dark) {

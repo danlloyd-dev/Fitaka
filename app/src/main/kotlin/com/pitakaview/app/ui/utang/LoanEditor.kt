@@ -45,6 +45,7 @@ import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
 import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaConfirmDialog
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaChip
 import com.pitakaview.app.ui.components.PitakaScreen
@@ -298,24 +299,23 @@ fun LoanEditorContent(
     val borrowed = ui.direction == LoanDirection.I_OWE
     val money = KeyboardOptions(keyboardType = KeyboardType.Decimal)
 
+    // A question about something that cannot be undone is asked over the whole screen, not in the footer.
+    if (confirmDelete) {
+        PitakaConfirmDialog(
+            title = "Delete this loan?",
+            lines = listOf("Nothing is logged for it, so no totals change. This cannot be undone."),
+            confirmLabel = "Yes, delete",
+            dismissLabel = "Keep",
+            onConfirm = onDelete,
+            onDismiss = { confirmDelete = false },
+        )
+    }
+
     PitakaScreen(
         title = if (ui.isEdit) "Edit loan" else "Add a loan",
         onBack = onBack,
         pinnedAction = {
-            if (confirmDelete) {
-                // In the footer, so the question is always on screen.
-                Column {
-                    Text("Delete this loan?", style = type.titleSmall, color = c.ink)
-                    Text("Nothing is logged for it, so no totals change. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
-                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
-                    }
-                }
-            } else {
-                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-            }
+            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
         },
     ) {
         // Which way the money went cannot change later: the payments already logged depend on it.
@@ -404,7 +404,7 @@ fun LoanEditorContent(
         }
         item(key = "note") { PitakaTextField(state = note, label = "Note", placeholder = "Optional") }
 
-        if (ui.isEdit && !confirmDelete) {
+        if (ui.isEdit) {
             // Paid in full needs no marking; the button is for a loan forgiven or written off.
             if (!ui.paidInFull) {
                 item(key = "settle") {

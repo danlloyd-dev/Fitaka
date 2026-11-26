@@ -48,6 +48,13 @@ data class PitakaColors(
      * Use this, not [inkMuted], for any small text drawn on [tint] (TintedCardCaptionsTest reads the screens).
      */
     val captionOnTint: Color get() = ink
+
+    /**
+     * These colours for the Glassy style: secondary text a little darker. A see-through card over a
+     * patch of colour is not as plain a ground as the card colour, and at the usual 72% the text fell
+     * to 3.8:1 on it; at 80% it keeps 4.5 everywhere (ThemeContrastTest).
+     */
+    fun forGlass(): PitakaColors = copy(inkMuted = mix(ink, card, MUTED_INK_ON_GLASS))
 }
 
 /**
@@ -57,6 +64,7 @@ data class PitakaColors(
 internal const val TINT_LIGHT = 0.30f
 internal const val TINT_DARK = 0.34f
 internal const val MUTED_INK = 0.72f
+internal const val MUTED_INK_ON_GLASS = 0.80f
 
 /** Share of the primary colour in a round icon button. */
 internal const val ICON_BUTTON_TINT = 0.26f

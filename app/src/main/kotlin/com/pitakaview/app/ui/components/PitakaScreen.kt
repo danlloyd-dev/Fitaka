@@ -55,6 +55,7 @@ fun PitakaScreen(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    showLogo: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
     pinnedAction: (@Composable () -> Unit)? = null,
     content: LazyListScope.() -> Unit,
@@ -68,7 +69,7 @@ fun PitakaScreen(
     // Without a footer the list itself must scroll clear of the tab bar or the keyboard, whichever is taller.
     val clearBelow = if (pinnedAction != null) 0.dp else maxOf(tabBar, keyboard)
 
-    Column(modifier.fillMaxSize().background(c.background)) {
+    Column(modifier.fillMaxSize().background(c.background).glassyPage(skipTop = topBarHeight)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(
                 state = listState,
@@ -83,6 +84,8 @@ fun PitakaScreen(
                 navigationIcon = if (onBack != null) PitakaIcons.Back else null,
                 onNavigationClick = onBack,
                 showDivider = listState.canScrollBackward,
+                showLogo = showLogo,
+                onGlassyPage = true,
                 actions = actions,
                 modifier = Modifier.onSizeChanged { topBarHeight = with(density) { it.height.toDp() } },
             )
