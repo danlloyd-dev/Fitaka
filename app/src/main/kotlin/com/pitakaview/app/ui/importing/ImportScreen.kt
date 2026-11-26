@@ -130,8 +130,28 @@ object ImportText {
         "A CSV file works: a table with a Date column and an Amount column (or Debit and Credit). " +
             "Nothing is added until you have looked at the lines and tapped Import."
     const val PDF_HELP =
-        "PDF statements from GCash, Maya and MariBank cannot be brought in yet. Choosing one shows how it is laid out, " +
-            "with every letter and number hidden, which is what is needed to add that bank."
+        "PDF statements from GCash and MariBank work too. A PDF from another bank cannot be brought in yet: choosing one " +
+            "shows how it is laid out, with every letter and number hidden, which is what is needed to add that bank."
+
+    const val UNSURE = "Check which way this went"
+
+    /** How the lines compare with the statement's own totals, or null when the file gives none. */
+    fun totals(review: ImportStage.Review): String? {
+        val wanted = review.read.totals ?: return null
+        val got = review.sums
+        return if (review.addsUp == true) {
+            "Adds up to the statement's own totals: ${Peso.format(got.moneyInCentavos)} in, ${Peso.format(got.moneyOutCentavos)} out."
+        } else {
+            "These lines do not add up to the statement's totals yet. Money in is ${Peso.format(got.moneyInCentavos)} of " +
+                "${Peso.format(wanted.moneyInCentavos)}; money out is ${Peso.format(got.moneyOutCentavos)} of ${Peso.format(wanted.moneyOutCentavos)}. " +
+                "Open a line and set which way it went. Import is off until they add up."
+        }
+    }
+
+    /** Why Import is off although lines are ticked, or null when it is not. */
+    fun unsure(review: ImportStage.Review): String? = review.unsure.takeIf { it > 0 }?.let {
+        "${lines(it)} could have gone either way: the file does not say, and its totals fit both. Open ${if (it == 1) "it" else "each"} and set which way it went. Import is off until then."
+    }
     const val PDF_LAYOUT_HELP =
         "PitakaView cannot bring in entries from this PDF yet. Below is how it is laid out: every letter is shown as x " +
             "and every number as 9, so it says nothing about you or your money. Sending this to the developer is what is needed to add this bank."
@@ -187,7 +207,7 @@ fun ImportRoute(onBack: () -> Unit) {
         onWallet = vm::selectWallet,
         // Every kind of file is offered: CSV files turn up under several names, so the app checks the content itself.
         onChooseFile = { pick.launch(arrayOf("*/*")) },
-        onToggle = vm::toggle, onShowCategories = vm::showCategories, onCategory = vm::setCategory, onFlip = vm::flip,
+        onToggle = vm::toggle, onShowChoices = vm::showChoices, onCategory = vm::setCategory, onDirection = vm::setDirection, onFlip = vm::flip,
         onImport = vm::importPicked, onCancel = vm::cancel, onUndo = vm::undo, onUnlockPdf = vm::unlockPdf,
         onCopy = { text ->
             context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("PitakaView statement layout", text))
@@ -209,8 +229,9 @@ fun ImportContent(
     onWallet: (Long) -> Unit,
     onChooseFile: () -> Unit,
     onToggle: (Int) -> Unit,
-    onShowCategories: (Int) -> Unit,
+    onShowChoices: (Int) -> Unit,
     onCategory: (Int, Long) -> Unit,
+    onDirection: (Int, Boolean) -> Unit,
     onFlip: () -> Unit,
     onImport: () -> Unit,
     onCancel: () -> Unit,
@@ -241,7 +262,7 @@ fun ImportContent(
                             PitakaButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
                             PitakaButton(
                                 "Import ${ImportText.entries(stage.picked)}", onClick = onImport, modifier = Modifier.weight(2f),
-                                style = PitakaButtonStyle.Primary, enabled = stage.picked > 0,
+                                style = PitakaButtonStyle.Primary, enabled = stage.canImport,
                             )
                         }
                     }
@@ -320,6 +341,11 @@ fun ImportContent(
                         if (stage.read.datesAssumedMonthFirst) {
                             Text("Dates like 03/04/2026 were read month first (March 4). Check the dates below.", style = type.bodySmall, color = c.inkMuted)
                         }
+                        // A bank statement says what all its lines must add up to; that is checked before anything is added.
+                        ImportText.totals(stage)?.let { words ->
+                            if (stage.addsUp == true) Text(words, style = type.bodySmall, color = c.inkMuted) else ProblemText(words)
+                        }
+                        ImportText.unsure(stage)?.let { ProblemText(it) }
                     }
                 }
                 if (!stage.read.directionKnown) {
@@ -338,10 +364,12 @@ fun ImportContent(
                     CandidateLine(
                         line = line,
                         categoryName = choices.firstOrNull { it.id == line.categoryId }?.name.orEmpty(),
-                        choices = if (openLine == index) choices else emptyList(),
+                        open = openLine == index,
+                        choices = choices,
                         onToggle = { onToggle(index) },
-                        onShowCategories = { onShowCategories(index) },
+                        onShowChoices = { onShowChoices(index) },
                         onCategory = { onCategory(index, it) },
+                        onDirection = { onDirection(index, it) },
                     )
                 }
             }
@@ -401,11 +429,14 @@ fun ImportContent(
 private fun CandidateLine(
     line: ImportCandidate,
     categoryName: String,
-    /** The categories to offer, when this line's chooser is open; empty otherwise. */
+    /** Whether this line's choices (which way it went, which category) are showing. */
+    open: Boolean,
+    /** The categories that fit the line's direction. */
     choices: List<CategoryEntity>,
     onToggle: () -> Unit,
-    onShowCategories: () -> Unit,
+    onShowChoices: () -> Unit,
     onCategory: (Long) -> Unit,
+    onDirection: (Boolean) -> Unit,
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -434,25 +465,32 @@ private fun CandidateLine(
                     listOfNotNull(ImportText.day(line), ImportText.status(line.status)).joinToString(" · "),
                     style = type.bodySmall, color = c.inkMuted,
                 )
+                if (!line.row.sure) ProblemText(ImportText.UNSURE, Modifier.padding(start = 0.dp))
             }
             Spacer(Modifier.width(8.dp))
             Text(ImportText.amount(line), style = type.titleSmall, color = if (line.canPick) c.ink else c.inkMuted)
         }
         if (line.canPick) {
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClickLabel = "Change category", onClick = onShowCategories).padding(start = 38.dp),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = "Change this line", onClick = onShowChoices).padding(start = 38.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Category: $categoryName", style = type.bodyMedium, color = c.ink, modifier = Modifier.weight(1f))
-                Text(if (choices.isEmpty()) "Change" else "Close", style = type.labelLarge, color = c.ink)
+                Text(if (open) "Close" else "Change", style = type.labelLarge, color = c.ink)
             }
         }
-        if (choices.isNotEmpty()) {
-            FlowRow(
-                Modifier.padding(start = 38.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                choices.forEach { PitakaChip(it.name, selected = it.id == line.categoryId, onClick = { onCategory(it.id) }) }
+        if (open && line.canPick) {
+            val chips = Arrangement.spacedBy(8.dp)
+            Column(Modifier.padding(start = 38.dp, bottom = 8.dp)) {
+                // Which way the money went. Picking either settles a line the file left open.
+                FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
+                    PitakaChip("Money out", selected = !line.row.moneyIn && line.row.sure, onClick = { onDirection(false) })
+                    PitakaChip("Money in", selected = line.row.moneyIn && line.row.sure, onClick = { onDirection(true) })
+                }
+                Spacer(Modifier.height(8.dp))
+                FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
+                    choices.forEach { PitakaChip(it.name, selected = it.id == line.categoryId, onClick = { onCategory(it.id) }) }
+                }
             }
         }
     }

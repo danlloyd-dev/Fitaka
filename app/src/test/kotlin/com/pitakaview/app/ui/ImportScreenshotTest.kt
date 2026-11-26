@@ -73,7 +73,7 @@ class ImportScreenshotTest {
         ImportContent(
             stage = stage, notice = notice, wallets = wallets, walletId = 2, batches = batches,
             categories = { if (it) income else expense }, openLine = openLine,
-            onWallet = {}, onChooseFile = {}, onToggle = {}, onShowCategories = {}, onCategory = { _, _ -> }, onFlip = {},
+            onWallet = {}, onChooseFile = {}, onToggle = {}, onShowChoices = {}, onCategory = { _, _ -> }, onDirection = { _, _ -> }, onFlip = {},
             onImport = {}, onCancel = {}, onUndo = {}, onUnlockPdf = {}, onCopy = {}, onBack = {}, zone = manila,
         )
     }

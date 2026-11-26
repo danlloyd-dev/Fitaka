@@ -13,13 +13,15 @@ import com.pitakaview.app.data.db.entity.ImportBatchEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.CategoryKind
-import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.importing.CsvStatementReader
+import com.pitakaview.app.domain.importing.DirectionSolver
 import com.pitakaview.app.domain.importing.ImportCandidate
 import com.pitakaview.app.domain.importing.ImportPlanner
 import com.pitakaview.app.domain.importing.ImportStatus
+import com.pitakaview.app.domain.importing.PdfStatementReader
 import com.pitakaview.app.domain.importing.StatementRead
 import com.pitakaview.app.domain.importing.StatementRow
+import com.pitakaview.app.domain.importing.StatementTotals
 import com.pitakaview.app.domain.importing.TextMask
 import com.pitakaview.app.domain.importing.UnreadableReason
 import com.pitakaview.app.importing.PdfText
@@ -49,6 +51,7 @@ sealed interface ImportStage {
     data class Review(
         val fileName: String,
         val read: StatementRead.Rows,
+        /** The lines as they stand now, with any direction the owner has set. */
         val candidates: List<ImportCandidate>,
         /** The owner said the file's amounts are money in, for a file that does not say which way. */
         val flipped: Boolean,
@@ -56,12 +59,32 @@ sealed interface ImportStage {
         val picked: Int get() = candidates.count { it.picked && it.canPick }
 
         fun count(status: ImportStatus): Int = candidates.count { it.status == status }
+
+        /** What every line that was read adds up to, each way (ticked or not: the statement's totals cover them all). */
+        val sums: StatementTotals
+            get() = StatementTotals(
+                moneyInCentavos = candidates.filter { it.row.moneyIn }.sumOf { it.row.amountCentavos },
+                moneyOutCentavos = candidates.filterNot { it.row.moneyIn }.sumOf { it.row.amountCentavos },
+            )
+
+        /** Whether the lines add up to the statement's own totals; null when the file gives none to check against. */
+        val addsUp: Boolean? get() = read.totals?.let { it == sums }
+
+        /** Lines whose direction is still only a guess. */
+        val unsure: Int get() = candidates.count { !it.row.sure }
+
+        /**
+         * Nothing is imported from a statement whose lines do not add up to its own totals, or while a
+         * line's direction is still a guess: a wrong direction would put the wallet's balance out by
+         * twice the amount.
+         */
+        val canImport: Boolean get() = picked > 0 && addsUp != false && unsure == 0
     }
 
     /** A PDF that needs its password. */
     data class PdfLocked(val file: PickedFile, val wrongPassword: Boolean) : ImportStage
 
-    /** A PDF was opened: how it is laid out, with every letter and digit hidden. */
+    /** A PDF from a bank this app cannot read yet: how it is laid out, with every letter and digit hidden. */
     data class PdfLayout(val fileName: String, val pages: Int, val sample: String) : ImportStage
 }
 
@@ -92,7 +115,7 @@ class ImportViewModel(
     var loaded by mutableStateOf(false)
         private set
 
-    /** The line whose category chips are open, if any. */
+    /** The line whose choices (which way, which category) are open, if any. */
     var openLine by mutableStateOf<Int?>(null)
         private set
 
@@ -119,7 +142,9 @@ class ImportViewModel(
         if (id == walletId) return
         walletId = id
         // What is new and what is already there depends on the wallet, so the lines are checked again.
-        (stage as? ImportStage.Review)?.let { review -> viewModelScope.launch { review(review.fileName, review.read, review.flipped) } }
+        (stage as? ImportStage.Review)?.let { review ->
+            viewModelScope.launch { plan(review.fileName, review.read, review.candidates.map { it.row }, review.flipped, keep = review.candidates) }
+        }
     }
 
     /** A file was picked. */
@@ -137,7 +162,7 @@ class ImportViewModel(
                             UnreadableReason.MIXED_DATES -> Refusal.MIXED_DATES
                         },
                     )
-                    is StatementRead.Rows -> if (read.rows.isEmpty()) refuse(Refusal.NOTHING_IN_IT) else review(file.name, read, flipped = false)
+                    is StatementRead.Rows -> if (read.rows.isEmpty()) refuse(Refusal.NOTHING_IN_IT) else plan(file.name, read, read.rows, flipped = false)
                 }
             }
         }
@@ -148,19 +173,24 @@ class ImportViewModel(
         notice = ImportNotice.Refused(why)
     }
 
-    /** Works out which lines are new for the chosen wallet. Two or three queries, whatever the size of the file. */
-    private suspend fun review(fileName: String, read: StatementRead.Rows, flipped: Boolean) {
+    /**
+     * Works out which of [rows] are new for the chosen wallet. Two or three queries, whatever the size
+     * of the file. Ticks and categories the owner already set ([keep]) stay on the lines that did not change.
+     */
+    private suspend fun plan(fileName: String, read: StatementRead.Rows, rows: List<StatementRow>, flipped: Boolean, keep: List<ImportCandidate> = emptyList()) {
         val wallet = walletId ?: return
-        val rows: List<StatementRow> = if (flipped) ImportPlanner.flipped(read.rows) else read.rows
         if (expenseCategories.isEmpty()) expenseCategories = db.categoryDao().observeActive(CategoryKind.EXPENSE).first()
         if (incomeCategories.isEmpty()) incomeCategories = db.categoryDao().observeActive(CategoryKind.INCOME).first()
-        val refs = rows.mapNotNull { ImportPlanner.refFor(ImportSource.CSV, wallet, it) }
+        val refs = rows.mapNotNull { ImportPlanner.refFor(read.source, wallet, it) }
         val imported = if (refs.isEmpty()) emptySet() else ledger.knownRefs(refs)
         val existing = db.transactionDao().marksFor(wallet, rows.minOf { it.date }, rows.maxOf { it.date })
-        openLine = null
+        val fresh = ImportPlanner.plan(rows, read.source, wallet, imported, existing, expenseCategories, incomeCategories)
         stage = ImportStage.Review(
             fileName, read,
-            ImportPlanner.plan(rows, ImportSource.CSV, wallet, imported, existing, expenseCategories, incomeCategories),
+            fresh.mapIndexed { i, line ->
+                val before = keep.getOrNull(i)
+                if (before != null && before.row == line.row && before.status == line.status) line.copy(picked = before.picked, categoryId = before.categoryId) else line
+            },
             flipped,
         )
     }
@@ -174,7 +204,7 @@ class ImportViewModel(
         lines.mapIndexed { i, line -> if (i == index && line.canPick) line.copy(picked = !line.picked) else line }
     }
 
-    fun showCategories(index: Int) {
+    fun showChoices(index: Int) {
         openLine = if (openLine == index) null else index
     }
 
@@ -183,11 +213,31 @@ class ImportViewModel(
         openLine = null
     }
 
+    /**
+     * The owner says which way one line went. That settles the line, and the lines are checked again:
+     * money in and money out are compared with different entries and take different categories.
+     */
+    fun setDirection(index: Int, moneyIn: Boolean) {
+        val review = stage as? ImportStage.Review ?: return
+        var rows = review.candidates.mapIndexed { i, line -> if (i == index) line.row.copy(moneyIn = moneyIn, sure = true) else line.row }
+        // One line settled may settle others: with it as a fact, the statement's totals are tried again
+        // for the lines still open. If the totals cannot be reached with what the owner said, the lines
+        // are left as they are and the screen says they do not add up.
+        val totals = review.read.totals
+        if (totals != null && rows.any { !it.sure }) {
+            DirectionSolver.solve(rows.map { it.amountCentavos }, rows.map { if (it.sure) it.moneyIn else null }, totals)?.let { solved ->
+                rows = rows.mapIndexed { i, row -> if (row.sure) row else row.copy(moneyIn = solved[i].moneyIn, sure = solved[i].sure) }
+            }
+        }
+        viewModelScope.launch { plan(review.fileName, review.read, rows, review.flipped, keep = review.candidates) }
+    }
+
     /** For a file that does not say which way its money went: read every amount the other way round. */
     fun flip() {
         val review = stage as? ImportStage.Review ?: return
         if (review.read.directionKnown) return
-        viewModelScope.launch { review(review.fileName, review.read, !review.flipped) }
+        val flipped = !review.flipped
+        viewModelScope.launch { plan(review.fileName, review.read, if (flipped) ImportPlanner.flipped(review.read.rows) else review.read.rows, flipped) }
     }
 
     fun cancel() {
@@ -199,12 +249,12 @@ class ImportViewModel(
     fun importPicked() {
         val review = stage as? ImportStage.Review ?: return
         val wallet = walletId ?: return
-        if (review.picked == 0) return
+        if (!review.canImport) return
         viewModelScope.launch {
             val at = now()
             try {
                 ledger.importBatch(
-                    ImportBatchEntity(source = ImportSource.CSV, walletId = wallet, fileName = review.fileName, rowCount = review.picked, importedAt = at),
+                    ImportBatchEntity(source = review.read.source, walletId = wallet, fileName = review.fileName, rowCount = review.picked, importedAt = at),
                 ) { batchId -> ImportPlanner.toTransactions(review.candidates, wallet, batchId, at) }
             } catch (e: CancellationException) {
                 throw e
@@ -227,11 +277,16 @@ class ImportViewModel(
         }
     }
 
-    // ---------- PDF statements: not brought in yet; shown as a layout with everything hidden ----------
+    // ---------- PDF statements ----------
 
     private suspend fun openPdf(file: PickedFile, password: String?) {
         when (val text = pdf.read(file.bytes, password)) {
-            is PdfText.Pages -> stage = ImportStage.PdfLayout(file.name, text.pages.size, TextMask.sample(text.pages))
+            is PdfText.Pages -> when (val read = PdfStatementReader.read(text.pages)) {
+                is StatementRead.Rows -> if (read.rows.isEmpty()) refuse(Refusal.NOTHING_IN_IT) else plan(file.name, read, read.rows, flipped = false)
+                // Not a bank this app can read yet: show how the file is laid out, with everything hidden,
+                // which is what is needed to add that bank.
+                is StatementRead.Unreadable -> stage = ImportStage.PdfLayout(file.name, text.pages.size, TextMask.sample(text.pages))
+            }
             PdfText.NeedsPassword -> stage = ImportStage.PdfLocked(file, wrongPassword = false)
             PdfText.WrongPassword -> stage = ImportStage.PdfLocked(file, wrongPassword = true)
             PdfText.NeedsNewerAndroid -> refuse(Refusal.PDF_NEEDS_NEWER_ANDROID)

@@ -1,5 +1,6 @@
 package com.pitakaview.app.domain.importing
 
+import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.Peso
 import java.time.DateTimeException
 import java.time.LocalDate
@@ -16,6 +17,11 @@ data class StatementRow(
     /** Always positive. */
     val amountCentavos: Long,
     val moneyIn: Boolean,
+    /**
+     * False when [moneyIn] is only the best guess: the file does not say which way this line went and
+     * its totals leave it open. The review screen then asks the owner, and will not import before that.
+     */
+    val sure: Boolean = true,
 )
 
 enum class UnreadableReason {
@@ -45,6 +51,10 @@ sealed interface StatementRead {
         val dayFirst: Boolean?,
         /** True when the file has dates like 03/04/2026 and nothing in it settles which number is the month: the screen then says how they were read. */
         val datesAssumedMonthFirst: Boolean = false,
+        /** The statement's own totals, when it gives them: what the lines must add up to before anything is imported. */
+        val totals: StatementTotals? = null,
+        /** Which kind of file this was; it is part of what makes a line recognisable on a later import. */
+        val source: ImportSource = ImportSource.CSV,
     ) : StatementRead
 
     data class Unreadable(val reason: UnreadableReason) : StatementRead
