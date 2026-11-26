@@ -3,6 +3,9 @@ package com.pitakaview.app.ui
 import androidx.compose.foundation.text.input.TextFieldState
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pitakaview.app.data.DefaultData
+import com.pitakaview.app.data.backup.BackupInfo
+import com.pitakaview.app.ui.backup.BackupContent
+import com.pitakaview.app.ui.backup.BackupNotice
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.EntryKind
@@ -18,6 +21,7 @@ import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.domain.WalletType
+import com.pitakaview.app.ui.home.BackupNudge
 import com.pitakaview.app.ui.home.HomeContent
 import com.pitakaview.app.ui.home.HomeState
 import com.pitakaview.app.ui.home.UpcomingItem
@@ -70,6 +74,7 @@ class ScreensScreenshotTest {
 
     @Test fun homeMangoLight() = home(ThemeId.MANGO, DarkModePref.LIGHT, sample, "home_mango_light")
     @Test fun homeUbeDark() = home(ThemeId.UBE, DarkModePref.DARK, sample, "home_ube_dark")
+    @Test fun homeBackupReminderMangoLight() = home(ThemeId.MANGO, DarkModePref.LIGHT, sample.copy(backupNudge = BackupNudge.NEVER_BACKED_UP), "home_backup_reminder_mango_light")
     @Test fun homeEmptyFirstRun() = home(ThemeId.MANGO, DarkModePref.LIGHT, HomeState(wallets = sample.wallets.take(1).map { it.copy(balanceCentavos = 0) }), "home_empty")
 
     private val entryCategories = DefaultData.expenseCategories.mapIndexed { i, (name, icon) ->
@@ -112,6 +117,25 @@ class ScreensScreenshotTest {
     fun walletsCalamansiLight() = captureRoboImage("build/outputs/roborazzi/screen_wallets_calamansi_light.png") {
         PitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) { WalletsContent(sample.wallets, onBack = {}, onAdd = {}, onOpen = {}) }
     }
+
+    private fun backup(theme: ThemeId, mode: DarkModePref, name: String, lastBackupOn: LocalDate?, notice: BackupNotice?, pending: BackupInfo?) =
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
+            PitakaTheme(theme, mode) {
+                BackupContent(
+                    lastBackupOn = lastBackupOn, today = today, notice = notice, pending = pending, busy = false,
+                    onBackUp = {}, onPickBackup = {}, onConfirmRestore = {}, onCancelRestore = {}, onBack = {},
+                )
+            }
+        }
+
+    @Test
+    fun backupJustSavedMangoLight() = backup(ThemeId.MANGO, DarkModePref.LIGHT, "backup_saved_mango_light", today, BackupNotice.SAVED, null)
+
+    @Test
+    fun backupRestoreQuestionUbeDark() = backup(
+        ThemeId.UBE, DarkModePref.DARK, "backup_restore_ube_dark", today.minusDays(40), null,
+        BackupInfo(schemaVersion = 1, entries = 128, wallets = 3, lastEntryOn = today.minusDays(2)),
+    )
 
     @Test
     fun settingsDagatLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_dagat_light.png") {

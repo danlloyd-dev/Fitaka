@@ -4,6 +4,7 @@ import com.pitakaview.app.data.db.dao.BaonActivityRow
 import com.pitakaview.app.data.db.dao.GoalProgress
 import com.pitakaview.app.data.db.dao.LoanWithPaid
 import com.pitakaview.app.data.db.dao.PurposeTotal
+import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.dao.WalletWithBalance
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.LoanEntity
@@ -87,6 +88,22 @@ class HomeStateBuilderTest {
         assertEquals(listOf(Section.UTANG, Section.KITA, Section.UTANG), s.upcoming.map { it.section })
         assertEquals(900_000L + 5_000_000L, s.iOweCentavos)
         assertEquals(200_000L, s.owedToMeCentavos)
+    }
+
+    @Test
+    fun backupReminderShowsOnlyWhenThereIsSomethingToLoseAndNoRecentBackup() {
+        val entry = RecentTransaction(1, TxPurpose.EXPENSE, 100, today, null, "Food", "Cash", null)
+        fun nudge(recent: List<RecentTransaction>, lastBackupOn: LocalDate?) = HomeStateBuilder.build(
+            today = today, wallets = emptyList(), monthTotals = emptyList(), goals = emptyList(), openLoans = emptyList(),
+            baons = emptyList(), baonActivity = emptyList(), paySchedules = emptyList(), recent = recent,
+            lastBackupOn = lastBackupOn,
+        ).backupNudge
+
+        assertNull("an empty app is never nagged", nudge(emptyList(), null))
+        assertEquals(BackupNudge.NEVER_BACKED_UP, nudge(listOf(entry), null))
+        assertEquals(BackupNudge.BACKUP_IS_OLD, nudge(listOf(entry), today.minusDays(31)))
+        assertNull("30 days is still fine", nudge(listOf(entry), today.minusDays(30)))
+        assertNull(nudge(listOf(entry), today))
     }
 
     @Test

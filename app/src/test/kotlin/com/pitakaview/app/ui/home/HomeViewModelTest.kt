@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -60,7 +61,7 @@ class HomeViewModelTest {
         ledger.add(income(500_000, LocalDate.of(2026, 12, 1)))
 
         val today = MutableStateFlow(LocalDate.of(2026, 11, 30))
-        val vm = HomeViewModel(db, today)
+        val vm = HomeViewModel(db, today, lastBackupAt = flowOf(null))
 
         val november = withTimeout(10_000) { vm.state.first { it.incomeCentavos == 2_000_000L } }
         // Wallet balances are not tied to a month: both entries count.

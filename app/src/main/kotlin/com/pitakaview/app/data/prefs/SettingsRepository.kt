@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.time.Instant
 
 /** App settings in a small on-device DataStore file. A damaged or unreadable file falls back to defaults. */
 class SettingsRepository(private val store: DataStore<Preferences>) {
@@ -49,10 +50,18 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { it[LAST_WALLET] = id }
     }
 
+    /** When the last backup file was written, or null if there has never been one. */
+    val lastBackupAt: Flow<Instant?> = prefs.map { it[LAST_BACKUP]?.let(Instant::ofEpochMilli) }.distinctUntilChanged()
+
+    suspend fun setLastBackupAt(at: Instant) {
+        store.edit { it[LAST_BACKUP] = at.toEpochMilli() }
+    }
+
     companion object {
         internal val THEME = stringPreferencesKey("theme")
         internal val DARK_MODE = stringPreferencesKey("dark_mode")
         internal val LAST_WALLET = longPreferencesKey("last_wallet_id")
+        internal val LAST_BACKUP = longPreferencesKey("last_backup_at")
 
         /** One instance per app (DataStore forbids two on the same file). */
         fun create(context: Context) = SettingsRepository(

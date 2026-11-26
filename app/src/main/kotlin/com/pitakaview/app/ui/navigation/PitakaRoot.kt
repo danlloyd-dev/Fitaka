@@ -37,6 +37,7 @@ import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.ui.backup.BackupRoute
 import com.pitakaview.app.ui.categories.CategoriesRoute
 import com.pitakaview.app.ui.categories.CategoryEditorRoute
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
@@ -62,6 +63,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class EntryEditorKey(val transactionId: Long? = null, val startKind: EntryKind = EntryKind.EXPENSE) : NavKey
 @Serializable data object WalletsKey : NavKey
 @Serializable data class WalletEditorKey(val walletId: Long? = null) : NavKey
+@Serializable data object BackupKey : NavKey
 @Serializable data object CategoriesKey : NavKey
 @Serializable data class CategoryEditorKey(val categoryId: Long? = null, val kind: CategoryKind = CategoryKind.EXPENSE) : NavKey
 
@@ -140,7 +142,11 @@ fun PitakaRoot(
                             onOpenSettings = { backStack.add(SettingsKey) },
                             onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
                             onOpenWallets = { backStack.add(WalletsKey) },
+                            onOpenBackup = { backStack.add(BackupKey) },
                         )
+                    }
+                    entry<BackupKey> {
+                        BackupRoute(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<SectionKey>(metadata = tabMetadata) { key ->
                         // Kita opens quick entry on income; the other tabs open it on spending.
@@ -153,6 +159,7 @@ fun PitakaRoot(
                             onBack = { backStack.removeLastOrNull() },
                             onOpenWallets = { backStack.add(WalletsKey) },
                             onOpenCategories = { backStack.add(CategoriesKey) },
+                            onOpenBackup = { backStack.add(BackupKey) },
                         )
                     }
                     entry<EntryEditorKey> { key ->

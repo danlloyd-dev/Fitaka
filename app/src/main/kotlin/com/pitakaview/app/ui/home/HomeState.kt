@@ -26,6 +26,9 @@ data class UpcomingItem(
     val amountCentavos: Long?,
 )
 
+/** Why Home is asking for a backup. */
+enum class BackupNudge { NEVER_BACKED_UP, BACKUP_IS_OLD }
+
 /** Everything the Home dashboard shows. Each tile matches its section's own screen. */
 data class HomeState(
     val wallets: List<WalletWithBalance> = emptyList(),
@@ -38,6 +41,8 @@ data class HomeState(
     val baonLeftCentavos: Long? = null,
     val upcoming: List<UpcomingItem> = emptyList(),
     val recent: List<RecentTransaction> = emptyList(),
+    /** Set when there are entries worth protecting and no recent backup. */
+    val backupNudge: BackupNudge? = null,
 ) {
     /** "Your whole wallet": every active wallet added up. */
     val totalCentavos: Long get() = wallets.sumOf { it.balanceCentavos }
@@ -46,6 +51,7 @@ data class HomeState(
 object HomeStateBuilder {
     const val UPCOMING_DAYS = 14L
     const val UPCOMING_MAX = 5
+    const val BACKUP_EVERY_DAYS = 30L
 
     fun build(
         today: LocalDate,
@@ -57,6 +63,7 @@ object HomeStateBuilder {
         baonActivity: List<BaonActivityRow>,
         paySchedules: List<PayScheduleEntity>,
         recent: List<RecentTransaction>,
+        lastBackupOn: LocalDate? = null,
     ): HomeState {
         val totals = monthTotals.associate { it.purpose to it.totalCentavos }
         val horizon = today.plusDays(UPCOMING_DAYS)
@@ -85,6 +92,13 @@ object HomeStateBuilder {
             baonLeftCentavos = if (receiving.isEmpty()) null else receiving.sumOf { BaonMath.summarize(it, baonActivity, today).leftCentavos },
             upcoming = (paydays + loanDues).sortedBy { it.date }.take(UPCOMING_MAX),
             recent = recent,
+            // An empty app has nothing to lose, so it is never nagged.
+            backupNudge = when {
+                recent.isEmpty() -> null
+                lastBackupOn == null -> BackupNudge.NEVER_BACKED_UP
+                lastBackupOn < today.minusDays(BACKUP_EVERY_DAYS) -> BackupNudge.BACKUP_IS_OLD
+                else -> null
+            },
         )
     }
 }

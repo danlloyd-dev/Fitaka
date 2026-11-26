@@ -54,6 +54,16 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun theLastBackupTimeIsRemembered() = runBlocking {
+        val (repo, job) = open(File(tmp.root, "backup.preferences_pb"))
+        assertEquals(null, repo.lastBackupAt.first())
+        val at = java.time.Instant.parse("2026-11-26T03:00:00Z")
+        repo.setLastBackupAt(at)
+        assertEquals(at, repo.lastBackupAt.first())
+        job.cancelAndJoin()
+    }
+
+    @Test
     fun unknownStoredNamesFallBackToDefaults() = runBlocking {
         val file = File(tmp.root, "old.preferences_pb")
         val job = Job()

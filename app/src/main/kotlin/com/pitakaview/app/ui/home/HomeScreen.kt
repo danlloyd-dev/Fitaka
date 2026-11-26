@@ -65,13 +65,14 @@ fun HomeRoute(
     onOpenSettings: () -> Unit,
     onOpenEntry: (Long) -> Unit,
     onOpenWallets: () -> Unit,
+    onOpenBackup: () -> Unit,
 ) {
     val container = LocalAppContainer.current
-    val vm = viewModel { HomeViewModel(container.database, container.dayClock.today) }
+    val vm = viewModel { HomeViewModel(container.database, container.dayClock.today, container.settings.lastBackupAt) }
     val state by vm.state.collectAsStateWithLifecycle()
     // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets)
+    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup)
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {
@@ -101,6 +102,7 @@ fun HomeContent(
     onOpenSettings: () -> Unit,
     onOpenEntry: (Long) -> Unit = {},
     onOpenWallets: () -> Unit = {},
+    onOpenBackup: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     PitakaScreen(
@@ -117,6 +119,10 @@ fun HomeContent(
                 style = PitakaButtonStyle.Primary,
                 icon = PitakaIcons.Add,
             )
+        }
+        // High on the page: a reminder below the fold is not seen.
+        state.backupNudge?.let { nudge ->
+            item(key = "backup-nudge") { BackupNudgeCard(nudge, onOpenBackup) }
         }
         item(key = "month") { SectionHeader("This month · $month") }
         item(key = "tiles-1") {
@@ -205,6 +211,28 @@ private fun UtangTile(state: HomeState, onOpen: (Section) -> Unit) {
                 Text("Owed to you", style = type.bodySmall, color = c.inkMuted)
                 AnimatedAmountText(state.owedToMeCentavos)
             }
+        }
+    }
+}
+
+@Composable
+private fun BackupNudgeCard(nudge: BackupNudge, onOpenBackup: () -> Unit) {
+    val c = PitakaTheme.colors
+    val type = MaterialTheme.typography
+    PitakaCard(Modifier.fillMaxWidth(), onClick = onOpenBackup, contentPadding = PaddingValues(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Back up your data", style = type.titleSmall, color = c.ink)
+                Text(
+                    if (nudge == BackupNudge.NEVER_BACKED_UP) {
+                        "Your entries are only on this phone. Save a copy."
+                    } else {
+                        "Your last backup is more than 30 days old."
+                    },
+                    style = type.bodySmall, color = c.inkMuted,
+                )
+            }
+            Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp))
         }
     }
 }

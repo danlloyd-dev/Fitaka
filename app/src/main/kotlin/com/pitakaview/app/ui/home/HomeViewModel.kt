@@ -12,23 +12,31 @@ import com.pitakaview.app.data.db.dao.WalletWithBalance
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
 /**
- * Live dashboard: eight database queries combined into one [HomeState]. Room re-runs a query only when a
- * table it reads changes, and the flows stop 5 s after the screen goes away.
+ * Live dashboard: eight database queries plus the last-backup date, combined into one [HomeState].
+ * Room re-runs a query only when a table it reads changes, and the flows stop 5 s after the screen goes away.
  *
  * Everything hangs off [today] (the app's DayClock): when the date changes, the month range and the
  * queries are rebuilt, so "this month" and "Coming up" never show yesterday's period.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class HomeViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
+class HomeViewModel(
+    db: PitakaDatabase,
+    today: StateFlow<LocalDate>,
+    lastBackupAt: Flow<Instant?>,
+    private val zone: ZoneId = ZoneId.systemDefault(),
+) : ViewModel() {
 
     private val tx = db.transactionDao()
 
@@ -48,8 +56,11 @@ class HomeViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel
             db.payScheduleDao().observeActive(),
             tx.observeRecent(limit = 5),
         ) { baons, activity, schedules, recent -> Plans(baons, activity, schedules, recent) }
-        combine(money, plans) { m, p ->
-            HomeStateBuilder.build(day, m.wallets, m.totals, m.goals, m.loans, p.baons, p.activity, p.schedules, p.recent)
+        combine(money, plans, lastBackupAt) { m, p, backedUpAt ->
+            HomeStateBuilder.build(
+                day, m.wallets, m.totals, m.goals, m.loans, p.baons, p.activity, p.schedules, p.recent,
+                lastBackupOn = backedUpAt?.atZone(zone)?.toLocalDate(),
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 

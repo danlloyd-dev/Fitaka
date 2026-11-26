@@ -24,6 +24,9 @@ import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import kotlinx.coroutines.Dispatchers
 
+/** The database layout version. A backup file made by a higher version cannot be read by this app. */
+const val PITAKA_DB_VERSION = 1
+
 /**
  * All data lives in this one on-device file. Schema versions are exported to app/schemas; every
  * version bump needs a real Migration — never destructive fallback, because this is someone's money history.
@@ -39,7 +42,7 @@ import kotlinx.coroutines.Dispatchers
         ImportBatchEntity::class,
         TransactionEntity::class,
     ],
-    version = 1,
+    version = PITAKA_DB_VERSION,
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)

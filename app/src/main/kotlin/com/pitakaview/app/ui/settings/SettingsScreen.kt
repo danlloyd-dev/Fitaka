@@ -31,6 +31,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenWallets: () -> Unit = {},
     onOpenCategories: () -> Unit = {},
+    onOpenBackup: () -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -50,6 +51,13 @@ fun SettingsScreen(
                     subtitle = "What you spend on and earn from",
                     trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenCategories,
+                )
+                PitakaDivider()
+                PitakaListItem(
+                    title = "Backup",
+                    subtitle = "Save a copy, or bring one back",
+                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    onClick = onOpenBackup,
                 )
             }
         }

@@ -2,4 +2,6 @@
 <resources>
     <!-- Mango (default theme) background, light. -->
     <color name="window_background">#FFF8EC</color>
+    <!-- The cream behind the logo, sampled from the corners of the owner's artwork. -->
+    <color name="ic_launcher_background">#F9F3E2</color>
 </resources>
