@@ -149,7 +149,8 @@ fun PitakaBottomBar(
             Modifier
                 .padding(end = shadow, bottom = shadow)
                 .fillMaxWidth()
-                .sketchBox(RoundedCornerShape(24.dp), fill = c.card, border = c.ink, shadow = c.shadow, shadowOffset = shadow)
+                // The chosen tab's tile stands out across the bar's top edge, so the bar's outline goes under it.
+                .sketchBox(RoundedCornerShape(24.dp), fill = c.card, border = c.ink, shadow = c.shadow, shadowOffset = shadow, outlineUnderContent = true)
                 .selectableGroup()
                 .padding(start = 11.5.dp, end = 11.5.dp, top = 8.5.dp, bottom = 9.5.dp),
         ) {

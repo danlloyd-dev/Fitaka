@@ -13,10 +13,12 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
@@ -31,6 +33,10 @@ import com.pitakaview.app.ui.theme.PitakaDimens
  * the fill, and a thick outline.
  * The shadow is drawn outside this node's bounds, so callers reserve room for it with
  * `padding(end = offset, bottom = offset)` *before* this modifier.
+ *
+ * The outline is normally drawn last, over the part's contents, so nothing inside can cover it. A part
+ * with something that stands out across its edge (the bottom bar and its chosen tab's tile) passes
+ * [outlineUnderContent]: its outline is then drawn first, and what stands out is drawn over it.
  */
 fun Modifier.sketchBox(
     shape: Shape,
@@ -40,21 +46,44 @@ fun Modifier.sketchBox(
     shadow: Color = Color.Unspecified,
     shadowOffset: Dp = 0.dp,
     gloss: Gloss? = null,
+    outlineUnderContent: Boolean = false,
 ): Modifier = this
     .drawWithCache {
         // Built once per size, not on every frame.
         val outline = shape.createOutline(size, layoutDirection, this)
         val offset = shadowOffset.toPx()
         val shine = gloss?.let { glossFor(it, fill, inset = borderWidth.toPx()) }
+        val width = borderWidth.toPx()
+        val line = if (outlineUnderContent) insideEdge(outline, width) else null
         onDrawBehind {
             if (offset > 0f && shadow.isSpecified) {
                 translate(offset, offset) { drawOutline(outline, shadow) }
             }
             drawOutline(outline, fill)
             shine?.invoke(this)
+            if (line != null) drawPath(line, border, style = Stroke(width))
         }
     }
-    .border(borderWidth, border, shape)
+    .then(if (outlineUnderContent) Modifier else Modifier.border(borderWidth, border, shape))
+
+/** The line down the middle of an outline [width] thick drawn just inside [outline], as `border` draws it. */
+private fun insideEdge(outline: Outline, width: Float): Path = Path().apply {
+    val half = width / 2
+    fun CornerRadius.inside() = CornerRadius((x - half).coerceAtLeast(0f), (y - half).coerceAtLeast(0f))
+    when (outline) {
+        is Outline.Rectangle -> addRect(outline.rect.deflate(half))
+        is Outline.Rounded -> outline.roundRect.let {
+            addRoundRect(
+                RoundRect(
+                    it.left + half, it.top + half, it.right - half, it.bottom - half,
+                    it.topLeftCornerRadius.inside(), it.topRightCornerRadius.inside(),
+                    it.bottomRightCornerRadius.inside(), it.bottomLeftCornerRadius.inside(),
+                ),
+            )
+        }
+        is Outline.Generic -> addPath(outline.path)
+    }
+}
 
 /** The gloss alone, for a part that has no outline of its own (the chosen part of a segmented control). */
 fun Modifier.gloss(gloss: Gloss, on: Color): Modifier = drawWithCache {
