@@ -10,6 +10,8 @@ import com.pitakaview.app.data.db.createPitakaDatabase
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.DayClock
+import com.pitakaview.app.importing.AndroidPdfTextReader
+import com.pitakaview.app.importing.PdfTextReader
 import com.pitakaview.app.lock.AndroidUnlocker
 import com.pitakaview.app.lock.AppLock
 import com.pitakaview.app.lock.Unlocker
@@ -44,6 +46,9 @@ class AppContainer(context: Context) {
     val reminders: Reminders by lazy {
         Reminders(database = { database }, settings = settings, notifier = { reminderNotifier }, alarm = { reminderAlarm }, now = { reminderClock() })
     }
+
+    /** Reads the words of a PDF statement (a property so tests can stand in for Android's reader). */
+    var pdfTextReader: PdfTextReader = AndroidPdfTextReader(appContext)
 
     /** The app lock, and what asks the phone to check who is holding it (a property so tests can stand in for the phone). */
     var unlocker: Unlocker = AndroidUnlocker(appContext)

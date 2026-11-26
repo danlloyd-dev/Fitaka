@@ -167,4 +167,18 @@ interface ImportBatchDao {
     /** Undo an import: its ledger rows go with it (ON DELETE CASCADE). */
     @Delete
     suspend fun delete(batch: ImportBatchEntity)
+
+    @Query("SELECT * FROM import_batches WHERE id = :id")
+    suspend fun get(id: Long): ImportBatchEntity?
+
+    /** Past imports, newest first, each with its wallet's name and how many of its entries are still there. */
+    @Query(
+        """
+        SELECT b.id, b.fileName, b.importedAt, w.name AS walletName,
+               (SELECT COUNT(*) FROM transactions t WHERE t.importBatchId = b.id) AS entryCount
+        FROM import_batches b JOIN wallets w ON w.id = b.walletId
+        ORDER BY b.importedAt DESC, b.id DESC
+        """,
+    )
+    fun observeAll(): Flow<List<ImportBatchRow>>
 }

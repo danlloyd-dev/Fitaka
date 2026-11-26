@@ -33,6 +33,7 @@ fun SettingsScreen(
     onOpenWallets: () -> Unit = {},
     onOpenCategories: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
+    onOpenImport: () -> Unit = {},
     reminders: ReminderSettingsUi = ReminderSettingsUi(),
     onRemindersChange: (Boolean) -> Unit = {},
     onOpenPhoneSettings: () -> Unit = {},
@@ -64,6 +65,13 @@ fun SettingsScreen(
                     subtitle = "Save a copy, bring one back, or export",
                     trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenBackup,
+                )
+                PitakaDivider()
+                PitakaListItem(
+                    title = "Import",
+                    subtitle = "Bring in entries from a file",
+                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    onClick = onOpenImport,
                 )
             }
         }

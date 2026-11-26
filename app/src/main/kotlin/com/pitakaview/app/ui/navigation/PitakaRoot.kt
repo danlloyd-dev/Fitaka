@@ -53,6 +53,7 @@ import com.pitakaview.app.ui.components.PitakaBottomBar
 import com.pitakaview.app.ui.entry.EntryEditorRoute
 import com.pitakaview.app.ui.gastos.GastosRoute
 import com.pitakaview.app.ui.home.HomeRoute
+import com.pitakaview.app.ui.importing.ImportRoute
 import com.pitakaview.app.ui.ipon.GoalDetailRoute
 import com.pitakaview.app.ui.ipon.GoalEditorRoute
 import com.pitakaview.app.ui.ipon.IponRoute
@@ -105,6 +106,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object WalletsKey : NavKey
 @Serializable data class WalletEditorKey(val walletId: Long? = null) : NavKey
 @Serializable data object BackupKey : NavKey
+@Serializable data object ImportKey : NavKey
 @Serializable data object CategoriesKey : NavKey
 @Serializable data class CategoryEditorKey(val categoryId: Long? = null, val kind: CategoryKind = CategoryKind.EXPENSE) : NavKey
 
@@ -263,6 +265,9 @@ fun PitakaRoot(
                     entry<BackupKey> {
                         BackupRoute(onBack = { backStack.removeLastOrNull() })
                     }
+                    entry<ImportKey> {
+                        ImportRoute(onBack = { backStack.removeLastOrNull() })
+                    }
                     entry<SectionKey>(metadata = tabMetadata) { key ->
                         val openEntry: (Long) -> Unit = { backStack.add(EntryEditorKey(transactionId = it)) }
                         when (key.section) {
@@ -308,6 +313,7 @@ fun PitakaRoot(
                             onOpenWallets = { backStack.add(WalletsKey) },
                             onOpenCategories = { backStack.add(CategoriesKey) },
                             onOpenBackup = { backStack.add(BackupKey) },
+                            onOpenImport = { backStack.add(ImportKey) },
                             reminders = reminders.ui,
                             onRemindersChange = reminders.onChange,
                             onOpenPhoneSettings = reminders.onOpenPhoneSettings,

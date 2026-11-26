@@ -69,7 +69,9 @@ class NavigationFlowTest {
 
         // Settings is a pushed screen: the tab bar goes away, and its own back button returns.
         rule.onNodeWithContentDescription("Settings").performClick()
-        rule.onNodeWithText("Light or dark").assertIsDisplayed()
+        // (A heading at the top of Settings: the screen has grown longer than this short test screen, so
+        // headings further down are no longer in view without scrolling.)
+        rule.onNodeWithText("Money set-up").assertIsDisplayed()
         rule.onNode(tab("Home")).assertDoesNotExist()
 
         rule.onNodeWithContentDescription("Back").performClick()

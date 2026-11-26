@@ -4,6 +4,7 @@ import androidx.room3.Embedded
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.TxPurpose
+import java.time.Instant
 import java.time.LocalDate
 
 /** Query results that are not whole tables. */
@@ -79,6 +80,16 @@ val RecentTransaction.isMove: Boolean get() = fromWalletName != null && toWallet
 /** Positive for money in, negative for money out, plain amount for moves (see [isMove]). */
 val RecentTransaction.signedCentavos: Long
     get() = if (toWalletName == null && fromWalletName != null) -amountCentavos else amountCentavos
+
+/** One past import, for the list on the Import screen. */
+data class ImportBatchRow(
+    val id: Long,
+    val fileName: String,
+    val importedAt: Instant,
+    val walletName: String,
+    /** Entries of this import still in the ledger (some may have been deleted by hand since). */
+    val entryCount: Int,
+)
 
 /** Outside the class so Room does not try to map it as a column. */
 val LoanWithPaid.remainingCentavos: Long get() = loan.totalPayableCentavos - paidCentavos

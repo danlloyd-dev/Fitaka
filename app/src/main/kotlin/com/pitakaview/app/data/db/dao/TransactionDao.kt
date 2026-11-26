@@ -8,8 +8,9 @@ import androidx.room3.Update
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.domain.ExportRow
 import com.pitakaview.app.domain.TxPurpose
-import kotlinx.coroutines.flow.Flow
+import com.pitakaview.app.domain.importing.LedgerMark
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 /** A ledger row with its category and wallet names. Shared by Recent, the month lists and search. */
 private const val ENTRY_ROWS = """
@@ -180,4 +181,18 @@ interface TransactionDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE externalRef = :externalRef)")
     suspend fun existsExternalRef(externalRef: String): Boolean
+
+    /** Which of [refs] the ledger already holds. One indexed look-up per call; callers pass at most a few hundred at a time. */
+    @Query("SELECT externalRef FROM transactions WHERE externalRef IN (:refs)")
+    suspend fun knownRefs(refs: List<String>): List<String>
+
+    /** Every entry touching [walletId] between two dates, as day, amount and direction: what a statement line is compared with. */
+    @Query(
+        """
+        SELECT occurredOn AS date, amountCentavos, (toWalletId IS NOT NULL AND toWalletId = :walletId) AS moneyIn
+        FROM transactions
+        WHERE (fromWalletId = :walletId OR toWalletId = :walletId) AND occurredOn BETWEEN :start AND :end
+        """,
+    )
+    suspend fun marksFor(walletId: Long, start: LocalDate, end: LocalDate): List<LedgerMark>
 }
