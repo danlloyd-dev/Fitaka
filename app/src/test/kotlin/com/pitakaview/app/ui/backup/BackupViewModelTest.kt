@@ -75,7 +75,7 @@ class BackupViewModelTest {
     private fun viewModel(dbFile: File = live): BackupViewModel {
         work = tmp.newFolder()
         return BackupViewModel(
-            BackupManager(db, dbFile, BundledSQLiteDriver(), work), settings, work,
+            BackupManager(db, dbFile, BundledSQLiteDriver(), work), settings, db.transactionDao(), work,
             restartApp = { restarts.incrementAndGet() }, now = { at },
         )
     }

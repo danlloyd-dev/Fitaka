@@ -93,6 +93,8 @@ dependencies {
     // Frosted-glass top/bottom bars (real blur on Android 12+, tinted see-through below).
     implementation(libs.haze)
     implementation(libs.haze.blur)
+    // Charts for the monthly summary.
+    implementation(libs.vico.compose.m3)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

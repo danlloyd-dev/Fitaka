@@ -59,6 +59,7 @@ import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.search.SearchRoute
 import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
+import com.pitakaview.app.ui.summary.SummaryRoute
 import com.pitakaview.app.ui.utang.LoanDetailRoute
 import com.pitakaview.app.ui.utang.LoanEditorRoute
 import com.pitakaview.app.ui.utang.UtangRoute
@@ -94,6 +95,7 @@ import kotlinx.serialization.Serializable
 /** A new entry of [purpose] for the loan, goal or baon [linkId]. Existing ones open through [EntryEditorKey]. */
 @Serializable data class MoveEditorKey(val purpose: TxPurpose, val linkId: Long) : NavKey
 @Serializable data object SearchKey : NavKey
+@Serializable data object SummaryKey : NavKey
 @Serializable data class PayScheduleEditorKey(val scheduleId: Long? = null) : NavKey
 @Serializable data object WalletsKey : NavKey
 @Serializable data class WalletEditorKey(val walletId: Long? = null) : NavKey
@@ -178,7 +180,11 @@ fun PitakaRoot(
                             onOpenWallets = { backStack.add(WalletsKey) },
                             onOpenBackup = { backStack.add(BackupKey) },
                             onSearch = { backStack.add(SearchKey) },
+                            onOpenSummary = { backStack.add(SummaryKey) },
                         )
+                    }
+                    entry<SummaryKey> {
+                        SummaryRoute(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<SearchKey> {
                         SearchRoute(

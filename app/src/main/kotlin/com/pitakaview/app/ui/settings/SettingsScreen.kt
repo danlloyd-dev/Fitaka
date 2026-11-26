@@ -55,7 +55,7 @@ fun SettingsScreen(
                 PitakaDivider()
                 PitakaListItem(
                     title = "Backup",
-                    subtitle = "Save a copy, or bring one back",
+                    subtitle = "Save a copy, bring one back, or export",
                     trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenBackup,
                 )

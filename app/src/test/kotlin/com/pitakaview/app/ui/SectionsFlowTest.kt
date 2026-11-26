@@ -63,6 +63,28 @@ class SectionsFlowTest : FlowTestBase() {
     }
 
     @Test
+    fun theSummaryAddsUpTheMonthAndOpensFromHome() {
+        start()
+        addExpense(25_000)
+        addExpense(10_000, category = "Transport")
+        waitFor("−₱250.00")
+
+        tapButton("Summary")
+        waitFor("Left over in ${monthName(YearMonth.from(today()))}")
+        waitFor("−₱350.00") // nothing came in and ₱350 went out
+        assertTrue(shows("The last 6 months"))
+        assertTrue("the chart's colours are named in words", shows("Money in") && shows("Money out"))
+        assertTrue(shows("Where it went"))
+        assertTrue("Food is 250 of 350", shows("71%"))
+
+        // The month before has nothing, so there is nothing to chart either; one tap comes back.
+        tapDescribed("Previous month")
+        waitFor("Nothing to chart yet")
+        tapButton("Back to this month")
+        waitFor("−₱350.00")
+    }
+
+    @Test
     fun aPaydayIsSetUpReceivedAndThenWaitsForTheNextOne() {
         start()
         tapTab("Kita")

@@ -117,8 +117,25 @@ class BackupFlowTest : FlowTestBase() {
         waitFor("Backup saved")
 
         back()
-        waitFor("Recent")
+        // "Your whole wallet" is at the top of Home, so it is on screen on any phone. (The "Recent" heading
+        // this used to wait for is far down the page and went off-screen when Home gained the Summary link.)
+        waitFor("Your whole wallet")
         rule.waitUntil(10_000) { !shows("Back up your data") }
+    }
+
+    @Test
+    fun exportingASpreadsheetWritesEveryEntryAsATable() {
+        picked = File(tmp.root, "PitakaView-entries.csv")
+        start()
+        addExpense(25_000, note = "lunch, with Tita")
+        openBackupScreen()
+        rule.onNode(hasText("Export to a spreadsheet") and hasClickAction()).assertIsDisplayed().performClick()
+        waitFor("Exported 1 entry.")
+
+        val lines = picked.readText().removePrefix("\uFEFF").split("\r\n")
+        assertEquals("Date,Type,Category,Amount,In or out,From wallet,To wallet,For,Note", lines[0])
+        assertEquals("${today()},Spending,Food,250.00,out,Cash,,,\"lunch, with Tita\"", lines[1])
+        assertTrue("exporting is not a backup, and the screen does not claim one", shows("Never backed up"))
     }
 
     @Test

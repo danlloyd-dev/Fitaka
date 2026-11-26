@@ -30,15 +30,20 @@ import com.pitakaview.app.data.backup.BackupCheck
 import com.pitakaview.app.data.backup.BackupInfo
 import com.pitakaview.app.data.backup.BackupManager
 import com.pitakaview.app.data.backup.RestoreNotStartedException
+import com.pitakaview.app.data.db.dao.TransactionDao
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.di.LocalAppContainer
+import com.pitakaview.app.domain.CsvExport
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
+import com.pitakaview.app.ui.ledger.entriesText
 import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.label
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,11 +61,12 @@ import java.time.ZoneId
 private const val TAG = "PitakaBackup"
 
 /** What the Backup screen tells the owner after an action. */
-enum class BackupNotice { SAVED, SAVE_FAILED, NOT_A_BACKUP, TOO_NEW, RESTORE_FAILED }
+enum class BackupNotice { SAVED, SAVE_FAILED, NOT_A_BACKUP, TOO_NEW, RESTORE_FAILED, EXPORTED, EXPORT_FAILED }
 
 class BackupViewModel(
     private val backup: BackupManager,
     private val settings: SettingsRepository,
+    private val entries: TransactionDao,
     workDir: File,
     private val restartApp: () -> Unit,
     private val now: () -> Instant = Instant::now,
@@ -76,6 +82,10 @@ class BackupViewModel(
     var pending by mutableStateOf<BackupInfo?>(null)
         private set
     var busy by mutableStateOf(false)
+        private set
+
+    /** How many entries the last spreadsheet export wrote. */
+    var exportedCount by mutableStateOf(0)
         private set
 
     private val candidate = File(workDir, "restore-candidate.db")
@@ -104,6 +114,37 @@ class BackupViewModel(
                     Log.e(TAG, "Backup could not be written", e)
                     if (opened) withContext(Dispatchers.IO) { runCatching(discardHalfWritten) }
                     BackupNotice.SAVE_FAILED
+                }
+            }
+            busy = false
+        }
+    }
+
+    /**
+     * Writes every entry as a spreadsheet file (CSV) to the place the owner chose. As with a backup, a
+     * file that breaks halfway is removed rather than left looking complete.
+     */
+    fun exportTo(open: () -> OutputStream?, discardHalfWritten: () -> Unit = {}) {
+        if (busy) return
+        busy = true
+        notice = null
+        viewModelScope.launch {
+            // Leaving the screen must not cut the file short.
+            notice = withContext(NonCancellable) {
+                var opened = false
+                try {
+                    exportedCount = withContext(Dispatchers.IO) {
+                        // Read first, so a failure here never empties a file the owner chose to overwrite.
+                        val rows = entries.exportRows()
+                        val out = checkNotNull(open()) { "The chosen place could not be opened for writing" }
+                        opened = true
+                        out.bufferedWriter(Charsets.UTF_8).use { writer -> CsvExport.write(rows, writer) { it.label } }
+                    }
+                    BackupNotice.EXPORTED
+                } catch (e: Exception) {
+                    Log.e(TAG, "Spreadsheet could not be written", e)
+                    if (opened) withContext(Dispatchers.IO) { runCatching(discardHalfWritten) }
+                    BackupNotice.EXPORT_FAILED
                 }
             }
             busy = false
@@ -171,7 +212,9 @@ class BackupViewModel(
 fun BackupRoute(onBack: () -> Unit) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
-    val vm = viewModel { BackupViewModel(container.backup, container.settings, context.cacheDir, restartApp = { container.restartApp() }) }
+    val vm = viewModel {
+        BackupViewModel(container.backup, container.settings, container.database.transactionDao(), context.cacheDir, restartApp = { container.restartApp() })
+    }
     val last by vm.lastBackupAt.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     // The app's own resolver, so a long save does not hold on to this screen.
@@ -189,6 +232,14 @@ fun BackupRoute(onBack: () -> Unit) {
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.stageRestore { resolver.openInputStream(uri) }
     }
+    val exportSheet = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) {
+            vm.exportTo(
+                open = { resolver.openForOverwrite(uri) },
+                discardHalfWritten = { DocumentsContract.deleteDocument(resolver, uri) },
+            )
+        }
+    }
 
     BackupContent(
         lastBackupOn = last?.atZone(ZoneId.systemDefault())?.toLocalDate(),
@@ -198,6 +249,8 @@ fun BackupRoute(onBack: () -> Unit) {
         busy = vm.busy,
         onBackUp = { save.launch("PitakaView-backup-$today.pitaka") },
         onPickBackup = { pick.launch(arrayOf("*/*")) },
+        onExport = { exportSheet.launch("PitakaView-entries-$today.csv") },
+        exportedCount = vm.exportedCount,
         onConfirmRestore = vm::confirmRestore,
         onCancelRestore = vm::cancelRestore,
         onBack = onBack,
@@ -229,6 +282,8 @@ fun BackupContent(
     onConfirmRestore: () -> Unit,
     onCancelRestore: () -> Unit,
     onBack: () -> Unit,
+    onExport: () -> Unit = {},
+    exportedCount: Int = 0,
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -301,6 +356,24 @@ fun BackupContent(
                 "The backup file is not locked with a password, so keep it private.",
                 style = type.bodySmall, color = c.inkMuted, modifier = Modifier.padding(horizontal = 4.dp),
             )
+        }
+        item(key = "export-title") { SectionHeader("Spreadsheet") }
+        item(key = "export") {
+            Column {
+                PitakaButton("Export to a spreadsheet", onClick = onExport, modifier = Modifier.fillMaxWidth(), enabled = !busy && pending == null)
+                when (notice) {
+                    BackupNotice.EXPORTED -> Text(
+                        "Exported ${entriesText(exportedCount)}.",
+                        style = type.bodyMedium, color = c.ink, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                    BackupNotice.EXPORT_FAILED -> ProblemText("The spreadsheet could not be saved. Please try another place.")
+                    else -> Unit
+                }
+                Text(
+                    "A CSV file of every entry, for Excel or Google Sheets. It is for reading only: a spreadsheet cannot be restored, so keep making backups.",
+                    style = type.bodySmall, color = c.inkMuted, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                )
+            }
         }
     }
 }

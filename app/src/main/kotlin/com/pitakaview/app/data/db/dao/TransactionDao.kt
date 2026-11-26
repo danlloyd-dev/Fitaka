@@ -6,6 +6,7 @@ import androidx.room3.Insert
 import androidx.room3.Query
 import androidx.room3.Update
 import com.pitakaview.app.data.db.entity.TransactionEntity
+import com.pitakaview.app.domain.ExportRow
 import com.pitakaview.app.domain.TxPurpose
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -144,6 +145,25 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions WHERE baonId = :baonId")
     suspend fun countForBaon(baonId: Long): Int
+
+    /** Every entry, oldest first, with the names its ids stand for: the spreadsheet export. */
+    @Query(
+        """
+        SELECT t.id AS id, t.occurredOn AS occurredOn, t.purpose AS purpose, t.amountCentavos AS amountCentavos, t.note AS note,
+            c.name AS categoryName, fw.name AS fromWalletName, tw.name AS toWalletName,
+            l.counterparty AS loanWith, g.name AS goalName, b.name AS baonName, p.name AS paydayName
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.categoryId
+        LEFT JOIN wallets fw ON fw.id = t.fromWalletId
+        LEFT JOIN wallets tw ON tw.id = t.toWalletId
+        LEFT JOIN loans l ON l.id = t.loanId
+        LEFT JOIN savings_goals g ON g.id = t.goalId
+        LEFT JOIN baon b ON b.id = t.baonId
+        LEFT JOIN pay_schedules p ON p.id = t.payScheduleId
+        ORDER BY t.occurredOn, t.id
+        """,
+    )
+    suspend fun exportRows(): List<ExportRow>
 
     /** When pay was received for each schedule: the income rows that carry a pay schedule. */
     @Query(

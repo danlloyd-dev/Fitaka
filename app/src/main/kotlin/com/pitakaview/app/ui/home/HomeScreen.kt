@@ -2,6 +2,7 @@ package com.pitakaview.app.ui.home
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,13 +68,14 @@ fun HomeRoute(
     onOpenWallets: () -> Unit,
     onOpenBackup: () -> Unit,
     onSearch: () -> Unit,
+    onOpenSummary: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val vm = viewModel { HomeViewModel(container.database, container.dayClock.today, container.settings.lastBackupAt) }
     val state by vm.state.collectAsStateWithLifecycle()
     // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch)
+    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch, onOpenSummary)
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {
@@ -102,6 +107,7 @@ fun HomeContent(
     onOpenWallets: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
     onSearch: () -> Unit = {},
+    onOpenSummary: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     PitakaScreen(
@@ -126,7 +132,12 @@ fun HomeContent(
         state.backupNudge?.let { nudge ->
             item(key = "backup-nudge") { BackupNudgeCard(nudge, onOpenBackup) }
         }
-        item(key = "month") { SectionHeader("This month · $month") }
+        item(key = "month") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SectionHeader("This month · $month", Modifier.weight(1f))
+                SummaryLink(onOpenSummary)
+            }
+        }
         item(key = "tiles-1") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionTile(Section.KITA, "Income", state.incomeCentavos, onOpenSection, Modifier.weight(1f))
@@ -144,6 +155,19 @@ fun HomeContent(
         item(key = "upcoming") { UpcomingCard(state.upcoming, today) }
         item(key = "recent-title") { SectionHeader("Recent") }
         item(key = "recent") { RecentCard(state.recent, today, onOpenEntry) }
+    }
+}
+
+/** Opens the month's summary and chart. Underlined, with a chevron, so it reads as something to tap. */
+@Composable
+private fun SummaryLink(onClick: () -> Unit) {
+    val c = PitakaTheme.colors
+    Row(
+        Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick).padding(start = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Summary", style = MaterialTheme.typography.labelLarge, color = c.ink, textDecoration = TextDecoration.Underline)
+        Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.ink, modifier = Modifier.size(18.dp))
     }
 }
 

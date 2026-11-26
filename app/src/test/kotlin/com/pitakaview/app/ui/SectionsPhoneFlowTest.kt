@@ -30,6 +30,19 @@ class SectionsPhoneFlowTest : FlowTestBase() {
     private fun scrollTo(text: String) = rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
 
     @Test
+    fun theSummaryOpensFromHomeOnAPhone() {
+        start()
+        addExpense(25_000)
+        rule.waitUntil(10_000) { entries().size == 1 }
+        scrollTo("Summary")
+        rule.onNode(hasText("Summary") and hasClickAction()).assertIsDisplayed().performClick()
+        waitFor("Left over in")
+        // The chart itself is far down the page; it must be reachable by scrolling.
+        scrollTo("The last 6 months")
+        waitFor("Money out")
+    }
+
+    @Test
     fun aDuePaydayIsReceivedWithoutScrolling() {
         start()
         addPaydayDueToday()
