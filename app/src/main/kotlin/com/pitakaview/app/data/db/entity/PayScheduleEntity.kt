@@ -30,7 +30,7 @@ data class PayScheduleEntity(
     val firstDay: Int = 15,
     val secondDay: Int = PayRule.LAST_DAY,
     val dayOfWeek: DayOfWeek = DayOfWeek.FRIDAY,
-    val weekendRule: WeekendRule = WeekendRule.PREVIOUS_WEEKDAY,
+    val weekendRule: WeekendRule = WeekendRule.KEEP,
     val remind: Boolean = true,
     val isActive: Boolean = true,
     val createdAt: Instant,

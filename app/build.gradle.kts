@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -8,6 +10,13 @@ plugins {
     // Screenshot tests: `./gradlew :app:recordRoborazziDebug` renders screens to PNG on the JVM.
     alias(libs.plugins.roborazzi)
 }
+
+// The permanent signing key lives outside the project and is never committed. Every build installed on the
+// phone must be signed with it: Android refuses an update signed with a different key, and the uninstall that
+// follows erases the app's data. Without the file (a fresh machine), debug builds fall back to Android's
+// default debug key and release builds stay unsigned.
+val signingFile = File(System.getProperty("user.home"), ".pitakaview-signing/keystore.properties")
+val signing = Properties().apply { if (signingFile.isFile) signingFile.inputStream().use { load(it) } }
 
 android {
     namespace = "com.pitakaview.app"
@@ -23,11 +32,27 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (signingFile.isFile) {
+            create("pitaka") {
+                storeFile = File(signing.getProperty("storeFile"))
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Same key as release, so a debug build and a release build can update each other on the phone.
+            signingConfig = signingConfigs.findByName("pitaka") ?: signingConfig
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("pitaka")
         }
     }
 

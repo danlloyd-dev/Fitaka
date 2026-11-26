@@ -64,9 +64,11 @@ fun HomeRoute(
     onOpenSettings: () -> Unit,
 ) {
     val container = LocalAppContainer.current
-    val vm = viewModel { HomeViewModel(container.database) }
+    val vm = viewModel { HomeViewModel(container.database, container.dayClock.today) }
     val state by vm.state.collectAsStateWithLifecycle()
-    HomeContent(state, LocalDate.now(), greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings)
+    // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
+    val today by container.dayClock.today.collectAsStateWithLifecycle()
+    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings)
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {

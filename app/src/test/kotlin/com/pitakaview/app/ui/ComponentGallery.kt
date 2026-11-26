@@ -1,4 +1,4 @@
-package com.pitakaview.app.ui.gallery
+package com.pitakaview.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -29,7 +29,6 @@ import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.components.AmountText
-import com.pitakaview.app.ui.components.BottomBarItem
 import com.pitakaview.app.ui.components.DarkModePicker
 import com.pitakaview.app.ui.components.PitakaBottomBar
 import com.pitakaview.app.ui.components.PitakaButton
@@ -45,17 +44,11 @@ import com.pitakaview.app.ui.components.SectionTag
 import com.pitakaview.app.ui.components.ThemePicker
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
+import com.pitakaview.app.ui.navigation.MainTabs
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
-/** Home, then the five sections — Filipino names are short enough for six tabs on a phone. */
-val MainTabs = listOf(BottomBarItem("Home", PitakaIcons.Home)) +
-    Section.entries.map { BottomBarItem(it.label, it.icon, it) }
-
-/**
- * Temporary screen (step 3): every component in the current theme, with a working theme picker.
- * Step 4 replaces it with the real screens; the pickers move to Settings.
- */
+/** Test fixture: every component on one screen, drawn by ThemeScreenshotTest in each theme and mode. */
 @Composable
 fun ComponentGallery(
     appearance: AppearanceSettings,

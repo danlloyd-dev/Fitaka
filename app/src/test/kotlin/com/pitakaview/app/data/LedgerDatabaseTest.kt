@@ -221,6 +221,22 @@ class LedgerDatabaseTest {
     }
 
     @Test
+    fun addAllKeepsEveryRowOrNone() = runTest {
+        val cash = wallet("Cash", WalletType.CASH, opening = 100_000)
+        val food = category("Food", CategoryKind.EXPENSE)
+        val good = tx(EXPENSE, 10_000, from = cash, category = food)
+        // Passes the ledger rules but points at a wallet that does not exist, so the database refuses it.
+        val refusedByDatabase = tx(EXPENSE, 5_000, from = 999, category = food)
+
+        // The second row fails, so the first must be undone too.
+        assertThrowsSuspend<Exception> { ledger.addAll(listOf(good, refusedByDatabase)) }
+        assertEquals(mapOf("Cash" to 100_000L), balances())
+
+        assertEquals(2, ledger.addAll(listOf(good, good.copy(amountCentavos = 2_500))).size)
+        assertEquals(mapOf("Cash" to 87_500L), balances())
+    }
+
+    @Test
     fun defaultDataIsAddedOnlyOnce() = runTest {
         DefaultData.seedIfEmpty(db, now)
         DefaultData.seedIfEmpty(db, now)

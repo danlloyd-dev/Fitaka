@@ -10,11 +10,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.ui.navigation.PitakaRoot
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.resolve
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -23,6 +27,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as PitakaApp).container
         val settings = container.settings
+
+        // Keep the app's idea of "today" fresh: re-read it whenever the app comes to the front, and again
+        // just after each midnight while it stays open. One sleeping coroutine; no polling.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    container.dayClock.refresh()
+                    delay(container.dayClock.millisUntilTomorrow())
+                }
+            }
+        }
 
         setContent {
             // Nothing is drawn until settings load, so a saved theme never flashes the default first.

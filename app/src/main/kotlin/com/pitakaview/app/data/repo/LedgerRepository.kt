@@ -1,5 +1,6 @@
 package com.pitakaview.app.data.repo
 
+import androidx.room3.withWriteTransaction
 import com.pitakaview.app.data.db.PitakaDatabase
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.domain.LedgerRules
@@ -24,6 +25,15 @@ class LedgerRepository(private val db: PitakaDatabase) {
     }
 
     suspend fun delete(tx: TransactionEntity) = transactions.delete(tx)
+
+    /**
+     * Stores several rows as one all-or-nothing step: if any row is refused, none of them are kept.
+     * Used wherever one action writes more than one row (a new loan plus its first entry, an import).
+     */
+    suspend fun addAll(rows: List<TransactionEntity>): List<Long> {
+        rows.forEach { checkValid(it) }
+        return db.withWriteTransaction { rows.map { transactions.insert(it) } }
+    }
 
     /** Puts money toward a goal: into the goal's wallet, or earmarked in [fromWalletId] if the goal has none. */
     suspend fun depositToGoal(

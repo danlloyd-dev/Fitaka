@@ -38,7 +38,6 @@ import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
 import com.pitakaview.app.ui.components.LocalHazeState
 import com.pitakaview.app.ui.components.PitakaBottomBar
-import com.pitakaview.app.ui.gallery.MainTabs
 import com.pitakaview.app.ui.home.HomeRoute
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.placeholder.AddTransactionComingSoon

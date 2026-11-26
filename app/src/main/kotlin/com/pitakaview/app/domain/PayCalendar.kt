@@ -12,7 +12,7 @@ data class PayRule(
     val firstDay: Int = 15,
     val secondDay: Int = LAST_DAY,
     val dayOfWeek: DayOfWeek = DayOfWeek.FRIDAY,
-    val weekendRule: WeekendRule = WeekendRule.PREVIOUS_WEEKDAY,
+    val weekendRule: WeekendRule = WeekendRule.KEEP,
 ) {
     init {
         require(firstDay in 1..LAST_DAY && secondDay in 1..LAST_DAY) { "Pay days must be 1..31" }
@@ -21,7 +21,7 @@ data class PayRule(
     companion object {
         const val LAST_DAY = 31
 
-        /** Kinsenas (15th) and katapusan (last day), moved to the Friday before when on a weekend. */
+        /** Kinsenas (15th) and katapusan (last day), paid on the date itself even when it is a weekend. */
         val KINSENAS_KATAPUSAN = PayRule(PayFrequency.SEMI_MONTHLY, firstDay = 15, secondDay = LAST_DAY)
     }
 }

@@ -25,7 +25,6 @@ import com.pitakaview.app.ui.components.PitakaCard
 import com.pitakaview.app.ui.components.PitakaListItem
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionTag
-import com.pitakaview.app.ui.gallery.ComponentGallery
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.theme.PitakaTheme
