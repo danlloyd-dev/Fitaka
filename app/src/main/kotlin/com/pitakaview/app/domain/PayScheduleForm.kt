@@ -15,6 +15,8 @@ data class PayScheduleForm(
     val weekendRule: WeekendRule = WeekendRule.KEEP,
     val walletId: Long? = null,
     val categoryId: Long? = null,
+    /** Whether to notify on the payday (when reminders are on in Settings). */
+    val remind: Boolean = true,
 )
 
 enum class PayScheduleProblem { NAME, AMOUNT, FIRST_DAY, SECOND_DAY, SAME_DAYS, WALLET, CATEGORY }
@@ -84,6 +86,7 @@ object PayScheduleFormLogic {
             secondDay = if (weekly) base.secondDay else rule.secondDay,
             dayOfWeek = rule.dayOfWeek,
             weekendRule = rule.weekendRule,
+            remind = form.remind,
         )
     }
 
@@ -97,6 +100,7 @@ object PayScheduleFormLogic {
         weekendRule = schedule.weekendRule,
         walletId = schedule.walletId,
         categoryId = schedule.categoryId,
+        remind = schedule.remind,
     )
 }
 

@@ -1,5 +1,6 @@
 package com.pitakaview.app
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,24 +10,36 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.pitakaview.app.di.LocalAppContainer
+import com.pitakaview.app.reminders.ReminderIntents
+import com.pitakaview.app.reminders.ReminderOpen
 import com.pitakaview.app.ui.navigation.PitakaRoot
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.resolve
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
+    /** The screen a tapped reminder asked for, until the app has gone there. */
+    private var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val container = (application as PitakaApp).container
         val settings = container.settings
+        // Only on a fresh start: after a rotation the same intent is still attached, and the owner has
+        // already been taken where the reminder pointed.
+        if (savedInstanceState == null) reminderToOpen = ReminderIntents.read(intent)
 
         // Keep the app's idea of "today" fresh: re-read it whenever the app comes to the front, and again
         // just after each midnight while it stays open. One sleeping coroutine; no polling.
@@ -36,6 +49,13 @@ class MainActivity : ComponentActivity() {
                     container.dayClock.refresh()
                     delay(container.dayClock.millisUntilTomorrow())
                 }
+            }
+        }
+        // Each time the app comes to the front: with reminders on, make sure the daily check is still lined
+        // up and catch up on a check the phone held back. With them off this reads one setting and stops.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                withContext(Dispatchers.Default) { container.reminders.onAppOpened() }
             }
         }
 
@@ -61,10 +81,19 @@ class MainActivity : ComponentActivity() {
                             appearance = current,
                             onThemeChange = { scope.launch { settings.setTheme(it) } },
                             onDarkModeChange = { scope.launch { settings.setDarkMode(it) } },
+                            reminderToOpen = reminderToOpen,
+                            onReminderOpened = { reminderToOpen = null },
                         )
                     }
                 }
             }
         }
+    }
+
+    /** A reminder tapped while the app is already open. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        ReminderIntents.read(intent)?.let { reminderToOpen = it }
     }
 }

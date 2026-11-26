@@ -64,6 +64,30 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun theReminderChoiceAndWhatWasAlreadyShownSurviveARestart() = runBlocking {
+        val file = File(tmp.root, "reminders.preferences_pb")
+        val at = java.time.Instant.parse("2026-11-27T00:02:00Z")
+
+        val (first, firstJob) = open(file)
+        assertEquals("off until the owner switches it on", false, first.remindersOn.first())
+        assertEquals(null, first.lastReminderCheck.first())
+        assertEquals(emptySet<String>(), first.remindersShown.first())
+        first.setRemindersOn(true)
+        first.recordReminderCheck(at, inBackground = true, shown = setOf("loan:1:2026-11-27:day", "payday:7:2026-11-27"))
+        firstJob.cancelAndJoin()
+
+        val (second, secondJob) = open(file)
+        assertEquals(true, second.remindersOn.first())
+        assertEquals(ReminderCheck(at, inBackground = true), second.lastReminderCheck.first())
+        assertEquals(setOf("loan:1:2026-11-27:day", "payday:7:2026-11-27"), second.remindersShown.first())
+        // The next check replaces the list in one write, which is how old keys are dropped.
+        second.recordReminderCheck(at.plusSeconds(86_400), inBackground = false, shown = setOf("payday:7:2026-11-28"))
+        assertEquals(setOf("payday:7:2026-11-28"), second.remindersShown.first())
+        assertEquals(false, second.lastReminderCheck.first()?.inBackground)
+        secondJob.cancelAndJoin()
+    }
+
+    @Test
     fun unknownStoredNamesFallBackToDefaults() = runBlocking {
         val file = File(tmp.root, "old.preferences_pb")
         val job = Job()

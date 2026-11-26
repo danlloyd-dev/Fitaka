@@ -95,6 +95,8 @@ dependencies {
     implementation(libs.haze.blur)
     // Charts for the monthly summary.
     implementation(libs.vico.compose.m3)
+    // The daily reminder check, kept by the system across restarts.
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -107,6 +109,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
+    // Runs the real daily reminder work on the JVM, with its waiting time skipped.
+    testImplementation(libs.androidx.work.testing)
     // Registers the empty ComponentActivity that Compose tests host content in (debug builds only).
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

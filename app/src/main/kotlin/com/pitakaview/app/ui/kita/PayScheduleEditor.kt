@@ -51,7 +51,9 @@ import com.pitakaview.app.ui.components.PitakaChip
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.PitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.PitakaToggleRow
 import com.pitakaview.app.ui.components.SectionHeader
+import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.theme.PitakaTheme
@@ -108,6 +110,8 @@ class PayScheduleEditorViewModel(
         private set
     var categoryId by mutableStateOf<Long?>(null)
         private set
+    var remind by mutableStateOf(true)
+        private set
 
     /** Shown only after a Save attempt. */
     var problems by mutableStateOf(emptySet<PayScheduleProblem>())
@@ -141,6 +145,7 @@ class PayScheduleEditorViewModel(
                 weekendRule = form.weekendRule
                 walletId = form.walletId
                 categoryId = form.categoryId
+                remind = form.remind
             } else {
                 // Start on the likeliest choices: the first wallet, and Salary if that category is still there.
                 walletId = db.walletDao().observeActiveWithBalance().first().firstOrNull()?.wallet?.id
@@ -155,7 +160,7 @@ class PayScheduleEditorViewModel(
     fun form() = PayScheduleForm(
         name = name.text.toString(), amountText = amount.text.toString(), frequency = frequency,
         firstDayText = firstDay.text.toString(), secondDayText = secondDay.text.toString(),
-        dayOfWeek = dayOfWeek, weekendRule = weekendRule, walletId = walletId, categoryId = categoryId,
+        dayOfWeek = dayOfWeek, weekendRule = weekendRule, walletId = walletId, categoryId = categoryId, remind = remind,
     )
 
     fun selectFrequency(value: PayFrequency) {
@@ -176,6 +181,10 @@ class PayScheduleEditorViewModel(
 
     fun selectCategory(id: Long) {
         categoryId = id
+    }
+
+    fun selectRemind(value: Boolean) {
+        remind = value
     }
 
     fun save() {
@@ -213,6 +222,9 @@ data class PayScheduleEditorUi(
     /** The next paydays the form describes; empty while its days are not valid. */
     val nextPaydays: List<LocalDate> = emptyList(),
     val problems: Set<PayScheduleProblem> = emptySet(),
+    val remind: Boolean = true,
+    /** Whether reminders as a whole are switched on in Settings. */
+    val remindersOn: Boolean = true,
 )
 
 @Composable
@@ -222,6 +234,7 @@ fun PayScheduleEditorRoute(scheduleId: Long?, onDone: () -> Unit) {
     val wallets by vm.wallets.collectAsStateWithLifecycle()
     val categories by vm.categories.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
+    val remindersOn by container.settings.remindersOn.collectAsStateWithLifecycle(initialValue = true)
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
         Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
@@ -233,12 +246,12 @@ fun PayScheduleEditorRoute(scheduleId: Long?, onDone: () -> Unit) {
             isEdit = vm.isEdit, frequency = vm.frequency, dayOfWeek = vm.dayOfWeek, weekendRule = vm.weekendRule,
             wallets = wallets, categories = categories, walletId = vm.walletId, categoryId = vm.categoryId, today = today,
             nextPaydays = if (rule == null) emptyList() else PayCalendar.upcoming(rule, from = today, count = 3),
-            problems = vm.problems,
+            problems = vm.problems, remind = vm.remind, remindersOn = remindersOn,
         ),
         name = vm.name, amount = vm.amount, firstDay = vm.firstDay, secondDay = vm.secondDay,
         onFrequency = vm::selectFrequency, onDayOfWeek = vm::selectDayOfWeek, onWeekendRule = vm::selectWeekendRule,
         onWallet = vm::selectWallet, onCategory = vm::selectCategory,
-        onSave = vm::save, onRemove = vm::remove, onBack = onDone,
+        onSave = vm::save, onRemove = vm::remove, onBack = onDone, onRemind = vm::selectRemind,
     )
 }
 
@@ -258,6 +271,7 @@ fun PayScheduleEditorContent(
     onSave: () -> Unit,
     onRemove: () -> Unit,
     onBack: () -> Unit,
+    onRemind: (Boolean) -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -377,6 +391,15 @@ fun PayScheduleEditorContent(
                 }
                 if (PayScheduleProblem.CATEGORY in ui.problems) ProblemText("Pick a category")
             }
+        }
+
+        item(key = "remind") {
+            PitakaToggleRow(
+                title = "Remind me on payday",
+                checked = ui.remind,
+                onCheckedChange = onRemind,
+                subtitle = if (ui.remindersOn) "A notification that morning." else REMINDERS_OFF_HINT,
+            )
         }
 
         if (ui.isEdit && !confirmRemove) {

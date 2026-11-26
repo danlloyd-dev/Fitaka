@@ -22,7 +22,7 @@ import com.pitakaview.app.ui.components.ThemePicker
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.theme.PitakaTheme
 
-/** Settings: money set-up (wallets, categories) and the look (theme, light/dark). Reminders arrive in M6. */
+/** Settings: money set-up (wallets, categories), reminders, and the look (theme, light/dark). */
 @Composable
 fun SettingsScreen(
     appearance: AppearanceSettings,
@@ -32,6 +32,9 @@ fun SettingsScreen(
     onOpenWallets: () -> Unit = {},
     onOpenCategories: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
+    reminders: ReminderSettingsUi = ReminderSettingsUi(),
+    onRemindersChange: (Boolean) -> Unit = {},
+    onOpenPhoneSettings: () -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -61,6 +64,8 @@ fun SettingsScreen(
                 )
             }
         }
+        item(key = "reminders-title") { SectionHeader("Reminders") }
+        item(key = "reminders") { RemindersCard(reminders, onRemindersChange, onOpenPhoneSettings) }
         item(key = "theme-title") { SectionHeader("Theme") }
         item(key = "theme") { ThemePicker(appearance.theme, onThemeChange) }
         item(key = "mode-title") { SectionHeader("Light or dark") }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,8 +37,10 @@ import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.EntryKind
+import com.pitakaview.app.domain.ReminderKind
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.reminders.ReminderOpen
 import com.pitakaview.app.ui.backup.BackupRoute
 import com.pitakaview.app.ui.baon.BaonDetailRoute
 import com.pitakaview.app.ui.baon.BaonEditorRoute
@@ -59,14 +62,15 @@ import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.search.SearchRoute
 import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
+import com.pitakaview.app.ui.settings.rememberReminderSettings
 import com.pitakaview.app.ui.summary.SummaryRoute
+import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.utang.LoanDetailRoute
 import com.pitakaview.app.ui.utang.LoanEditorRoute
 import com.pitakaview.app.ui.utang.UtangRoute
 import com.pitakaview.app.ui.wallets.WalletEditorRoute
 import com.pitakaview.app.ui.wallets.WalletsRoute
-import com.pitakaview.app.ui.theme.PitakaTheme
-import com.pitakaview.app.ui.theme.Section
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
 
@@ -145,6 +149,9 @@ fun PitakaRoot(
     appearance: AppearanceSettings,
     onThemeChange: (ThemeId) -> Unit,
     onDarkModeChange: (DarkModePref) -> Unit,
+    /** The screen a tapped reminder asked for; [onReminderOpened] is called once the app is there. */
+    reminderToOpen: ReminderOpen? = null,
+    onReminderOpened: () -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val backStack = rememberNavBackStack(HomeKey)
@@ -154,6 +161,21 @@ fun PitakaRoot(
     val currentTab = backStack.lastOrNull()?.tabIndex()
     var lastTab by remember { mutableIntStateOf(0) }
     if (currentTab != null) lastTab = currentTab
+
+    // A tapped reminder: go where it points, starting again from Home so Back behaves as it always does.
+    LaunchedEffect(reminderToOpen) {
+        val request = reminderToOpen ?: return@LaunchedEffect
+        when (request.kind) {
+            ReminderKind.PAYDAY -> backStack.goToTab(1 + Section.KITA.ordinal)
+            ReminderKind.LOAN -> {
+                backStack.goToTab(1 + Section.UTANG.ordinal)
+                // A reminder can outlive its loan. The loan screen goes back by itself when its loan is
+                // gone, which leaves the owner on the list of loans.
+                backStack.add(LoanKey(request.rowId))
+            }
+        }
+        onReminderOpened()
+    }
 
     CompositionLocalProvider(
         LocalHazeState provides haze,
@@ -277,12 +299,16 @@ fun PitakaRoot(
                         }
                     }
                     entry<SettingsKey> {
+                        val reminders = rememberReminderSettings()
                         SettingsScreen(
                             appearance, onThemeChange, onDarkModeChange,
                             onBack = { backStack.removeLastOrNull() },
                             onOpenWallets = { backStack.add(WalletsKey) },
                             onOpenCategories = { backStack.add(CategoriesKey) },
                             onOpenBackup = { backStack.add(BackupKey) },
+                            reminders = reminders.ui,
+                            onRemindersChange = reminders.onChange,
+                            onOpenPhoneSettings = reminders.onOpenPhoneSettings,
                         )
                     }
                     entry<EntryEditorKey> { key ->

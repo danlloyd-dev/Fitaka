@@ -3,6 +3,9 @@ package com.pitakaview.app.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasClickAction
@@ -23,6 +26,7 @@ import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.PayFrequency
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.reminders.ReminderOpen
 import com.pitakaview.app.ui.navigation.PitakaRoot
 import com.pitakaview.app.ui.theme.PitakaTheme
 import kotlinx.coroutines.flow.first
@@ -41,6 +45,9 @@ abstract class FlowTestBase {
 
     protected val container: AppContainer get() = (rule.activity.application as PitakaApp).container
 
+    /** What a tapped reminder asks the app to open. A test sets it the way MainActivity does from the intent. */
+    protected var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
+
     /** Lets a subclass put something around the app, such as a stand-in for Android's file picker. */
     @Composable
     protected open fun Surroundings(content: @Composable () -> Unit) = content()
@@ -51,7 +58,10 @@ abstract class FlowTestBase {
         Surroundings {
             CompositionLocalProvider(LocalAppContainer provides appContainer) {
                 PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
-                    PitakaRoot(AppearanceSettings(), onThemeChange = {}, onDarkModeChange = {})
+                    PitakaRoot(
+                        AppearanceSettings(), onThemeChange = {}, onDarkModeChange = {},
+                        reminderToOpen = reminderToOpen, onReminderOpened = { reminderToOpen = null },
+                    )
                 }
             }
         }

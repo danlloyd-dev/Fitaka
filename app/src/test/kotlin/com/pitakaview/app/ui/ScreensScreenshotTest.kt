@@ -60,6 +60,7 @@ import com.pitakaview.app.ui.home.BackupNudge
 import com.pitakaview.app.ui.home.HomeContent
 import com.pitakaview.app.ui.home.HomeState
 import com.pitakaview.app.ui.home.UpcomingItem
+import com.pitakaview.app.ui.settings.ReminderSettingsUi
 import com.pitakaview.app.ui.settings.SettingsScreen
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -342,6 +343,23 @@ class ScreensScreenshotTest {
     fun settingsDagatLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_dagat_light.png") {
         PitakaTheme(ThemeId.DAGAT, DarkModePref.LIGHT) {
             SettingsScreen(AppearanceSettings(ThemeId.DAGAT, DarkModePref.LIGHT), {}, {}, onBack = {})
+        }
+    }
+
+    @Test
+    fun settingsRemindersOnUbeDark() = captureRoboImage("build/outputs/roborazzi/screen_settings_reminders_on_ube_dark.png") {
+        PitakaTheme(ThemeId.UBE, DarkModePref.DARK) {
+            SettingsScreen(
+                AppearanceSettings(ThemeId.UBE, DarkModePref.DARK), {}, {}, onBack = {},
+                reminders = ReminderSettingsUi(on = true, lastCheck = "Last checked today at 8:02 AM, in the background.", phoneTip = true),
+            )
+        }
+    }
+
+    @Test
+    fun settingsRemindersBlockedMangoLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_reminders_blocked_mango_light.png") {
+        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+            SettingsScreen(AppearanceSettings(ThemeId.MANGO, DarkModePref.LIGHT), {}, {}, onBack = {}, reminders = ReminderSettingsUi(blocked = true))
         }
     }
 }

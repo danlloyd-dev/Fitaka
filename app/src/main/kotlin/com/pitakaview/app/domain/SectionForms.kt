@@ -28,6 +28,8 @@ data class LoanForm(
     val note: String = "",
     /** Only when adding: the wallet the money went into or came out of. Null for a loan from before the app. */
     val walletId: Long? = null,
+    /** Whether to notify when it is due (when reminders are on in Settings). */
+    val remind: Boolean = true,
 )
 
 enum class LoanProblem { WHO, AMOUNT, TOTAL, DUE_DATE, INSTALLMENT }
@@ -73,6 +75,7 @@ object LoanFormLogic {
             installmentCentavos = if (monthly) installmentCentavos(form) else null,
             dueDayOfMonth = if (monthly) form.dueDate?.dayOfMonth else null,
             note = form.note.trim().ifEmpty { null },
+            remind = form.remind,
         )
     }
 
@@ -90,6 +93,7 @@ object LoanFormLogic {
         dueDate = loan.dueDate,
         installmentText = loan.installmentCentavos?.let(EntryFormLogic::plainAmount).orEmpty(),
         note = loan.note.orEmpty(),
+        remind = loan.remind,
     )
 
     /**

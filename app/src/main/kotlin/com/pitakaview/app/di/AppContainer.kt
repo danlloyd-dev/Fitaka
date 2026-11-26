@@ -10,6 +10,12 @@ import com.pitakaview.app.data.db.createPitakaDatabase
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.DayClock
+import com.pitakaview.app.reminders.AndroidReminderNotifier
+import com.pitakaview.app.reminders.ReminderAlarm
+import com.pitakaview.app.reminders.ReminderNotifier
+import com.pitakaview.app.reminders.Reminders
+import com.pitakaview.app.reminders.WorkManagerReminderAlarm
+import java.time.LocalDateTime
 
 /** Holds app-wide singletons. Each is created lazily on first use, so app start does no extra work. */
 class AppContainer(context: Context) {
@@ -24,6 +30,17 @@ class AppContainer(context: Context) {
 
     /** The one source of "today" for every screen. */
     val dayClock = DayClock()
+
+    /**
+     * Reminders and the three things they lean on. Properties, so a test can put in a clock set to the
+     * morning or a stand-in for the phone's notifications; [reminders] reads them each time it runs.
+     */
+    var reminderClock: () -> LocalDateTime = LocalDateTime::now
+    var reminderNotifier: ReminderNotifier = AndroidReminderNotifier(appContext)
+    var reminderAlarm: ReminderAlarm = WorkManagerReminderAlarm(appContext)
+    val reminders: Reminders by lazy {
+        Reminders(database = { database }, settings = settings, notifier = { reminderNotifier }, alarm = { reminderAlarm }, now = { reminderClock() })
+    }
 
     /**
      * Closes this process and opens the app fresh. Used after a restore, when everything in memory

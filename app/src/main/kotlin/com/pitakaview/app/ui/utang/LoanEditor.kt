@@ -50,7 +50,9 @@ import com.pitakaview.app.ui.components.PitakaChip
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.PitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.PitakaToggleRow
 import com.pitakaview.app.ui.components.SectionHeader
+import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
 import com.pitakaview.app.ui.theme.PitakaTheme
@@ -95,6 +97,8 @@ class LoanEditorViewModel(
     var plan by mutableStateOf(LoanPlan.NO_DATE)
         private set
     var dueDate by mutableStateOf<LocalDate?>(null)
+        private set
+    var remind by mutableStateOf(true)
         private set
 
     /** Only for a new loan: the wallet the money moved through, or null with [moneyChosen] for "no wallet". */
@@ -142,6 +146,7 @@ class LoanEditorViewModel(
                 startDate = form.startDate
                 plan = form.plan
                 dueDate = form.dueDate
+                remind = form.remind
             }
             loaded = true
         }
@@ -150,7 +155,7 @@ class LoanEditorViewModel(
     private fun form() = LoanForm(
         direction = direction, who = who.text.toString(), amountText = amount.text.toString(), totalText = total.text.toString(),
         startDate = startDate, plan = plan, dueDate = dueDate, installmentText = installment.text.toString(),
-        note = note.text.toString(), walletId = walletId,
+        note = note.text.toString(), walletId = walletId, remind = remind,
     )
 
     fun selectDirection(value: LoanDirection) {
@@ -167,6 +172,10 @@ class LoanEditorViewModel(
 
     fun selectDueDate(value: LocalDate?) {
         dueDate = value
+    }
+
+    fun selectRemind(value: Boolean) {
+        remind = value
     }
 
     /** [id] null means "the money did not go through a wallet": a loan from before the app. */
@@ -230,6 +239,9 @@ data class LoanEditorUi(
     val markedSettled: Boolean = false,
     val paidInFull: Boolean = false,
     val canDelete: Boolean = false,
+    val remind: Boolean = true,
+    /** Whether reminders as a whole are switched on in Settings. */
+    val remindersOn: Boolean = true,
 )
 
 @Composable
@@ -238,6 +250,7 @@ fun LoanEditorRoute(loanId: Long?, onDone: () -> Unit) {
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     val vm = viewModel { LoanEditorViewModel(container.database, container.ledger, container.dayClock.today.value, loanId) }
     val wallets by vm.wallets.collectAsStateWithLifecycle()
+    val remindersOn by container.settings.remindersOn.collectAsStateWithLifecycle(initialValue = true)
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
         Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
@@ -249,10 +262,12 @@ fun LoanEditorRoute(loanId: Long?, onDone: () -> Unit) {
             wallets = wallets, walletId = vm.walletId, moneyChosen = vm.moneyChosen, today = today,
             problems = vm.problems, moneyProblem = vm.moneyProblem,
             markedSettled = vm.existing?.closedAt != null, paidInFull = vm.paidInFull, canDelete = vm.isEdit && !vm.hasEntries,
+            remind = vm.remind, remindersOn = remindersOn,
         ),
         who = vm.who, amount = vm.amount, total = vm.total, installment = vm.installment, note = vm.note,
         onDirection = vm::selectDirection, onStartDate = vm::selectStartDate, onPlan = vm::selectPlan, onDueDate = vm::selectDueDate,
         onMoney = vm::selectMoney, onSave = vm::save, onToggleSettled = vm::toggleSettled, onDelete = vm::delete, onBack = onDone,
+        onRemind = vm::selectRemind,
     )
 }
 
@@ -274,6 +289,7 @@ fun LoanEditorContent(
     onToggleSettled: () -> Unit,
     onDelete: () -> Unit,
     onBack: () -> Unit,
+    onRemind: (Boolean) -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
@@ -375,6 +391,15 @@ fun LoanEditorContent(
                     )
                     if (LoanProblem.DUE_DATE in ui.problems) ProblemText("Pick the date")
                 }
+            }
+            // Only a loan with a date has anything to be reminded of.
+            item(key = "remind") {
+                PitakaToggleRow(
+                    title = "Remind me when it is due",
+                    checked = ui.remind,
+                    onCheckedChange = onRemind,
+                    subtitle = if (ui.remindersOn) "The day before and on the day." else REMINDERS_OFF_HINT,
+                )
             }
         }
         item(key = "note") { PitakaTextField(state = note, label = "Note", placeholder = "Optional") }
