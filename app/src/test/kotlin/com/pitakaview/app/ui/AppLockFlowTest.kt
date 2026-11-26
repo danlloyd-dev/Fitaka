@@ -57,6 +57,10 @@ class AppLockFlowTest : FlowTestBase() {
     @Test
     fun switchingTheLockOnOrOffNeedsThePhoneToSayYes() {
         start()
+        // Reminders are on throughout, and must still be on at the end: the two switches sit one above the
+        // other in Settings, and on the owner's phone (2026-11-26) reminders were found off after the lock
+        // check. This pins down that the lock switch itself never touches them.
+        runBlocking { container.settings.setRemindersOn(true) }
         openSettings()
         scrollTo("Lock the app")
         lockSwitch().assertIsDisplayed().assertIsEnabled().assertIsOff()
@@ -88,6 +92,10 @@ class AppLockFlowTest : FlowTestBase() {
         lockSwitch().performClick()
         rule.waitUntil(10_000) { !lockOn() }
         lockSwitch().assertIsOff()
+
+        settle()
+        assertTrue("switching the lock on and off left reminders as they were", runBlocking { container.settings.remindersOn.first() })
+        rule.onNode(hasText("Remind me") and isToggleable()).assertIsOn()
     }
 
     @Test
