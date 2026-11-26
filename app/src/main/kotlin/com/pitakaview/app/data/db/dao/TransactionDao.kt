@@ -124,6 +124,27 @@ interface TransactionDao {
     )
     fun search(pattern: String, amountCentavos: Long?, limit: Int): Flow<List<RecentTransaction>>
 
+    /** Everything logged for one loan, newest first: the money changing hands and each payment. */
+    @Query("$ENTRY_ROWS WHERE t.loanId = :loanId ORDER BY t.occurredOn DESC, t.id DESC")
+    fun observeForLoan(loanId: Long): Flow<List<RecentTransaction>>
+
+    /** Everything put into or taken out of one savings goal, newest first. */
+    @Query("$ENTRY_ROWS WHERE t.goalId = :goalId ORDER BY t.occurredOn DESC, t.id DESC")
+    fun observeForGoal(goalId: Long): Flow<List<RecentTransaction>>
+
+    /** Everything received, given or spent for one baon, newest first. */
+    @Query("$ENTRY_ROWS WHERE t.baonId = :baonId ORDER BY t.occurredOn DESC, t.id DESC")
+    fun observeForBaon(baonId: Long): Flow<List<RecentTransaction>>
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE loanId = :loanId")
+    suspend fun countForLoan(loanId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE goalId = :goalId")
+    suspend fun countForGoal(goalId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE baonId = :baonId")
+    suspend fun countForBaon(baonId: Long): Int
+
     /** When pay was received for each schedule: the income rows that carry a pay schedule. */
     @Query(
         """

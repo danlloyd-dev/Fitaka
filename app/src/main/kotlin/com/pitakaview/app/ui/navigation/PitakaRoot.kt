@@ -37,7 +37,11 @@ import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.backup.BackupRoute
+import com.pitakaview.app.ui.baon.BaonDetailRoute
+import com.pitakaview.app.ui.baon.BaonEditorRoute
+import com.pitakaview.app.ui.baon.BaonRoute
 import com.pitakaview.app.ui.categories.CategoriesRoute
 import com.pitakaview.app.ui.categories.CategoryEditorRoute
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
@@ -46,12 +50,18 @@ import com.pitakaview.app.ui.components.PitakaBottomBar
 import com.pitakaview.app.ui.entry.EntryEditorRoute
 import com.pitakaview.app.ui.gastos.GastosRoute
 import com.pitakaview.app.ui.home.HomeRoute
+import com.pitakaview.app.ui.ipon.GoalDetailRoute
+import com.pitakaview.app.ui.ipon.GoalEditorRoute
+import com.pitakaview.app.ui.ipon.IponRoute
 import com.pitakaview.app.ui.kita.KitaRoute
 import com.pitakaview.app.ui.kita.PayScheduleEditorRoute
 import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.placeholder.SectionComingSoon
 import com.pitakaview.app.ui.search.SearchRoute
+import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
+import com.pitakaview.app.ui.utang.LoanDetailRoute
+import com.pitakaview.app.ui.utang.LoanEditorRoute
+import com.pitakaview.app.ui.utang.UtangRoute
 import com.pitakaview.app.ui.wallets.WalletEditorRoute
 import com.pitakaview.app.ui.wallets.WalletsRoute
 import com.pitakaview.app.ui.theme.PitakaTheme
@@ -71,7 +81,18 @@ import kotlinx.serialization.Serializable
     val transactionId: Long? = null,
     val startKind: EntryKind = EntryKind.EXPENSE,
     val payScheduleId: Long? = null,
+    /** With [baonId], new spending starts charged to that baon. */
+    val baonId: Long? = null,
 ) : NavKey
+@Serializable data class LoanKey(val loanId: Long) : NavKey
+@Serializable data class LoanEditorKey(val loanId: Long? = null) : NavKey
+@Serializable data class GoalKey(val goalId: Long) : NavKey
+@Serializable data class GoalEditorKey(val goalId: Long? = null) : NavKey
+@Serializable data class BaonKey(val baonId: Long) : NavKey
+@Serializable data class BaonEditorKey(val baonId: Long? = null) : NavKey
+
+/** A new entry of [purpose] for the loan, goal or baon [linkId]. Existing ones open through [EntryEditorKey]. */
+@Serializable data class MoveEditorKey(val purpose: TxPurpose, val linkId: Long) : NavKey
 @Serializable data object SearchKey : NavKey
 @Serializable data class PayScheduleEditorKey(val scheduleId: Long? = null) : NavKey
 @Serializable data object WalletsKey : NavKey
@@ -168,6 +189,48 @@ fun PitakaRoot(
                     entry<PayScheduleEditorKey> { key ->
                         PayScheduleEditorRoute(key.scheduleId, onDone = { backStack.removeLastOrNull() })
                     }
+                    entry<LoanKey> { key ->
+                        LoanDetailRoute(
+                            key.loanId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { backStack.add(LoanEditorKey(key.loanId)) },
+                            onAddPayment = { backStack.add(MoveEditorKey(TxPurpose.LOAN_PAYMENT, key.loanId)) },
+                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                        )
+                    }
+                    entry<LoanEditorKey> { key ->
+                        LoanEditorRoute(key.loanId, onDone = { backStack.removeLastOrNull() })
+                    }
+                    entry<GoalKey> { key ->
+                        GoalDetailRoute(
+                            key.goalId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { backStack.add(GoalEditorKey(key.goalId)) },
+                            onAdd = { backStack.add(MoveEditorKey(TxPurpose.SAVINGS_DEPOSIT, key.goalId)) },
+                            onTakeOut = { backStack.add(MoveEditorKey(TxPurpose.SAVINGS_WITHDRAWAL, key.goalId)) },
+                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                        )
+                    }
+                    entry<GoalEditorKey> { key ->
+                        GoalEditorRoute(key.goalId, onDone = { backStack.removeLastOrNull() })
+                    }
+                    entry<BaonKey> { key ->
+                        BaonDetailRoute(
+                            key.baonId,
+                            onBack = { backStack.removeLastOrNull() },
+                            onEdit = { backStack.add(BaonEditorKey(key.baonId)) },
+                            onReceived = { backStack.add(MoveEditorKey(TxPurpose.BAON_RECEIVED, key.baonId)) },
+                            onSpend = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = key.baonId)) },
+                            onGive = { backStack.add(MoveEditorKey(TxPurpose.BAON_GIVEN, key.baonId)) },
+                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                        )
+                    }
+                    entry<BaonEditorKey> { key ->
+                        BaonEditorRoute(key.baonId, onDone = { backStack.removeLastOrNull() })
+                    }
+                    entry<MoveEditorKey> { key ->
+                        MoveEditorRoute(transactionId = null, purpose = key.purpose, linkId = key.linkId, onDone = { backStack.removeLastOrNull() })
+                    }
                     entry<BackupKey> {
                         BackupRoute(onBack = { backStack.removeLastOrNull() })
                     }
@@ -187,8 +250,24 @@ fun PitakaRoot(
                                 onOpenPayday = { backStack.add(PayScheduleEditorKey(it)) },
                                 onReceived = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME, payScheduleId = it)) },
                             )
-                            // Utang, Ipon and Baon get their own screens in M4.
-                            else -> SectionComingSoon(key.section, onAddTransaction = { backStack.add(EntryEditorKey()) })
+                            Section.UTANG -> UtangRoute(
+                                onAdd = { backStack.add(LoanEditorKey()) },
+                                onOpen = { backStack.add(LoanKey(it)) },
+                                onSearch = { backStack.add(SearchKey) },
+                            )
+                            Section.IPON -> IponRoute(
+                                onAdd = { backStack.add(GoalEditorKey()) },
+                                onOpen = { backStack.add(GoalKey(it)) },
+                                onSearch = { backStack.add(SearchKey) },
+                            )
+                            Section.BAON -> BaonRoute(
+                                onAdd = { backStack.add(BaonEditorKey()) },
+                                onOpen = { backStack.add(BaonKey(it)) },
+                                onReceived = { backStack.add(MoveEditorKey(TxPurpose.BAON_RECEIVED, it)) },
+                                onSpend = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = it)) },
+                                onGive = { backStack.add(MoveEditorKey(TxPurpose.BAON_GIVEN, it)) },
+                                onSearch = { backStack.add(SearchKey) },
+                            )
                         }
                     }
                     entry<SettingsKey> {
@@ -202,7 +281,7 @@ fun PitakaRoot(
                     }
                     entry<EntryEditorKey> { key ->
                         EntryEditorRoute(
-                            key.transactionId, key.startKind, key.payScheduleId,
+                            key.transactionId, key.startKind, key.payScheduleId, key.baonId,
                             onDone = { backStack.removeLastOrNull() },
                             onOpenWallets = { backStack.add(WalletsKey) },
                         )

@@ -79,13 +79,21 @@ class EntryFormLogicTest {
             fromWalletId = 1, categoryId = 3, baonId = 7, importBatchId = 5, externalRef = "GCASH:1001",
             createdAt = Instant.EPOCH,
         )
-        val stillSpending = EntryFormLogic.toTransaction(expense("120"), original, now)
+        // Since M4 quick entry shows the baon as a choice, so the form carries it: an edit that starts
+        // from the saved row keeps it, and unpicking it takes the spending off the baon.
+        val loaded = requireNotNull(EntryFormLogic.fromTransaction(original))
+        assertEquals(7L, loaded.baonId)
+        val stillSpending = EntryFormLogic.toTransaction(loaded.copy(amountText = "120"), original, now)
         assertEquals(42L, stillSpending.id)
         assertEquals(Instant.EPOCH, stillSpending.createdAt)
         assertEquals("GCASH:1001", stillSpending.externalRef)
         assertEquals(5L, stillSpending.importBatchId)
-        assertEquals("spending can stay charged to its baon", 7L, stillSpending.baonId)
+        assertEquals("spending stays charged to its baon", 7L, stillSpending.baonId)
         assertEquals(12_000L, stillSpending.amountCentavos)
+
+        val unpicked = EntryFormLogic.toTransaction(loaded.copy(baonId = null), original, now)
+        assertEquals(42L, unpicked.id)
+        assertNull("the owner chose 'not from baon'", unpicked.baonId)
 
         val nowIncome = EntryFormLogic.toTransaction(
             EntryForm(EntryKind.INCOME, "120", categoryId = 11, toWalletId = 1, date = day), original, now,

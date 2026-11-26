@@ -1,6 +1,7 @@
 package com.pitakaview.app.ui
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.Composable
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pitakaview.app.data.DefaultData
 import com.pitakaview.app.data.backup.BackupInfo
@@ -24,7 +25,30 @@ import com.pitakaview.app.ui.search.SearchUi
 import com.pitakaview.app.ui.entry.EntryEditorContent
 import com.pitakaview.app.ui.entry.EntryEditorUi
 import com.pitakaview.app.ui.wallets.WalletsContent
+import com.pitakaview.app.data.db.dao.BaonActivityRow
+import com.pitakaview.app.data.db.dao.GoalProgress
+import com.pitakaview.app.data.db.dao.LoanWithPaid
 import com.pitakaview.app.data.db.dao.RecentTransaction
+import com.pitakaview.app.data.db.entity.BaonEntity
+import com.pitakaview.app.data.db.entity.LoanEntity
+import com.pitakaview.app.domain.BaonDirection
+import com.pitakaview.app.domain.BaonPeriod
+import com.pitakaview.app.domain.LoanDirection
+import com.pitakaview.app.domain.LoanPlan
+import com.pitakaview.app.domain.LoanProblem
+import com.pitakaview.app.domain.MoveProblem
+import com.pitakaview.app.ui.baon.BaonContent
+import com.pitakaview.app.ui.baon.BaonUiBuilder
+import com.pitakaview.app.ui.ipon.IponContent
+import com.pitakaview.app.ui.ipon.IponUiBuilder
+import com.pitakaview.app.ui.sections.DetailAction
+import com.pitakaview.app.ui.sections.ItemDetailContent
+import com.pitakaview.app.ui.sections.MoveEditorContent
+import com.pitakaview.app.ui.sections.MoveEditorUi
+import com.pitakaview.app.ui.utang.LoanEditorContent
+import com.pitakaview.app.ui.utang.LoanEditorUi
+import com.pitakaview.app.ui.utang.UtangContent
+import com.pitakaview.app.ui.utang.UtangUiBuilder
 import com.pitakaview.app.data.db.dao.WalletWithBalance
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.AppearanceSettings
@@ -216,6 +240,102 @@ class ScreensScreenshotTest {
             val found = spending.filter { it.categoryName == "Food" }
             SearchContent(TextFieldState("food"), SearchUi(asked = true, count = found.size, days = MonthLedgerBuilder.groupByDay(found)), today, {}, {})
         }
+    }
+
+    // ---------- Utang, Ipon, Baon ----------
+
+    private fun shot(name: String, theme: ThemeId, mode: DarkModePref, content: @Composable () -> Unit) =
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { PitakaTheme(theme, mode) { content() } }
+
+    private val loans = listOf(
+        LoanWithPaid(
+            LoanEntity(id = 1, direction = LoanDirection.I_OWE, counterparty = "Tita Baby", principalCentavos = 1_000_000, totalPayableCentavos = 1_100_000,
+                startDate = LocalDate.of(2026, 10, 5), dueDate = LocalDate.of(2026, 11, 5), installmentCentavos = 200_000, dueDayOfMonth = 5,
+                note = "For tuition", createdAt = t0),
+            paidCentavos = 300_000,
+        ),
+        LoanWithPaid(
+            LoanEntity(id = 2, direction = LoanDirection.OWED_TO_ME, counterparty = "Kuya Jun", principalCentavos = 300_000, totalPayableCentavos = 300_000,
+                startDate = LocalDate.of(2026, 10, 20), dueDate = LocalDate.of(2026, 11, 20), createdAt = t0),
+            paidCentavos = 100_000,
+        ),
+        LoanWithPaid(
+            LoanEntity(id = 3, direction = LoanDirection.I_OWE, counterparty = "Office coop", principalCentavos = 500_000, totalPayableCentavos = 500_000,
+                startDate = LocalDate.of(2026, 6, 1), createdAt = t0),
+            paidCentavos = 500_000,
+        ),
+    )
+
+    @Test
+    fun utangMangoLight() = shot("utang_mango_light", ThemeId.MANGO, DarkModePref.LIGHT) {
+        UtangContent(UtangUiBuilder.build(loans, today), {}, {}, {})
+    }
+
+    @Test
+    fun loanDetailUbeDark() = shot("loan_detail_ube_dark", ThemeId.UBE, DarkModePref.DARK) {
+        val entries = listOf(
+            RecentTransaction(23, TxPurpose.LOAN_PAYMENT, 100_000, today.minusDays(2), "half of December", null, "GCash", null),
+            RecentTransaction(22, TxPurpose.LOAN_PAYMENT, 200_000, LocalDate.of(2026, 11, 5), null, null, "Cash", null),
+            RecentTransaction(21, TxPurpose.LOAN_START, 1_000_000, LocalDate.of(2026, 10, 5), null, null, null, "MariBank"),
+        )
+        ItemDetailContent(
+            UtangUiBuilder.detail(loans[0], entries, today), today,
+            actions = listOf(DetailAction("Add a payment", {}, primary = true)), editLabel = "Edit loan", onEdit = {}, onOpenEntry = {}, onBack = {},
+        )
+    }
+
+    @Test
+    fun loanEditorKapeLight() = shot("loan_editor_kape_light", ThemeId.KAPE, DarkModePref.LIGHT) {
+        LoanEditorContent(
+            ui = LoanEditorUi(
+                isEdit = false, direction = LoanDirection.I_OWE, startDate = today, plan = LoanPlan.MONTHLY, dueDate = LocalDate.of(2026, 12, 5),
+                wallets = sample.wallets.map { it.wallet }, walletId = null, moneyChosen = false, today = today,
+                problems = setOf(LoanProblem.INSTALLMENT), moneyProblem = true,
+            ),
+            who = TextFieldState("Tita Baby"), amount = TextFieldState("10000"), total = TextFieldState("11000"),
+            installment = TextFieldState(), note = TextFieldState(),
+            onDirection = {}, onStartDate = {}, onPlan = {}, onDueDate = {}, onMoney = {}, onSave = {}, onToggleSettled = {}, onDelete = {}, onBack = {},
+        )
+    }
+
+    @Test
+    fun iponCalamansiLight() = shot("ipon_calamansi_light", ThemeId.CALAMANSI, DarkModePref.LIGHT) {
+        val goals = listOf(
+            GoalProgress(1, "Emergency fund", 5_000_000, null, null, 1_250_000),
+            GoalProgress(2, "Laptop", 4_500_000, LocalDate.of(2027, 6, 30), 3, 4_500_000),
+            GoalProgress(3, "Travel", null, null, null, 300_000),
+            GoalProgress(4, "Old phone fund", 1_000_000, null, null, 0, isArchived = true),
+        )
+        IponContent(IponUiBuilder.build(goals, today), {}, {}, {})
+    }
+
+    @Test
+    fun baonDagatDark() = shot("baon_dagat_dark", ThemeId.DAGAT, DarkModePref.DARK) {
+        val weekStart = today.minusDays(2)
+        val baons = listOf(
+            BaonEntity(id = 1, name = "My baon", direction = BaonDirection.RECEIVE, amountCentavos = 50_000, period = BaonPeriod.WEEKLY, startDate = weekStart, createdAt = t0),
+            BaonEntity(id = 2, name = "Bunso", direction = BaonDirection.GIVE, amountCentavos = 20_000, period = BaonPeriod.DAILY, startDate = weekStart, createdAt = t0),
+            BaonEntity(id = 3, name = "Summer job", direction = BaonDirection.RECEIVE, amountCentavos = 100_000, period = BaonPeriod.MONTHLY, startDate = weekStart, isActive = false, createdAt = t0),
+        )
+        val activity = listOf(
+            BaonActivityRow(1, TxPurpose.BAON_RECEIVED, weekStart, 50_000),
+            BaonActivityRow(1, TxPurpose.EXPENSE, today, 12_000),
+            BaonActivityRow(2, TxPurpose.BAON_GIVEN, today, 10_000),
+        )
+        BaonContent(BaonUiBuilder.build(baons, activity, today), {}, {}, {}, {}, {}, {})
+    }
+
+    @Test
+    fun takingOutTooMuchMangoDark() = shot("move_editor_mango_dark", ThemeId.MANGO, DarkModePref.DARK) {
+        MoveEditorContent(
+            ui = MoveEditorUi(
+                title = "Take out of savings", subtitle = "Laptop", walletLabel = "Put into", wallets = sample.wallets.map { it.wallet }, walletId = 2,
+                date = today, today = today, isEdit = false, info = "Saved in this goal: ₱5,000.00", mostCentavos = 500_000,
+                problems = setOf(MoveProblem.MORE_THAN_SAVED),
+            ),
+            amount = TextFieldState("6000"), note = TextFieldState(),
+            onWallet = {}, onDate = {}, onSave = {}, onDelete = {}, onBack = {},
+        )
     }
 
     @Test

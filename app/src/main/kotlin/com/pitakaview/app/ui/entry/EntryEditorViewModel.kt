@@ -8,11 +8,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.data.repo.LedgerRepository
+import com.pitakaview.app.domain.BaonDirection
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.EntryForm
 import com.pitakaview.app.domain.EntryFormLogic
@@ -39,6 +41,7 @@ class EntryEditorViewModel(
     transactionId: Long?,
     startKind: EntryKind,
     payScheduleId: Long? = null,
+    startBaonId: Long? = null,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -83,6 +86,15 @@ class EntryEditorViewModel(
     /** Opened from a payday's "Received" button: it is income, so the kind is not offered. */
     val kindLocked = payScheduleId != null && transactionId == null
 
+    /** The baon this spending is paid out of, if any. It then counts against what is left of that baon. */
+    var baonId by mutableStateOf<Long?>(null)
+        private set
+
+    /** The baon the owner receives and has not stopped: the ones spending can be charged to. */
+    val baons: StateFlow<List<BaonEntity>> = db.baonDao().observeActive()
+        .map { rows -> rows.filter { it.direction == BaonDirection.RECEIVE } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val wallets: StateFlow<List<WalletEntity>> = db.walletDao().observeActiveWithBalance()
         .map { rows -> rows.map { it.wallet } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -110,6 +122,7 @@ class EntryEditorViewModel(
                     toWalletId = form.toWalletId
                     date = form.date
                     linkedScheduleId = form.payScheduleId
+                    baonId = form.baonId
                     paydayName = form.payScheduleId?.let { db.payScheduleDao().get(it) }?.name
                 }
             } else {
@@ -126,6 +139,11 @@ class EntryEditorViewModel(
                     if (schedule.walletId in active) toWalletId = schedule.walletId
                     linkedScheduleId = schedule.id
                     paydayName = schedule.name
+                }
+                // Opened from a baon's "Spend" button: charge it to that baon and offer its usual wallet.
+                startBaonId?.let { db.baonDao().observe(it).first() }?.let { baon ->
+                    baonId = baon.id
+                    baon.walletId?.takeIf { it in active }?.let { fromWalletId = it }
                 }
             }
             loaded = true
@@ -164,11 +182,17 @@ class EntryEditorViewModel(
         date = newDate
     }
 
+    /** [id] null means the spending is not paid out of a baon. */
+    fun selectBaon(id: Long?) {
+        baonId = id
+    }
+
     fun save() {
         val form = EntryForm(
             kind = kind, amountText = amount.text.toString(), categoryId = categoryId,
             fromWalletId = fromWalletId, toWalletId = toWalletId, date = date, note = note.text.toString(),
             payScheduleId = linkedScheduleId,
+            baonId = if (kind == EntryKind.EXPENSE) baonId else null,
         )
         problems = EntryFormLogic.problems(form)
         if (problems.isNotEmpty()) return

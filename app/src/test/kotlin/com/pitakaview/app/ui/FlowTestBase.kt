@@ -102,6 +102,16 @@ abstract class FlowTestBase {
 
     protected fun paydays() = runBlocking { container.database.payScheduleDao().observeActive().first() }
 
+    protected fun loans() = runBlocking { container.database.loanDao().observeAllWithPaid().first() }
+
+    protected fun goals() = runBlocking { container.database.savingsGoalDao().observeAllProgress().first() }
+
+    protected fun allBaon() = runBlocking { container.database.baonDao().observeAll().first() }
+
+    protected fun cashId(): Long = wallets().first { it.wallet.name == "Cash" }.wallet.id
+
+    protected fun cashBalance(): Long = wallets().first { it.wallet.name == "Cash" }.balanceCentavos
+
     /** A weekly payday on today's weekday, set up today: it is due today whatever day the tests run. */
     protected fun addPaydayDueToday(name: String = "Sahod", centavos: Long = 1_500_000): Long = runBlocking {
         val cash = wallets().first { it.wallet.name == "Cash" }.wallet.id

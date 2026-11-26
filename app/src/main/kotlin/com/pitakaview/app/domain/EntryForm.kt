@@ -22,6 +22,8 @@ data class EntryForm(
     val note: String = "",
     /** Set when an income entry is the pay received for a pay schedule. */
     val payScheduleId: Long? = null,
+    /** Set when spending is paid out of a baon the owner receives, so it counts against that baon. */
+    val baonId: Long? = null,
 )
 
 enum class EntryProblem { AMOUNT, CATEGORY, WALLET, SAME_WALLET }
@@ -63,7 +65,7 @@ object EntryFormLogic {
             EntryKind.EXPENSE -> base.copy(
                 purpose = TxPurpose.EXPENSE, amountCentavos = amount, occurredOn = form.date,
                 fromWalletId = form.fromWalletId, toWalletId = null, categoryId = form.categoryId, note = note,
-                payScheduleId = null,
+                payScheduleId = null, baonId = form.baonId,
             )
             EntryKind.INCOME -> base.copy(
                 purpose = TxPurpose.INCOME, amountCentavos = amount, occurredOn = form.date,
@@ -89,7 +91,7 @@ object EntryFormLogic {
         return EntryForm(
             kind = kind, amountText = plainAmount(tx.amountCentavos), categoryId = tx.categoryId,
             fromWalletId = tx.fromWalletId, toWalletId = tx.toWalletId, date = tx.occurredOn, note = tx.note.orEmpty(),
-            payScheduleId = tx.payScheduleId,
+            payScheduleId = tx.payScheduleId, baonId = tx.baonId,
         )
     }
 

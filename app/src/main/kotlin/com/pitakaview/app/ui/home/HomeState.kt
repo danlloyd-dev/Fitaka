@@ -13,6 +13,7 @@ import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.domain.BaonDirection
 import com.pitakaview.app.domain.BaonMath
 import com.pitakaview.app.domain.LoanDirection
+import com.pitakaview.app.domain.LoanMath
 import com.pitakaview.app.domain.PaydayTracker
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.theme.Section
@@ -83,12 +84,12 @@ object HomeStateBuilder {
                     UpcomingItem(it.date, schedule.name, if (it.date < today) "Payday · due" else "Payday", Section.KITA, schedule.expectedAmountCentavos)
                 }
         }
-        // Overdue loans stay listed (date in the past) until paid.
+        // Overdue loans stay listed (date in the past) until paid. A monthly loan lists its next installment.
         val loanDues = openLoans.mapNotNull { row ->
-            val due = row.loan.dueDate ?: return@mapNotNull null
-            if (row.remainingCentavos <= 0 || due > horizon) return@mapNotNull null
+            val due = LoanMath.nextDue(row.loan, row.paidCentavos) ?: return@mapNotNull null
+            if (due.date > horizon) return@mapNotNull null
             val who = if (row.loan.direction == LoanDirection.I_OWE) "You pay" else "Owes you"
-            UpcomingItem(due, row.loan.counterparty, if (due < today) "$who · overdue" else who, Section.UTANG, row.remainingCentavos)
+            UpcomingItem(due.date, row.loan.counterparty, if (due.date < today) "$who · overdue" else who, Section.UTANG, due.amountCentavos)
         }
 
         val receiving = baons.filter { it.isActive && it.direction == BaonDirection.RECEIVE }

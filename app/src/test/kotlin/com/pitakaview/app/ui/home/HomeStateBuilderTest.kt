@@ -107,6 +107,23 @@ class HomeStateBuilderTest {
         assertNull(nudge(listOf(entry), today))
     }
 
+    @Test
+    fun aMonthlyLoanListsItsNextInstallmentNotTheWholeDebt() {
+        val monthly = LoanWithPaid(
+            LoanEntity(id = 1, direction = LoanDirection.I_OWE, counterparty = "Tita Baby", principalCentavos = 1_200_000,
+                totalPayableCentavos = 1_200_000, startDate = LocalDate.of(2026, 10, 1), dueDate = LocalDate.of(2026, 11, 5),
+                installmentCentavos = 200_000, dueDayOfMonth = 5, createdAt = t0),
+            paidCentavos = 200_000, // November's installment is paid, so December's is next
+        )
+        val item = build(loans = listOf(monthly)).upcoming.single()
+        assertEquals(LocalDate.of(2026, 12, 5), item.date)
+        assertEquals(200_000L, item.amountCentavos)
+        assertEquals("You pay", item.detail)
+
+        val behind = build(loans = listOf(monthly.copy(paidCentavos = 0))).upcoming.single()
+        assertEquals("the unpaid installment stays listed as overdue", LocalDate.of(2026, 11, 5) to "You pay · overdue", behind.date to behind.detail)
+    }
+
     private fun paydaysComingUp(on: LocalDate, vararg receivedOn: LocalDate): List<Pair<LocalDate, String>> {
         val salary = PayScheduleEntity(id = 1, name = "Sahod", expectedAmountCentavos = 1_500_000, walletId = 1, categoryId = 1,
             frequency = PayFrequency.SEMI_MONTHLY, createdAt = t0)

@@ -13,13 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,12 +29,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.EntryProblem
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
@@ -50,12 +47,10 @@ import com.pitakaview.app.ui.components.PitakaSegmented
 import com.pitakaview.app.ui.components.PitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.theme.PitakaTheme
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /** Everything the quick-entry screen draws, apart from the two text fields. */
 data class EntryEditorUi(
@@ -70,7 +65,9 @@ data class EntryEditorUi(
     val today: LocalDate,
     val problems: Set<EntryProblem> = emptySet(),
     val saveError: String? = null,
-    val editable: Boolean = true,
+    /** The baon spending can be charged to, and the one picked (null: not from baon). */
+    val baons: List<BaonEntity> = emptyList(),
+    val baonId: Long? = null,
     /** Set when this entry is the pay received for a payday. */
     val paydayName: String? = null,
     /** True when opened from a payday's "Received" button: the kind is not offered. */
@@ -78,21 +75,34 @@ data class EntryEditorUi(
 )
 
 @Composable
-fun EntryEditorRoute(transactionId: Long?, startKind: EntryKind, payScheduleId: Long?, onDone: () -> Unit, onOpenWallets: () -> Unit) {
+fun EntryEditorRoute(
+    transactionId: Long?,
+    startKind: EntryKind,
+    payScheduleId: Long?,
+    baonId: Long?,
+    onDone: () -> Unit,
+    onOpenWallets: () -> Unit,
+) {
     val container = LocalAppContainer.current
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     val vm = viewModel {
         EntryEditorViewModel(
-            container.database, container.ledger, container.settings, container.dayClock.today.value, transactionId, startKind, payScheduleId,
+            container.database, container.ledger, container.settings, container.dayClock.today.value, transactionId, startKind, payScheduleId, baonId,
         )
     }
     val wallets by vm.wallets.collectAsStateWithLifecycle()
     val expense by vm.expenseCategories.collectAsStateWithLifecycle()
     val income by vm.incomeCategories.collectAsStateWithLifecycle()
+    val baons by vm.baons.collectAsStateWithLifecycle()
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
 
     if (!vm.loaded) {
         Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        return
+    }
+    // A loan payment, a savings entry or a baon entry has its own, simpler form.
+    if (!vm.editable) {
+        MoveEditorRoute(transactionId = transactionId, purpose = null, linkId = null, onDone = onDone)
         return
     }
     EntryEditorContent(
@@ -100,12 +110,12 @@ fun EntryEditorRoute(transactionId: Long?, startKind: EntryKind, payScheduleId: 
             isEdit = vm.isEdit, kind = vm.kind,
             categories = if (vm.kind == EntryKind.INCOME) income else expense,
             wallets = wallets, categoryId = vm.categoryId, fromWalletId = vm.fromWalletId, toWalletId = vm.toWalletId,
-            date = vm.date, today = today, problems = vm.problems, saveError = vm.saveError, editable = vm.editable,
-            paydayName = vm.paydayName, kindLocked = vm.kindLocked,
+            date = vm.date, today = today, problems = vm.problems, saveError = vm.saveError,
+            baons = baons, baonId = vm.baonId, paydayName = vm.paydayName, kindLocked = vm.kindLocked,
         ),
         amount = vm.amount, note = vm.note,
         onKind = vm::selectKind, onCategory = vm::selectCategory,
-        onFromWallet = vm::selectFromWallet, onToWallet = vm::selectToWallet, onDate = vm::selectDate,
+        onFromWallet = vm::selectFromWallet, onToWallet = vm::selectToWallet, onDate = vm::selectDate, onBaon = vm::selectBaon,
         onSave = vm::save, onDelete = vm::delete, onBack = onDone, onOpenWallets = onOpenWallets,
     )
 }
@@ -125,53 +135,41 @@ fun EntryEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
     onOpenWallets: () -> Unit,
+    onBaon: (Long?) -> Unit = {},
 ) {
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
-    var pickDate by rememberSaveable { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
 
     PitakaScreen(
         title = if (ui.isEdit) "Edit entry" else "Add entry",
-        subtitle = ui.paydayName?.let { "Pay received · $it" },
+        // What the entry is tied to, said at the top where it cannot scroll under the keyboard.
+        subtitle = ui.paydayName?.let { "Pay received · $it" }
+            ?: ui.baons.firstOrNull { it.id == ui.baonId && ui.kind == EntryKind.EXPENSE }?.let { "From baon · ${it.name}" },
         onBack = onBack,
         // Save stays above the keyboard: type the amount, tap a category, tap Save.
-        pinnedAction = if (!ui.editable) {
-            null
-        } else {
-            {
-                if (confirmDelete) {
-                    // The confirmation lives in the pinned bar, so it is always on screen. Inside the list it
-                    // opened below the bar on a phone and could not be reached.
-                    Column {
-                        Text("Delete this entry?", style = type.titleSmall, color = c.ink)
-                        Text("It is removed from your totals. This cannot be undone.", style = type.bodySmall, color = c.ink)
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
-                            PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
-                        }
+        pinnedAction = {
+            if (confirmDelete) {
+                // The confirmation lives in the pinned bar, so it is always on screen. Inside the list it
+                // opened below the bar on a phone and could not be reached.
+                Column {
+                    Text("Delete this entry?", style = type.titleSmall, color = c.ink)
+                    Text("It is removed from your totals. This cannot be undone.", style = type.bodySmall, color = c.ink)
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
+                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
                     }
-                } else {
-                    Column {
-                        if (ui.saveError != null) ProblemText(ui.saveError)
-                        PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
-                    }
+                }
+            } else {
+                Column {
+                    if (ui.saveError != null) ProblemText(ui.saveError)
+                    PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
                 }
             }
         },
     ) {
-        if (!ui.editable) {
-            item(key = "elsewhere") {
-                PitakaCard(Modifier.fillMaxWidth()) {
-                    Text("This entry belongs to another section", style = type.titleSmall, color = c.ink)
-                    Text("Loans, baon and savings entries are changed from their own tabs.", style = type.bodyMedium, color = c.inkMuted)
-                }
-            }
-            return@PitakaScreen
-        }
-
         if (!ui.kindLocked) {
             item(key = "kind") {
                 PitakaSegmented(EntryKind.entries.map { it.label }, ui.kind.ordinal, onSelect = { onKind(EntryKind.entries[it]) })
@@ -235,19 +233,21 @@ fun EntryEditorContent(
             }
         }
 
-        item(key = "date") {
-            Column {
-                SectionHeader("Date")
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val yesterday = ui.today.minusDays(1)
-                    PitakaChip("Today", selected = ui.date == ui.today, onClick = { onDate(ui.today) })
-                    PitakaChip("Yesterday", selected = ui.date == yesterday, onClick = { onDate(yesterday) })
-                    val other = ui.date != ui.today && ui.date != yesterday
-                    PitakaChip(if (other) friendlyDate(ui.date, ui.today) else "Other date", selected = other, onClick = { pickDate = true })
+        // Spending can be paid out of a baon you receive; it then counts against what is left of that baon.
+        if (ui.kind == EntryKind.EXPENSE && ui.baons.isNotEmpty()) {
+            item(key = "baon") {
+                Column {
+                    SectionHeader("From baon")
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PitakaChip("Not from baon", selected = ui.baonId == null, onClick = { onBaon(null) })
+                        ui.baons.forEach { PitakaChip(it.name, selected = it.id == ui.baonId, onClick = { onBaon(it.id) }) }
+                    }
                 }
             }
         }
+
+        item(key = "date") { DateChoice(ui.date, ui.today, onDate) }
 
         item(key = "note") {
             PitakaTextField(state = note, label = "Note", placeholder = "Optional")
@@ -259,8 +259,6 @@ fun EntryEditorContent(
             }
         }
     }
-
-    if (pickDate) PickDateDialog(ui.date, onPick = onDate, onDismiss = { pickDate = false })
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -273,24 +271,5 @@ private fun WalletChoice(title: String, wallets: List<WalletEntity>, selectedId:
             wallets.forEach { PitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
         }
         if (problem) ProblemText("Pick a wallet")
-    }
-}
-
-/** The stock Material date picker, themed by PitakaTheme's colours and font. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PickDateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                state.selectedDateMillis?.let { onPick(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
-                onDismiss()
-            }) { Text("OK") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DatePicker(state = state)
     }
 }

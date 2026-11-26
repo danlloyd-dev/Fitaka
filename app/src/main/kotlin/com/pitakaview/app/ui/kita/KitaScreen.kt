@@ -30,7 +30,6 @@ import com.pitakaview.app.ui.components.PitakaListItem
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.CategoryBreakdownCard
@@ -41,6 +40,7 @@ import com.pitakaview.app.ui.ledger.MonthTotalCard
 import com.pitakaview.app.ui.ledger.dayGroups
 import com.pitakaview.app.ui.ledger.monthLedgerFlow
 import com.pitakaview.app.ui.ledger.monthName
+import com.pitakaview.app.ui.sections.dateInText
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -72,15 +72,13 @@ object PaydayRows {
     /** "Due today", "Was due Nov 15", "Due tomorrow" (it can already be marked received), "Next: Dec 15". */
     fun status(next: WaitingPayday?, today: LocalDate): String {
         if (next == null) return "No payday coming"
-        val day = friendlyDate(next.date, today).let { if (it in DAY_WORDS) it.lowercase() else it }
+        val day = dateInText(next.date, today)
         return when {
             next.date < today -> "Was due $day"
             next.canReceive -> "Due $day"
             else -> "Next: $day"
         }
     }
-
-    private val DAY_WORDS = setOf("Today", "Yesterday", "Tomorrow")
 }
 
 /** The Kita tab: one month of income, and the paydays being waited for. */

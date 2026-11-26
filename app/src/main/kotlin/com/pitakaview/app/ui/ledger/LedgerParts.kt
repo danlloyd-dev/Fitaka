@@ -150,8 +150,9 @@ fun CategoryBreakdownCard(categories: List<CategoryShare>, totalCentavos: Long, 
     }
 }
 
+/** A bar filled to [fraction] in the section's colour. The words beside it carry the meaning; the bar is for the eye. */
 @Composable
-private fun ShareBar(fraction: Float, section: Section) {
+fun ShareBar(fraction: Float, section: Section) {
     val c = PitakaTheme.colors
     val shape = RoundedCornerShape(50)
     val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized), label = "share")

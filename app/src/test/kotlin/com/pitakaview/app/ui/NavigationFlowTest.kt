@@ -82,12 +82,12 @@ class NavigationFlowTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { App() }
         rule.onNode(tab("Utang")).performClick()
-        rule.onNodeWithText("Being built next").assertIsDisplayed()
+        rule.onNodeWithText("Add a loan").assertIsDisplayed()
 
         // What Android does when it reclaims the app in the background and brings it back.
         tester.emulateSavedInstanceStateRestore()
 
-        rule.onNodeWithText("Being built next").assertIsDisplayed()
+        rule.onNodeWithText("Add a loan").assertIsDisplayed()
         rule.onNode(tab("Utang")).assertIsSelected()
     }
 }

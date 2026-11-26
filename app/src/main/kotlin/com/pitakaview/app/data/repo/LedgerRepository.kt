@@ -2,6 +2,7 @@ package com.pitakaview.app.data.repo
 
 import androidx.room3.withWriteTransaction
 import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.domain.LedgerRules
 import com.pitakaview.app.domain.TxPurpose
@@ -34,6 +35,21 @@ class LedgerRepository(private val db: PitakaDatabase) {
         rows.forEach { checkValid(it) }
         return db.withWriteTransaction { rows.map { transactions.insert(it) } }
     }
+
+    /**
+     * Stores a new loan and, when [startRow] gives one, the entry for the money changing hands, as one
+     * all-or-nothing step: a loan never ends up saved without the entry that moved the money.
+     */
+    suspend fun addLoan(loan: LoanEntity, startRow: (loanId: Long) -> TransactionEntity?): Long =
+        db.withWriteTransaction {
+            val id = db.loanDao().insert(loan)
+            startRow(id)?.let { row ->
+                val problems = LedgerRules.validate(row, loan.direction)
+                require(problems.isEmpty()) { "Invalid ${row.purpose} row: $problems" }
+                transactions.insert(row)
+            }
+            id
+        }
 
     /** Puts money toward a goal: into the goal's wallet, or earmarked in [fromWalletId] if the goal has none. */
     suspend fun depositToGoal(

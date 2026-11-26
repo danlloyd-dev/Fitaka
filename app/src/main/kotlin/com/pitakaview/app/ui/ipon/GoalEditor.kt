@@ -1,0 +1,253 @@
+package com.pitakaview.app.ui.ipon
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.entity.SavingsGoalEntity
+import com.pitakaview.app.data.db.entity.WalletEntity
+import com.pitakaview.app.di.LocalAppContainer
+import com.pitakaview.app.domain.GoalForm
+import com.pitakaview.app.domain.GoalFormLogic
+import com.pitakaview.app.domain.GoalProblem
+import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.components.OptionalDateChoice
+import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.PitakaButtonStyle
+import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.sections.WalletChoice
+import com.pitakaview.app.ui.theme.PitakaTheme
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+
+/** Add or change a savings goal. Checks what was typed with [GoalFormLogic]. */
+class GoalEditorViewModel(
+    private val db: PitakaDatabase,
+    goalId: Long?,
+    private val now: () -> Instant = Instant::now,
+) : ViewModel() {
+    val isEdit = goalId != null
+    val name = TextFieldState()
+    val target = TextFieldState()
+
+    var targetDate by mutableStateOf<LocalDate?>(null)
+        private set
+    var walletId by mutableStateOf<Long?>(null)
+        private set
+
+    /** Shown only after a Save attempt. */
+    var problems by mutableStateOf(emptySet<GoalProblem>())
+        private set
+    var loaded by mutableStateOf(false)
+        private set
+    var done by mutableStateOf(false)
+        private set
+    var existing by mutableStateOf<SavingsGoalEntity?>(null)
+        private set
+    var hasEntries by mutableStateOf(false)
+        private set
+
+    val wallets: StateFlow<List<WalletEntity>> = db.walletDao().observeActiveWithBalance()
+        .map { rows -> rows.map { it.wallet } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            val goal = goalId?.let { db.savingsGoalDao().get(it) }
+            if (goal != null) {
+                existing = goal
+                hasEntries = db.transactionDao().countForGoal(goal.id) > 0
+                val form = GoalFormLogic.fromEntity(goal)
+                name.setTextAndPlaceCursorAtEnd(form.name)
+                target.setTextAndPlaceCursorAtEnd(form.targetText)
+                targetDate = form.targetDate
+                walletId = form.walletId
+            }
+            loaded = true
+        }
+    }
+
+    fun selectTargetDate(value: LocalDate?) {
+        targetDate = value
+    }
+
+    fun selectWallet(id: Long?) {
+        walletId = id
+    }
+
+    fun save() {
+        val form = GoalForm(name.text.toString(), target.text.toString(), targetDate, walletId)
+        problems = GoalFormLogic.problems(form)
+        if (problems.isNotEmpty()) return
+        viewModelScope.launch {
+            val goal = GoalFormLogic.toEntity(form, existing, now())
+            if (existing == null) db.savingsGoalDao().insert(goal) else db.savingsGoalDao().update(goal)
+            done = true
+        }
+    }
+
+    /** A hidden goal keeps its entries but leaves Home and the list of goals in use. */
+    fun toggleHidden() {
+        val goal = existing ?: return
+        viewModelScope.launch {
+            db.savingsGoalDao().update(goal.copy(isArchived = !goal.isArchived))
+            done = true
+        }
+    }
+
+    /** Only offered when nothing is logged for the goal; the database refuses otherwise. */
+    fun delete() {
+        val goal = existing ?: return
+        viewModelScope.launch {
+            db.savingsGoalDao().delete(goal)
+            done = true
+        }
+    }
+}
+
+/** Everything the goal screen draws, apart from its two text fields. */
+data class GoalEditorUi(
+    val isEdit: Boolean,
+    val targetDate: LocalDate?,
+    val wallets: List<WalletEntity>,
+    val walletId: Long?,
+    val today: LocalDate,
+    val problems: Set<GoalProblem> = emptySet(),
+    val hidden: Boolean = false,
+    val canDelete: Boolean = false,
+)
+
+@Composable
+fun GoalEditorRoute(goalId: Long?, onDone: () -> Unit) {
+    val container = LocalAppContainer.current
+    val today by container.dayClock.today.collectAsStateWithLifecycle()
+    val vm = viewModel { GoalEditorViewModel(container.database, goalId) }
+    val wallets by vm.wallets.collectAsStateWithLifecycle()
+    LaunchedEffect(vm.done) { if (vm.done) onDone() }
+    if (!vm.loaded) {
+        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        return
+    }
+    GoalEditorContent(
+        ui = GoalEditorUi(
+            isEdit = vm.isEdit, targetDate = vm.targetDate, wallets = wallets, walletId = vm.walletId, today = today,
+            problems = vm.problems, hidden = vm.existing?.isArchived == true, canDelete = vm.isEdit && !vm.hasEntries,
+        ),
+        name = vm.name, target = vm.target,
+        onTargetDate = vm::selectTargetDate, onWallet = vm::selectWallet,
+        onSave = vm::save, onToggleHidden = vm::toggleHidden, onDelete = vm::delete, onBack = onDone,
+    )
+}
+
+@Composable
+fun GoalEditorContent(
+    ui: GoalEditorUi,
+    name: TextFieldState,
+    target: TextFieldState,
+    onTargetDate: (LocalDate?) -> Unit,
+    onWallet: (Long?) -> Unit,
+    onSave: () -> Unit,
+    onToggleHidden: () -> Unit,
+    onDelete: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val c = PitakaTheme.colors
+    val type = MaterialTheme.typography
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    PitakaScreen(
+        title = if (ui.isEdit) "Edit goal" else "Add a goal",
+        onBack = onBack,
+        pinnedAction = {
+            if (confirmDelete) {
+                // In the footer, so the question is always on screen.
+                Column {
+                    Text("Delete this goal?", style = type.titleSmall, color = c.ink)
+                    Text("Nothing is logged for it, so no totals change. This cannot be undone.", style = type.bodySmall, color = c.ink)
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PitakaButton("Yes, delete", onClick = onDelete, modifier = Modifier.weight(1f))
+                        PitakaButton("Keep", onClick = { confirmDelete = false }, modifier = Modifier.weight(1f))
+                    }
+                }
+            } else {
+                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            }
+        },
+    ) {
+        item(key = "name") {
+            PitakaTextField(
+                state = name, label = "What you are saving for", placeholder = "e.g. Emergency fund",
+                isError = GoalProblem.NAME in ui.problems,
+                supportingText = if (GoalProblem.NAME in ui.problems) "Give the goal a name" else null,
+            )
+        }
+        item(key = "target") {
+            PitakaTextField(
+                state = target, label = "Target amount", placeholder = "No target", prefix = Peso.SIGN,
+                isError = GoalProblem.TARGET in ui.problems,
+                supportingText = if (GoalProblem.TARGET in ui.problems) "Enter an amount above ₱0.00, or leave it empty" else "Leave empty to save with no target.",
+                inputTransformation = MoneyInput,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+        }
+        item(key = "date") { OptionalDateChoice("Target date", ui.targetDate, ui.today, onTargetDate) }
+        item(key = "wallet") {
+            WalletChoice(
+                title = "Where the savings are kept",
+                wallets = ui.wallets, selectedId = ui.walletId, onSelect = onWallet,
+                noneLabel = "No wallet", noneSelected = true,
+                hint = "With No wallet, money is only set aside inside the wallet it is already in.",
+            )
+        }
+        if (ui.isEdit && !confirmDelete) {
+            item(key = "hide") {
+                Column {
+                    PitakaButton(if (ui.hidden) "Show goal again" else "Hide goal", onClick = onToggleHidden, modifier = Modifier.fillMaxWidth())
+                    Text(
+                        "A hidden goal keeps its entries but is left out of Home.",
+                        style = type.bodySmall, color = c.inkMuted, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
+            }
+            if (ui.canDelete) {
+                item(key = "delete") {
+                    PitakaButton("Delete goal", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}

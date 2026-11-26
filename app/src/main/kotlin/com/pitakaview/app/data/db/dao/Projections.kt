@@ -47,6 +47,8 @@ data class GoalProgress(
     val targetDate: LocalDate?,
     val walletId: Long?,
     val savedCentavos: Long,
+    /** Hidden by the owner: kept with its entries, left out of Home and of the list of goals in use. */
+    val isArchived: Boolean = false,
 )
 
 data class LoanWithPaid(
