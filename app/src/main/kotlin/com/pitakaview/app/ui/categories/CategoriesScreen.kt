@@ -1,13 +1,19 @@
 package com.pitakaview.app.ui.categories
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.Icon
@@ -19,7 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,16 +45,25 @@ import com.pitakaview.app.ui.components.PitakaDivider
 import com.pitakaview.app.ui.components.PitakaListItem
 import com.pitakaview.app.ui.components.PitakaScreen
 import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
+import com.pitakaview.app.ui.components.sketchBox
+import com.pitakaview.app.ui.icons.CategoryIcons
 import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.Section
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** The section name a category kind belongs to. */
+/** The section a category kind belongs to. */
+val CategoryKind.section: Section
+    get() = if (this == CategoryKind.EXPENSE) Section.GASTOS else Section.KITA
+
+/** That section's name. */
 val CategoryKind.sectionLabel: String
     get() = if (this == CategoryKind.EXPENSE) "Gastos" else "Kita"
 
@@ -98,6 +116,7 @@ private fun CategoryList(rows: List<CategoryEntity>, onOpen: (CategoryEntity) ->
                 PitakaListItem(
                     title = category.name,
                     subtitle = if (category.isArchived) "Hidden" else null,
+                    leading = { SectionBadge(category.kind.section, CategoryIcons.forKey(category.iconKey)) },
                     trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = { onOpen(category) },
                 )
@@ -118,6 +137,10 @@ class CategoryEditorViewModel(
 
     var current by mutableStateOf<CategoryEntity?>(null)
         private set
+
+    /** The icon picked for the category. A stored key this version does not know is shown, and saved, as the three dots. */
+    var iconKey by mutableStateOf(CategoryIcons.DEFAULT)
+        private set
     var nameProblem by mutableStateOf<String?>(null)
         private set
     var loaded by mutableStateOf(false)
@@ -129,10 +152,17 @@ class CategoryEditorViewModel(
         viewModelScope.launch {
             if (categoryId != null) {
                 current = db.categoryDao().get(categoryId)
-                current?.let { name.setTextAndPlaceCursorAtEnd(it.name) }
+                current?.let {
+                    name.setTextAndPlaceCursorAtEnd(it.name)
+                    if (CategoryIcons.has(it.iconKey)) iconKey = it.iconKey
+                }
             }
             loaded = true
         }
+    }
+
+    fun pickIcon(key: String) {
+        if (CategoryIcons.has(key)) iconKey = key
     }
 
     fun save() {
@@ -150,9 +180,9 @@ class CategoryEditorViewModel(
             }
             val row = current
             if (row == null) {
-                db.categoryDao().insert(CategoryEntity(name = trimmed, kind = kind, iconKey = "other", sortOrder = all.size))
+                db.categoryDao().insert(CategoryEntity(name = trimmed, kind = kind, iconKey = iconKey, sortOrder = all.size))
             } else {
-                db.categoryDao().update(row.copy(name = trimmed))
+                db.categoryDao().update(row.copy(name = trimmed, iconKey = iconKey))
             }
             done = true
         }
@@ -176,7 +206,34 @@ fun CategoryEditorRoute(categoryId: Long?, kind: CategoryKind, onDone: () -> Uni
         Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
         return
     }
-    CategoryEditorContent(vm.isEdit, vm.kind, vm.name, vm.current, vm.nameProblem, onSave = vm::save, onToggleHidden = vm::toggleHidden, onBack = onDone)
+    CategoryEditorContent(
+        vm.isEdit, vm.kind, vm.name, vm.current, vm.nameProblem, vm.iconKey,
+        onIcon = vm::pickIcon, onSave = vm::save, onToggleHidden = vm::toggleHidden, onBack = onDone,
+    )
+}
+
+/** Every icon a category can wear, as one row of choices that wraps. The picked one is filled with ink. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun IconPicker(picked: String, onPick: (String) -> Unit) {
+    val c = PitakaTheme.colors
+    val gap = Arrangement.spacedBy(8.dp)
+    val shape = RoundedCornerShape(12.dp)
+    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = gap, verticalArrangement = gap) {
+        CategoryIcons.all.forEach { icon ->
+            val selected = icon.key == picked
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin)
+                    .clip(shape)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onPick(icon.key) }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon.image, contentDescription = icon.label, tint = if (selected) c.card else c.ink, modifier = Modifier.size(26.dp))
+            }
+        }
+    }
 }
 
 @Composable
@@ -186,6 +243,8 @@ fun CategoryEditorContent(
     name: TextFieldState,
     current: CategoryEntity?,
     nameProblem: String?,
+    iconKey: String,
+    onIcon: (String) -> Unit,
     onSave: () -> Unit,
     onToggleHidden: () -> Unit,
     onBack: () -> Unit,
@@ -204,6 +263,8 @@ fun CategoryEditorContent(
                 isError = nameProblem != null, supportingText = nameProblem,
             )
         }
+        item(key = "icon-title") { SectionHeader("Icon") }
+        item(key = "icon") { IconPicker(iconKey, onIcon) }
         if (isEdit && current != null) {
             item(key = "hide") {
                 Column {

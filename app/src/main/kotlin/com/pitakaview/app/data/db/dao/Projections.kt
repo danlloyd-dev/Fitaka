@@ -66,6 +66,8 @@ data class RecentTransaction(
     val categoryName: String?,
     val fromWalletName: String?,
     val toWalletName: String?,
+    /** The key of the category's drawn icon (see CategoryIcons); null for an entry without a category. */
+    val categoryIconKey: String? = null,
 )
 
 /** Pay for [payScheduleId] was received on [occurredOn]. */

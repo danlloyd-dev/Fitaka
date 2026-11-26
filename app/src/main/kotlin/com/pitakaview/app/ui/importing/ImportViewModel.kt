@@ -13,6 +13,7 @@ import com.pitakaview.app.data.db.entity.ImportBatchEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.CategoryKind
+import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.importing.CsvStatementReader
 import com.pitakaview.app.domain.importing.DirectionSolver
 import com.pitakaview.app.domain.importing.ImportCandidate
@@ -22,6 +23,7 @@ import com.pitakaview.app.domain.importing.PdfStatementReader
 import com.pitakaview.app.domain.importing.StatementRead
 import com.pitakaview.app.domain.importing.StatementRow
 import com.pitakaview.app.domain.importing.StatementTotals
+import com.pitakaview.app.domain.importing.StatementWallet
 import com.pitakaview.app.domain.importing.TextMask
 import com.pitakaview.app.domain.importing.UnreadableReason
 import com.pitakaview.app.importing.PdfText
@@ -138,7 +140,11 @@ class ImportViewModel(
         }
     }
 
+    /** The owner tapped a wallet themselves; from then on the app does not choose one for them. */
+    private var walletPickedByOwner = false
+
     fun selectWallet(id: Long) {
+        walletPickedByOwner = true
         if (id == walletId) return
         walletId = id
         // What is new and what is already there depends on the wallet, so the lines are checked again.
@@ -181,10 +187,21 @@ class ImportViewModel(
         val wallet = walletId ?: return
         if (expenseCategories.isEmpty()) expenseCategories = db.categoryDao().observeActive(CategoryKind.EXPENSE).first()
         if (incomeCategories.isEmpty()) incomeCategories = db.categoryDao().observeActive(CategoryKind.INCOME).first()
-        val refs = rows.mapNotNull { ImportPlanner.refFor(read.source, wallet, it) }
+        // A line whose direction is still a guess is asked for both ways: if it was brought in before,
+        // the owner settled it then, and the ledger knows which way it went. Still one query.
+        fun ref(row: StatementRow, moneyIn: Boolean) = ImportPlanner.refFor(read.source, wallet, row.copy(moneyIn = moneyIn))
+        val refs = rows.flatMap { row -> if (row.sure) listOfNotNull(ref(row, row.moneyIn)) else listOfNotNull(ref(row, true), ref(row, false)) }
         val imported = if (refs.isEmpty()) emptySet() else ledger.knownRefs(refs)
+        val settled = settleFromTotals(
+            rows.map { row ->
+                val cameIn = !row.sure && ref(row, true) in imported
+                val wentOut = !row.sure && ref(row, false) in imported
+                if (cameIn != wentOut) row.copy(moneyIn = cameIn, sure = true) else row
+            },
+            read.totals,
+        )
         val existing = db.transactionDao().marksFor(wallet, rows.minOf { it.date }, rows.maxOf { it.date })
-        val fresh = ImportPlanner.plan(rows, read.source, wallet, imported, existing, expenseCategories, incomeCategories)
+        val fresh = ImportPlanner.plan(settled, read.source, wallet, imported, existing, expenseCategories, incomeCategories)
         stage = ImportStage.Review(
             fileName, read,
             fresh.mapIndexed { i, line ->
@@ -193,6 +210,17 @@ class ImportViewModel(
             },
             flipped,
         )
+    }
+
+    /**
+     * With the lines that are settled taken as facts, tries the statement's totals again for the lines
+     * still open: one line settled may settle others. When the totals cannot be reached with those
+     * facts, the lines are left as they are, and the screen says they do not add up.
+     */
+    private fun settleFromTotals(rows: List<StatementRow>, totals: StatementTotals?): List<StatementRow> {
+        if (totals == null || rows.all { it.sure }) return rows
+        val solved = DirectionSolver.solve(rows.map { it.amountCentavos }, rows.map { if (it.sure) it.moneyIn else null }, totals) ?: return rows
+        return rows.mapIndexed { i, row -> if (row.sure) row else row.copy(moneyIn = solved[i].moneyIn, sure = solved[i].sure) }
     }
 
     private fun changeLines(change: (List<ImportCandidate>) -> List<ImportCandidate>) {
@@ -219,16 +247,8 @@ class ImportViewModel(
      */
     fun setDirection(index: Int, moneyIn: Boolean) {
         val review = stage as? ImportStage.Review ?: return
-        var rows = review.candidates.mapIndexed { i, line -> if (i == index) line.row.copy(moneyIn = moneyIn, sure = true) else line.row }
-        // One line settled may settle others: with it as a fact, the statement's totals are tried again
-        // for the lines still open. If the totals cannot be reached with what the owner said, the lines
-        // are left as they are and the screen says they do not add up.
-        val totals = review.read.totals
-        if (totals != null && rows.any { !it.sure }) {
-            DirectionSolver.solve(rows.map { it.amountCentavos }, rows.map { if (it.sure) it.moneyIn else null }, totals)?.let { solved ->
-                rows = rows.mapIndexed { i, row -> if (row.sure) row else row.copy(moneyIn = solved[i].moneyIn, sure = solved[i].sure) }
-            }
-        }
+        val rows = review.candidates.mapIndexed { i, line -> if (i == index) line.row.copy(moneyIn = moneyIn, sure = true) else line.row }
+        // The plan settles whatever now follows from the statement's totals.
         viewModelScope.launch { plan(review.fileName, review.read, rows, review.flipped, keep = review.candidates) }
     }
 
@@ -282,7 +302,12 @@ class ImportViewModel(
     private suspend fun openPdf(file: PickedFile, password: String?) {
         when (val text = pdf.read(file.bytes, password)) {
             is PdfText.Pages -> when (val read = PdfStatementReader.read(text.pages)) {
-                is StatementRead.Rows -> if (read.rows.isEmpty()) refuse(Refusal.NOTHING_IN_IT) else plan(file.name, read, read.rows, flipped = false)
+                is StatementRead.Rows -> if (read.rows.isEmpty()) {
+                    refuse(Refusal.NOTHING_IN_IT)
+                } else {
+                    preferWalletNamedFor(read.source)
+                    plan(file.name, read, read.rows, flipped = false)
+                }
                 // Not a bank this app can read yet: show how the file is laid out, with everything hidden,
                 // which is what is needed to add that bank.
                 is StatementRead.Unreadable -> stage = ImportStage.PdfLayout(file.name, text.pages.size, TextMask.sample(text.pages))
@@ -292,6 +317,17 @@ class ImportViewModel(
             PdfText.NeedsNewerAndroid -> refuse(Refusal.PDF_NEEDS_NEWER_ANDROID)
             PdfText.Unreadable -> refuse(Refusal.PDF_UNREADABLE)
         }
+    }
+
+    /**
+     * A bank's own statement says which bank it is from. Unless the owner has chosen a wallet themselves,
+     * it goes to the one wallet named after that bank, not to whichever wallet happens to be first.
+     */
+    private suspend fun preferWalletNamedFor(source: ImportSource) {
+        if (walletPickedByOwner) return
+        val bank = StatementWallet.bankName(source) ?: return
+        val active = db.walletDao().observeActiveWithBalance().first().map { it.wallet }
+        StatementWallet.only(bank, active)?.let { walletId = it.id }
     }
 
     fun unlockPdf(password: String) {

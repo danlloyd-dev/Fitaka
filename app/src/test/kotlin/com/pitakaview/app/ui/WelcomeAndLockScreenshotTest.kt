@@ -53,7 +53,9 @@ class WelcomeAndLockScreenshotTest {
     @Test
     fun lockScreen() = shot("lock_dagat_dark", ThemeId.DAGAT, DarkModePref.DARK) { LockScreen(onUnlock = {}, onLeave = {}) }
 
+    // Taller than a phone: the lock card now sits below the theme pickers, and this picture is of that card.
     @Test
+    @Config(qualifiers = "w390dp-h1200dp-hdpi")
     fun settingsWithTheAppLock() = shot("settings_lock_kape_light", ThemeId.KAPE, DarkModePref.LIGHT) {
         SettingsScreen(
             AppearanceSettings(ThemeId.KAPE, DarkModePref.LIGHT), {}, {}, onBack = {},

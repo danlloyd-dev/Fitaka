@@ -99,9 +99,9 @@ class ScreensScreenshotTest {
             UpcomingItem(LocalDate.of(2026, 12, 1), "Tita Baby", "You pay", Section.UTANG, 900_000),
         ),
         recent = listOf(
-            RecentTransaction(3, TxPurpose.EXPENSE, 12_500, today, null, "Food", "GCash", null),
+            RecentTransaction(3, TxPurpose.EXPENSE, 12_500, today, null, "Food", "GCash", null, categoryIconKey = "food"),
             RecentTransaction(2, TxPurpose.TRANSFER, 300_000, today.minusDays(1), null, null, "MariBank", "GCash"),
-            RecentTransaction(1, TxPurpose.INCOME, 2_000_000, LocalDate.of(2026, 11, 15), null, "Salary", null, "MariBank"),
+            RecentTransaction(1, TxPurpose.INCOME, 2_000_000, LocalDate.of(2026, 11, 15), null, "Salary", null, "MariBank", categoryIconKey = "salary"),
         ),
     )
 
@@ -177,15 +177,15 @@ class ScreensScreenshotTest {
 
     private val november = YearMonth.of(2026, 11)
     private val spending = listOf(
-        RecentTransaction(9, TxPurpose.EXPENSE, 12_500, today, "lugaw", "Food", "GCash", null),
-        RecentTransaction(8, TxPurpose.EXPENSE, 1_300, today, null, "Transport", "Cash", null),
-        RecentTransaction(7, TxPurpose.EXPENSE, 180_000, today.minusDays(1), "Meralco", "Bills", "MariBank", null),
-        RecentTransaction(6, TxPurpose.EXPENSE, 45_050, today.minusDays(3), null, "Groceries", "GCash", null),
-        RecentTransaction(5, TxPurpose.EXPENSE, 25_000, today.minusDays(3), "lunch with Tita", "Food", "Cash", null),
+        RecentTransaction(9, TxPurpose.EXPENSE, 12_500, today, "lugaw", "Food", "GCash", null, categoryIconKey = "food"),
+        RecentTransaction(8, TxPurpose.EXPENSE, 1_300, today, null, "Transport", "Cash", null, categoryIconKey = "transport"),
+        RecentTransaction(7, TxPurpose.EXPENSE, 180_000, today.minusDays(1), "Meralco", "Bills", "MariBank", null, categoryIconKey = "bills"),
+        RecentTransaction(6, TxPurpose.EXPENSE, 45_050, today.minusDays(3), null, "Groceries", "GCash", null, categoryIconKey = "cart"),
+        RecentTransaction(5, TxPurpose.EXPENSE, 25_000, today.minusDays(3), "lunch with Tita", "Food", "Cash", null, categoryIconKey = "food"),
     )
     private val income = listOf(
-        RecentTransaction(12, TxPurpose.INCOME, 250_000, today.minusDays(5), "logo job", "Sideline", null, "GCash"),
-        RecentTransaction(11, TxPurpose.INCOME, 1_500_000, LocalDate.of(2026, 11, 15), null, "Salary", null, "MariBank"),
+        RecentTransaction(12, TxPurpose.INCOME, 250_000, today.minusDays(5), "logo job", "Sideline", null, "GCash", categoryIconKey = "sideline"),
+        RecentTransaction(11, TxPurpose.INCOME, 1_500_000, LocalDate.of(2026, 11, 15), null, "Salary", null, "MariBank", categoryIconKey = "salary"),
     )
 
     @Test

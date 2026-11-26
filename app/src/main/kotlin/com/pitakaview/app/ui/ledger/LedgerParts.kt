@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,7 @@ import com.pitakaview.app.ui.components.PitakaListItem
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.home.friendlyDate
+import com.pitakaview.app.ui.icons.CategoryIcons
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.motion.AnimatedAmountText
@@ -74,6 +76,13 @@ fun RecentTransaction.walletsText(): String = listOfNotNull(fromWalletName, toWa
 /** Under a row in a day group: where, and the note if there is one. The day is in the group's heading. */
 fun RecentTransaction.ledgerSubtitle(): String =
     listOf(walletsText(), note.orEmpty()).filter { it.isNotEmpty() }.joinToString(" · ")
+
+/**
+ * Under a row on Home, which has no day headings: where, the note if there is one, and the day. The
+ * note is what tells two entries of the same category apart (every imported line is "Other" at first).
+ */
+fun RecentTransaction.homeSubtitle(today: LocalDate): String =
+    listOf(walletsText(), note.orEmpty(), friendlyDate(occurredOn, today)).filter { it.isNotEmpty() }.joinToString(" · ")
 
 /** Previous month, the month shown, next month. Tapping the name of another month returns to this month. */
 @Composable
@@ -136,6 +145,9 @@ fun CategoryBreakdownCard(categories: List<CategoryShare>, totalCentavos: Long, 
             key(category.name) {
                 if (i > 0) Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The name beside it says what it is; a row without a category of its own gets the three dots.
+                    Icon(CategoryIcons.forKey(category.iconKey), contentDescription = null, tint = c.ink, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(category.name, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Text(
                         MonthLedgerBuilder.percentText(category.totalCentavos, totalCentavos),
@@ -192,14 +204,23 @@ private fun DayGroupCard(day: DayGroup, today: LocalDate, onOpenEntry: (Long) ->
     }
 }
 
-/** One ledger row: section badge, category, [subtitle], signed amount. */
+/**
+ * One ledger row: a badge in the section's colour, category, [subtitle], signed amount. The badge
+ * wears the category's own icon when the entry has a category, the section's otherwise.
+ */
 @Composable
 fun EntryListItem(row: RecentTransaction, subtitle: String, onClick: () -> Unit) {
     val section = row.purpose.section
     PitakaListItem(
         title = row.categoryName ?: row.purpose.label,
         subtitle = subtitle.ifEmpty { null },
-        leading = { if (section != null) SectionBadge(section, section.icon) else TransferBadge() },
+        leading = {
+            if (section != null) {
+                SectionBadge(section, row.categoryIconKey?.let(CategoryIcons::forKey) ?: section.icon)
+            } else {
+                TransferBadge()
+            }
+        },
         // Moves between your own wallets are neither in nor out, so they get no sign.
         trailing = { AmountText(row.signedCentavos, signed = !row.isMove) },
         onClick = onClick,

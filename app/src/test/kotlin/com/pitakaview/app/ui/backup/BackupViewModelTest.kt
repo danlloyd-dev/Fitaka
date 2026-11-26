@@ -147,6 +147,7 @@ class BackupViewModelTest {
         assertNull(vm.pending)
         assertEquals("no restart: nothing was touched", 0, restarts.get())
         assertTrue("the database still answers", runBlocking { db.walletDao().observeAllWithBalance().first() }.isEmpty())
+        assertEquals("said on this screen, so nothing is kept to say after a restart", false, runBlocking { settings.restoreFailed.first() })
     }
 
     @Test
@@ -169,5 +170,22 @@ class BackupViewModelTest {
         vm.confirmRestore()
         runBlocking { withTimeout(10_000) { while (restarts.get() == 0) delay(10) } }
         assertEquals("a closed database cannot be used, so the app restarts on its old data", 1, restarts.get())
+        // The restart forgets everything in memory; this is what lets Home say what happened afterwards.
+        assertEquals("the failure is written down before the restart", true, runBlocking { settings.restoreFailed.first() })
+    }
+
+    @Test
+    fun aRestoreThatWorksLeavesNothingToSayAfterTheRestart() {
+        val saved = ByteArrayOutputStream()
+        val vm = viewModel()
+        vm.backUpTo(open = { saved })
+        vm.settle()
+        vm.stageRestore { ByteArrayInputStream(saved.toByteArray()) }
+        vm.settle()
+        assertNotNull(vm.pending)
+
+        vm.confirmRestore()
+        runBlocking { withTimeout(10_000) { while (restarts.get() == 0) delay(10) } }
+        assertEquals(false, runBlocking { settings.restoreFailed.first() })
     }
 }

@@ -54,9 +54,12 @@ import com.pitakaview.app.data.db.dao.ImportBatchRow
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.di.LocalAppContainer
+import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.importing.ImportCandidate
 import com.pitakaview.app.domain.importing.ImportStatus
+import com.pitakaview.app.domain.importing.StatementWallet
+import com.pitakaview.app.domain.importing.WalletFit
 import com.pitakaview.app.ui.components.PitakaButton
 import com.pitakaview.app.ui.components.PitakaButtonStyle
 import com.pitakaview.app.ui.components.PitakaCard
@@ -103,8 +106,12 @@ object ImportText {
         ImportStatus.LOOKS_LIKE_EXISTING -> "Looks like an entry you already have"
     }
 
-    fun amount(line: ImportCandidate): String =
-        if (line.row.moneyIn) "+${Peso.format(line.row.amountCentavos)}" else Peso.format(-line.row.amountCentavos)
+    /** The sign says which way the money went, so a line whose direction is still a guess is shown without one. */
+    fun amount(line: ImportCandidate): String = when {
+        !line.row.sure -> Peso.format(line.row.amountCentavos)
+        line.row.moneyIn -> "+${Peso.format(line.row.amountCentavos)}"
+        else -> Peso.format(-line.row.amountCentavos)
+    }
 
     fun day(line: ImportCandidate): String = DAY.format(line.row.date)
 
@@ -144,13 +151,33 @@ object ImportText {
         } else {
             "These lines do not add up to the statement's totals yet. Money in is ${Peso.format(got.moneyInCentavos)} of " +
                 "${Peso.format(wanted.moneyInCentavos)}; money out is ${Peso.format(got.moneyOutCentavos)} of ${Peso.format(wanted.moneyOutCentavos)}. " +
-                "Open a line and set which way it went. Import is off until they add up."
+                "Tap Change on a line to set which way it went. Import is off until they add up."
         }
     }
 
     /** Why Import is off although lines are ticked, or null when it is not. */
     fun unsure(review: ImportStage.Review): String? = review.unsure.takeIf { it > 0 }?.let {
-        "${lines(it)} could have gone either way: the file does not say, and its totals fit both. Open ${if (it == 1) "it" else "each"} and set which way it went. Import is off until then."
+        "${lines(it)} could have gone either way: the file does not say, and its totals fit both. " +
+            "On ${if (it == 1) "the line" else "each line"} marked below, tap Money in or Money out. Import is off until then."
+    }
+
+    /**
+     * Where a bank's statement is about to go, and how well that wallet fits the bank. Null for a file
+     * that names no bank (a CSV), where there is nothing to compare the wallet with.
+     */
+    fun destination(source: ImportSource, wallets: List<WalletEntity>, walletId: Long?): Pair<String, WalletFit>? {
+        val bank = StatementWallet.bankName(source) ?: return null
+        val picked = wallets.firstOrNull { it.id == walletId } ?: return null
+        val fit = StatementWallet.fit(bank, picked, wallets)
+        val words = when (fit) {
+            WalletFit.NAMED_FOR_BANK -> "This is a $bank statement. Its entries will go into ${picked.name}."
+            WalletFit.ANOTHER_IS_NAMED_FOR_BANK ->
+                "This is a $bank statement, but the wallet picked above is ${picked.name}. Tap your $bank wallet above if it belongs there."
+            WalletFit.NONE_NAMED_FOR_BANK ->
+                "This is a $bank statement, and its entries will go into ${picked.name}. If $bank should be a wallet of its own, " +
+                    "tap Cancel and add it in Settings > Wallets first."
+        }
+        return words to fit
     }
     const val PDF_LAYOUT_HELP =
         "PitakaView cannot bring in entries from this PDF yet. Below is how it is laid out: every letter is shown as x " +
@@ -332,6 +359,10 @@ fun ImportContent(
                     Column(Modifier.padding(horizontal = 4.dp)) {
                         Text(stage.fileName, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text("Tick the lines to bring in. Nothing is added until you tap Import.", style = type.bodyMedium, color = c.inkMuted)
+                        // A bank's statement belongs in that bank's wallet; say where this one is headed before it goes.
+                        ImportText.destination(stage.read.source, wallets, walletId)?.let { (words, fit) ->
+                            if (fit == WalletFit.NAMED_FOR_BANK) Text(words, style = type.bodySmall, color = c.inkMuted) else ProblemText(words)
+                        }
                         if (stage.read.unreadLines > 0) {
                             ProblemText("${ImportText.lines(stage.read.unreadLines)} could not be read as an entry and ${if (stage.read.unreadLines == 1) "is" else "are"} left out.")
                         }
@@ -441,6 +472,14 @@ private fun CandidateLine(
     val c = PitakaTheme.colors
     val type = MaterialTheme.typography
     val ticked = line.picked && line.canPick
+    val chips = Arrangement.spacedBy(8.dp)
+    // Which way the money went. Picking either settles a line the file left open.
+    val direction: @Composable () -> Unit = {
+        FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
+            PitakaChip("Money out", selected = !line.row.moneyIn && line.row.sure, onClick = { onDirection(false) })
+            PitakaChip("Money in", selected = line.row.moneyIn && line.row.sure, onClick = { onDirection(true) })
+        }
+    }
     PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
         Row(
             Modifier
@@ -470,6 +509,12 @@ private fun CandidateLine(
             Spacer(Modifier.width(8.dp))
             Text(ImportText.amount(line), style = type.titleSmall, color = if (line.canPick) c.ink else c.inkMuted)
         }
+        // A line the file left open asks its question right here, where the warning is: the answer must
+        // not sit behind another tap, and a tap on the line itself only ticks or unticks it. Asked even
+        // on a line that cannot be ticked, because its direction still counts towards the totals.
+        if (!line.row.sure) {
+            Box(Modifier.padding(start = 38.dp, top = 4.dp, bottom = 4.dp)) { direction() }
+        }
         if (line.canPick) {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = "Change this line", onClick = onShowChoices).padding(start = 38.dp),
@@ -480,14 +525,12 @@ private fun CandidateLine(
             }
         }
         if (open && line.canPick) {
-            val chips = Arrangement.spacedBy(8.dp)
             Column(Modifier.padding(start = 38.dp, bottom = 8.dp)) {
-                // Which way the money went. Picking either settles a line the file left open.
-                FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    PitakaChip("Money out", selected = !line.row.moneyIn && line.row.sure, onClick = { onDirection(false) })
-                    PitakaChip("Money in", selected = line.row.moneyIn && line.row.sure, onClick = { onDirection(true) })
+                // A settled line can still be turned round here, if the owner knows better.
+                if (line.row.sure) {
+                    direction()
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
                     choices.forEach { PitakaChip(it.name, selected = it.id == line.categoryId, onClick = { onCategory(it.id) }) }
                 }

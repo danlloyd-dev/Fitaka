@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -29,8 +30,10 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.core.app.ActivityOptionsCompat
 import com.pitakaview.app.data.db.entity.TransactionEntity
+import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.importing.PdfText
 import com.pitakaview.app.importing.PdfTextReader
 import com.pitakaview.app.ui.importing.ImportViewModel
@@ -332,6 +335,8 @@ class ImportFlowTest : FlowTestBase() {
 
         assertTrue(shows("2 lines read · 2 new"))
         assertTrue(shows("Adds up to the statement's own totals: ₱1,500.00 in, ₱250.00 out."))
+        // The only wallet is Cash, and the screen says that is where a GCash statement is about to go.
+        assertTrue(shows("This is a GCash statement, and its entries will go into Cash."))
         scrollTo("Payment to JOLLIBEE QC")
         assertTrue(shows("−₱250.00"))
         scrollTo("Received GCash from MariBank")
@@ -371,10 +376,17 @@ class ImportFlowTest : FlowTestBase() {
         // The owner knows: Tita Baby sent that 1,000. Saying so settles the other one too.
         scrollTo("Tita Baby")
         assertTrue(shows("Check which way this went"))
-        // (Several lines read "Category: Other"; the one wanted is the one in Tita Baby's card.)
-        rule.onNode(hasText("Category: Other") and hasClickAction() and hasAnySibling(hasText("Tita Baby", substring = true))).performClick()
-        rule.onNode(hasText("Money in") and isSelectable()).performClick()
+        // The question is asked on the line itself: nothing has to be opened first, and the line is
+        // not tapped (a tap on it only ticks or unticks it, which is how the owner lost nine ticks on
+        // 2026-11-26). Kuya Jun's line asks too, so the answer wanted is the one in Tita Baby's card.
+        val inTitaBabysCard = hasText("Money in") and isSelectable() and hasAnySibling(hasText("Tita Baby", substring = true))
+        rule.onNode(hasScrollToNodeAction()).performScrollToNode(inTitaBabysCard)
+        val titaBabyCameIn = rule.onNode(inTitaBabysCard)
+        titaBabyCameIn.assertIsDisplayed()
+        assertFalse("no line's choices were opened", shows("Close"))
+        titaBabyCameIn.performClick()
         rule.waitUntil(10_000) { !shows("could have gone either way") }
+        assertTrue("answering did not untick anything", shows("Import 4 entries"))
         assertTrue(shows("Adds up to the statement's own totals: ₱21,000.00 in, ₱1,500.00 out."))
         assertFalse(shows("Check which way this went"))
 
@@ -394,6 +406,90 @@ class ImportFlowTest : FlowTestBase() {
         val notes = entries().associate { it.note to it.purpose }
         assertEquals(TxPurpose.INCOME, notes["Tita Baby · Transfer"])
         assertEquals(TxPurpose.EXPENSE, notes["Kuya Jun · Transfer"])
+
+        // The same statement opened again: what the owner said then is in the ledger, so nothing is
+        // asked twice, every line is recognised, and there is nothing left to bring in.
+        scrollTo("Choose a file")
+        tapButton("Choose a file")
+        waitFor("4 lines read · 0 new · 4 already imported")
+        assertFalse(shows("could have gone either way"))
+        assertFalse(shows("Check which way this went"))
+        assertTrue(shows("Adds up to the statement's own totals: ₱21,000.00 in, ₱1,500.00 out."))
+        rule.onNode(hasText("Import 0 entries") and hasClickAction()).assertIsNotEnabled()
+        assertEquals(4, entries().size)
+    }
+
+    /** The same kind of statement with nothing left open: 20,000 in, 500 and 1,000 out. */
+    private val plainMariBankPages = listOf(
+        """
+        BANK STATEMENT
+        S/N E01-654321HGFEDCBA
+        31 OCT 2026
+        page 1 of 1
+        ACCOUNT SUMMARY
+        01 OCT 2026 to 31 OCT 2026
+        SAVINGS 10.00 20,000.00 1,500.00 18,510.00
+        SAVINGS - TRANSACTION DETAILS
+        DATE TRANSACTION OUTGOING (PHP) INCOMING (PHP)
+        02 OCT Via Other Banks Channel
+        Transfer
+        20,000.00
+        03 OCT Shopee
+        Payment
+        500.00
+        06 OCT Kuya Jun
+        Transfer
+        1,000.00
+        """.trimIndent(),
+    )
+
+    private fun addWallet(name: String): Long = runBlocking {
+        container.database.walletDao().insert(WalletEntity(name = name, type = WalletType.BANK, createdAt = Instant.parse("2026-11-26T04:00:00Z")))
+    }
+
+    private fun walletChip(name: String): SemanticsNodeInteraction = rule.onNode(hasText(name) and isSelectable())
+
+    @Test
+    fun aBanksStatementGoesToTheWalletNamedAfterTheBank() {
+        picked = file("maribank.pdf", "%PDF-1.7 stand-in")
+        start()
+        addWallet("MariBank")
+        container.pdfTextReader = OpenPdf(plainMariBankPages)
+        openImport()
+        // Cash comes first, so it is what the screen starts on.
+        walletChip("Cash").assertIsSelected()
+        tapButton("Choose a file")
+        waitFor("maribank.pdf")
+
+        walletChip("MariBank").assertIsSelected()
+        assertTrue(shows("This is a MariBank statement. Its entries will go into MariBank."))
+        rule.onNode(hasText("Import 3 entries") and hasClickAction()).assertIsEnabled().performClick()
+        waitFor("Imported 3 entries into MariBank.")
+
+        assertEquals("nothing of it went into Cash", 0L, cashBalance())
+        assertEquals(2_000_000L - 150_000L, wallets().single { it.wallet.name == "MariBank" }.balanceCentavos)
+        assertTrue(entries().all { (it.fromWalletName ?: it.toWalletName) == "MariBank" })
+    }
+
+    @Test
+    fun aWalletTheOwnerPickedThemselvesIsKeptAndTheScreenSaysWhenItLooksWrong() {
+        picked = file("maribank.pdf", "%PDF-1.7 stand-in")
+        start()
+        addWallet("MariBank")
+        container.pdfTextReader = OpenPdf(plainMariBankPages)
+        openImport()
+        walletChip("Cash").performClick()
+        tapButton("Choose a file")
+        waitFor("maribank.pdf")
+
+        walletChip("Cash").assertIsSelected()
+        assertTrue(shows("This is a MariBank statement, but the wallet picked above is Cash."))
+        assertEquals("looking adds nothing", 0, entries().size)
+
+        // One tap puts it right, and the lines are checked again for that wallet.
+        walletChip("MariBank").performClick()
+        waitFor("This is a MariBank statement. Its entries will go into MariBank.")
+        assertFalse(shows("but the wallet picked above"))
     }
 
     @Test

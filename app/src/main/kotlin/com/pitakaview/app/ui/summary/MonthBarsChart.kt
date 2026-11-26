@@ -2,20 +2,28 @@ package com.pitakaview.app.ui.summary
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
@@ -28,14 +36,21 @@ import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.ColumnCartesianLayerModel
 import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerController
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerVisibilityListener
+import com.patrykandpatrick.vico.compose.cartesian.marker.ColumnCartesianLayerMarkerTarget
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.component.LineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
+import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.ledger.monthName
+import com.pitakaview.app.ui.ledger.monthTitle
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -76,8 +91,8 @@ fun MonthBarsChart(bars: List<MonthBar>, modifier: Modifier = Modifier) {
     val linePlacer = remember(lineGap) { VerticalAxis.ItemPlacer.step({ lineGap }) }
     val barShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
     val ink = Fill(c.ink)
-    val moneyIn = rememberLineComponent(fill = Fill(c.fill(IN_SECTION)), thickness = 14.dp, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
-    val moneyOut = rememberLineComponent(fill = Fill(c.fill(OUT_SECTION)), thickness = 14.dp, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val moneyIn = rememberLineComponent(fill = Fill(c.fill(IN_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
+    val moneyOut = rememberLineComponent(fill = Fill(c.fill(OUT_SECTION)), thickness = BAR_WIDTH, shape = barShape, strokeFill = ink, strokeThickness = 2.dp)
     val label = rememberAxisLabelComponent(style = type.labelMedium.copy(color = c.ink))
     val axisLine = rememberAxisLineComponent(fill = ink, thickness = 2.dp)
     val guideline = rememberAxisGuidelineComponent(fill = Fill(c.ink.copy(alpha = 0.25f)))
@@ -85,27 +100,100 @@ fun MonthBarsChart(bars: List<MonthBar>, modifier: Modifier = Modifier) {
     // A label must never be empty, so a position with no month gets a space.
     val monthAxis = remember(months) { CartesianValueFormatter { _, value, _ -> months.getOrNull(value.roundToInt()) ?: " " } }
 
+    // Tapping a month marks its pair of bars with a soft band and writes the two amounts under the
+    // chart. They are written as ordinary text, not drawn inside the chart, so they are large enough to
+    // read and a screen reader can read them. Tapping the same bar again clears it.
+    var picked by rememberSaveable { mutableStateOf<Int?>(null) }
+    val band = rememberLineComponent(fill = Fill(c.ink.copy(alpha = 0.13f)), thickness = BAR_WIDTH, shape = RoundedCornerShape(8.dp))
+    val marker = remember(band) { MonthBand(band) }
+    val onMarker = remember {
+        object : CartesianMarkerVisibilityListener {
+            override fun onShown(marker: CartesianMarker, targets: List<CartesianMarker.Target>) {
+                picked = targets.firstOrNull()?.x?.roundToInt()
+            }
+
+            override fun onUpdated(marker: CartesianMarker, targets: List<CartesianMarker.Target>) {
+                picked = targets.firstOrNull()?.x?.roundToInt()
+            }
+
+            override fun onHidden(marker: CartesianMarker) {
+                picked = null
+            }
+        }
+    }
+
     val chart = rememberCartesianChart(
         rememberColumnCartesianLayer(
             columnProvider = ColumnCartesianLayer.ColumnProvider.series(moneyIn, moneyOut),
             columnCollectionSpacing = 18.dp,
+            mergeMode = sideBySide,
             rangeProvider = range,
         ),
         startAxis = VerticalAxis.rememberStart(
             line = axisLine, label = label, valueFormatter = pesoAxis, tick = null, guideline = guideline, itemPlacer = linePlacer,
         ),
         bottomAxis = HorizontalAxis.rememberBottom(line = axisLine, label = label, valueFormatter = monthAxis, tick = null, guideline = null),
+        marker = marker,
+        markerVisibilityListener = onMarker,
+        markerController = CartesianMarkerController.rememberToggleOnTap(),
     )
-    CartesianChartHost(
-        chart = chart,
-        model = model,
-        modifier = modifier.fillMaxWidth().semantics { contentDescription = describe(bars) },
-        // Six months always fit the width, so there is nothing to scroll or zoom.
-        scrollState = rememberVicoScrollState(scrollEnabled = false),
-        zoomState = rememberVicoZoomState(zoomEnabled = false, initialZoom = Zoom.Content),
-        chartAreaHeight = 180.dp,
-    )
+    Column(modifier.fillMaxWidth()) {
+        CartesianChartHost(
+            chart = chart,
+            model = model,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = describe(bars) },
+            // Six months always fit the width, so there is nothing to scroll or zoom.
+            scrollState = rememberVicoScrollState(scrollEnabled = false),
+            zoomState = rememberVicoZoomState(zoomEnabled = false, initialZoom = Zoom.Content),
+            chartAreaHeight = 180.dp,
+        )
+        // Always there, at a fixed height, so the card does not jump when a month is tapped.
+        Text(
+            readout(bars, picked),
+            style = type.labelLarge,
+            color = if (picked == null) c.inkMuted else c.ink,
+            modifier = Modifier.padding(top = 6.dp).heightIn(min = 40.dp),
+        )
+    }
 }
+
+private val BAR_WIDTH = 14.dp
+
+/** The space between a month's two bars. */
+private val BAR_GAP = 8.dp
+
+/** How far the band reaches past the pair of bars on each side. */
+private val BAND_AIR = 5.dp
+
+private val sideBySide: (ExtraStore) -> ColumnCartesianLayer.MergeMode = { ColumnCartesianLayer.MergeMode.Grouped(BAR_GAP) }
+
+/**
+ * Marks the tapped month: a soft band behind its two bars. A tap lands on one bar of the pair, so
+ * which bar it was (the first is money in) tells where the middle of the pair is.
+ */
+private data class MonthBand(val band: LineComponent) : CartesianMarker {
+    override fun drawUnderLayers(context: CartesianDrawingContext, targets: List<CartesianMarker.Target>) {
+        val target = targets.firstOrNull() as? ColumnCartesianLayerMarkerTarget ?: return
+        val towardsPartner = when (target.columns.firstOrNull()?.entry?.seriesIndex) {
+            0 -> 1f
+            1 -> -1f
+            else -> return
+        }
+        with(context) {
+            val halfStep = (BAR_WIDTH.pixels + BAR_GAP.pixels) / 2 * zoom
+            val middle = target.canvasX + towardsPartner * halfStep * layoutDirectionMultiplier
+            val reach = halfStep + BAR_WIDTH.pixels / 2 * zoom + BAND_AIR.pixels
+            band.draw(this, middle - reach, layerBounds.top, middle + reach, layerBounds.bottom)
+        }
+    }
+}
+
+const val TAP_HINT = "Tap a month to see its amounts."
+
+/** The line under the chart: the tapped month's two amounts in full, or how to see them. */
+fun readout(bars: List<MonthBar>, picked: Int?): String =
+    picked?.let(bars::getOrNull)?.let { "${monthTitle(it.month)}: ${Peso.format(it.inCentavos)} in, ${Peso.format(it.outCentavos)} out" }
+        ?: TAP_HINT
 
 /** The chart in words, for a screen reader: "June: ₱20,000.00 in, ₱15,500.00 out. July: …". */
 fun describe(bars: List<MonthBar>): String =

@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.Flow
 /** A ledger row with its category and wallet names. Shared by Recent, the month lists and search. */
 private const val ENTRY_ROWS = """
     SELECT t.id AS id, t.purpose AS purpose, t.amountCentavos AS amountCentavos, t.occurredOn AS occurredOn,
-        t.note AS note, c.name AS categoryName, fw.name AS fromWalletName, tw.name AS toWalletName
+        t.note AS note, c.name AS categoryName, fw.name AS fromWalletName, tw.name AS toWalletName,
+        c.iconKey AS categoryIconKey
     FROM transactions t
     LEFT JOIN categories c ON c.id = t.categoryId
     LEFT JOIN wallets fw ON fw.id = t.fromWalletId

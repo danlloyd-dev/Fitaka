@@ -58,7 +58,7 @@ object MonthSummaryBuilder {
             val m = month.minusMonths(back.toLong())
             MonthBar(m, sum(m, TxPurpose.INCOME) + sum(m, TxPurpose.BAON_RECEIVED), sum(m, TxPurpose.EXPENSE) + sum(m, TxPurpose.BAON_GIVEN))
         }
-        val top = categories.take(TOP_CATEGORIES).map { CategoryShare(it.name, it.totalCentavos) }
+        val top = categories.take(TOP_CATEGORIES).map { CategoryShare(it.name, it.totalCentavos, it.iconKey) }
         val rest = categories.drop(TOP_CATEGORIES).sumOf { it.totalCentavos }
         return MonthSummary(
             month = month,

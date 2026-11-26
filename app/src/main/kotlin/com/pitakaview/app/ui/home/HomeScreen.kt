@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -47,13 +48,14 @@ import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.PitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.EntryListItem
-import com.pitakaview.app.ui.ledger.walletsText
+import com.pitakaview.app.ui.ledger.homeSubtitle
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.PitakaMotion
 import com.pitakaview.app.ui.theme.PitakaDimens
 import com.pitakaview.app.ui.theme.PitakaTheme
 import com.pitakaview.app.ui.theme.Section
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -76,7 +78,14 @@ fun HomeRoute(
     val state by vm.state.collectAsStateWithLifecycle()
     // The same "today" the ViewModel uses, so the dates on screen and the totals always agree.
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    HomeContent(state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch, onOpenSummary)
+    // A restore that broke off restarts the app, which lands here: this is where the owner is told.
+    val restoreFailed by container.settings.restoreFailed.collectAsStateWithLifecycle(initialValue = false)
+    val scope = rememberCoroutineScope()
+    HomeContent(
+        state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch, onOpenSummary,
+        restoreFailed = restoreFailed,
+        onRestoreNoticeSeen = { scope.launch { container.settings.setRestoreFailed(false) } },
+    )
 }
 
 fun greetingFor(time: LocalTime): String = when (time.hour) {
@@ -109,6 +118,9 @@ fun HomeContent(
     onOpenBackup: () -> Unit = {},
     onSearch: () -> Unit = {},
     onOpenSummary: () -> Unit = {},
+    /** The last restore broke off and the app restarted on the data it had before. */
+    restoreFailed: Boolean = false,
+    onRestoreNoticeSeen: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     PitakaScreen(
@@ -119,6 +131,10 @@ fun HomeContent(
             PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings)
         },
     ) {
+        // First on the page: the app has just restarted, and the owner needs to know why and what is true now.
+        if (restoreFailed) {
+            item(key = "restore-failed") { RestoreFailedCard(onOpenBackup, onRestoreNoticeSeen) }
+        }
         item(key = "hero") { WholeWalletCard(state, onOpenWallets) }
         item(key = "add") {
             PitakaButton(
@@ -156,6 +172,28 @@ fun HomeContent(
         item(key = "upcoming") { UpcomingCard(state.upcoming, today) }
         item(key = "recent-title") { SectionHeader("Recent") }
         item(key = "recent") { RecentCard(state.recent, today, onOpenEntry) }
+    }
+}
+
+/** The words of the card shown after a restore that broke off. */
+object RestoreFailedText {
+    const val TITLE = "The restore did not finish"
+    const val BODY = "Nothing was replaced: your entries are as they were before the restore. You can try it again from Backup."
+}
+
+@Composable
+private fun RestoreFailedCard(onOpenBackup: () -> Unit, onSeen: () -> Unit) {
+    val c = PitakaTheme.colors
+    val type = MaterialTheme.typography
+    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
+        Text("! ${RestoreFailedText.TITLE}", style = type.titleSmall, color = c.ink)
+        Text(RestoreFailedText.BODY, style = type.bodyMedium, color = c.ink)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PitakaButton("OK", onClick = onSeen, modifier = Modifier.weight(1f))
+            // Twice the width: at equal halves its two words were cut short on a phone.
+            PitakaButton("Open Backup", onClick = { onSeen(); onOpenBackup() }, modifier = Modifier.weight(2f))
+        }
     }
 }
 
@@ -299,12 +337,7 @@ private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEn
         rows.forEachIndexed { i, row ->
             key(row.id) {
                 if (i > 0) PitakaDivider()
-                // The badge already shows the section, so the subtitle is just where and when.
-                EntryListItem(
-                    row,
-                    subtitle = listOf(row.walletsText(), friendlyDate(row.occurredOn, today)).filter { it.isNotEmpty() }.joinToString(" · "),
-                    onClick = { onOpenEntry(row.id) },
-                )
+                EntryListItem(row, subtitle = row.homeSubtitle(today), onClick = { onOpenEntry(row.id) })
             }
         }
     }

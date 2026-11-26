@@ -100,7 +100,18 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { it[LOCK_ON] = on }
     }
 
+    /**
+     * True from the moment a restore broke off after the database was closed until the owner has been
+     * told. The app has to restart in between, so this is the only thing that survives to say what happened.
+     */
+    val restoreFailed: Flow<Boolean> = prefs.map { it[RESTORE_FAILED] ?: false }.distinctUntilChanged()
+
+    suspend fun setRestoreFailed(failed: Boolean) {
+        store.edit { if (failed) it[RESTORE_FAILED] = true else it.remove(RESTORE_FAILED) }
+    }
+
     companion object {
+        internal val RESTORE_FAILED = booleanPreferencesKey("restore_failed")
         internal val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         internal val LOCK_ON = booleanPreferencesKey("lock_on")
         internal val THEME = stringPreferencesKey("theme")

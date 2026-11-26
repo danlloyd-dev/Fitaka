@@ -89,6 +89,14 @@ class StatementReviewScreenshotTest {
         assertEquals(true, review.addsUp)
         assertEquals("Adds up to the statement's own totals: ₱21,000.00 in, ₱1,500.00 out.", ImportText.totals(review))
         assertTrue(ImportText.unsure(review)!!.startsWith("2 lines could have gone either way"))
+        assertTrue("it says where to answer: on the lines, not behind another tap", ImportText.unsure(review)!!.contains("On each line marked below, tap Money in or Money out."))
+
+        // A plus or minus is a claim about which way the money went; an open line makes none.
+        val open = review.candidates.first { !it.row.sure }
+        val settled = review.candidates.first { it.row.sure && it.row.moneyIn }
+        assertEquals("₱1,000.00", ImportText.amount(open))
+        assertEquals("+₱20,000.00", ImportText.amount(settled))
+        assertEquals("−₱500.00", ImportText.amount(review.candidates.first { it.row.sure && !it.row.moneyIn }))
 
         // A file with no totals of its own (a CSV) says nothing about totals and is not held back.
         val csv = review.copy(read = read.copy(totals = null), candidates = review.candidates.map { it.copy(row = it.row.copy(sure = true)) })

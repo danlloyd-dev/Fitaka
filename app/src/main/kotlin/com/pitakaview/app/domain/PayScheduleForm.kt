@@ -113,8 +113,33 @@ object SearchQuery {
     fun pattern(text: String): String? {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return null
-        val literal = trimmed.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        val literal = buildString {
+            for (ch in trimmed) {
+                when {
+                    ch == '\\' || ch == '%' || ch == '_' -> append('\\').append(ch)
+                    // The database would compare this letter exactly; "any one character" lets both
+                    // forms through, and [matches] then keeps the rows that really have it.
+                    hasCaseTheDatabaseIgnores(ch) -> append('_')
+                    else -> append(ch)
+                }
+            }
+        }
         return "%$literal%"
+    }
+
+    /**
+     * True for a letter outside plain English that has a capital and a small form (ñ, é). The database
+     * treats "A" and "a" as the same letter but not "Ñ" and "ñ", so for these the app does the comparing.
+     */
+    private fun hasCaseTheDatabaseIgnores(ch: Char): Boolean = ch.code > 127 && ch.lowercaseChar() != ch.uppercaseChar()
+
+    /** Whether rows found with [pattern] for this [text] still have to be checked with [matches]. */
+    fun needsOwnMatching(text: String): Boolean = text.trim().any(::hasCaseTheDatabaseIgnores)
+
+    /** Whether [text] is in any of [fields], capitals and small letters counting as the same (so "piña" finds "PIÑA"). */
+    fun matches(text: String, vararg fields: String?): Boolean {
+        val wanted = text.trim()
+        return fields.any { it != null && it.contains(wanted, ignoreCase = true) }
     }
 
     /** The amount to match exactly when the text reads as one ("250", "1,234.50", "₱20"), else null. */

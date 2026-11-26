@@ -70,7 +70,7 @@ val com.pitakaview.app.ui.theme.Section.icon: ImageVector
         com.pitakaview.app.ui.theme.Section.UTANG -> PitakaIcons.Utang
     }
 
-private fun strokeIcon(name: String, vararg paths: String): ImageVector =
+internal fun strokeIcon(name: String, vararg paths: String): ImageVector =
     ImageVector.Builder(name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
         .apply {
             paths.forEach {

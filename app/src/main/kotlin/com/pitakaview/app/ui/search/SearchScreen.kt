@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.SearchQuery
 import com.pitakaview.app.ui.components.EmptyState
@@ -57,21 +58,35 @@ data class SearchUi(
 class SearchViewModel(db: PitakaDatabase) : ViewModel() {
     val query = TextFieldState()
 
-    val results: StateFlow<SearchUi> = snapshotFlow { query.text.toString() }
-        .map { SearchQuery.pattern(it) to SearchQuery.amountCentavos(it) }
+    val results: StateFlow<SearchUi> = snapshotFlow { query.text.toString().trim() }
         .distinctUntilChanged()
-        .flatMapLatest { (pattern, amount) ->
+        .flatMapLatest { text ->
+            val pattern = SearchQuery.pattern(text)
+            val amount = SearchQuery.amountCentavos(text)
             if (pattern == null) {
                 flowOf(SearchUi())
-            } else {
+            } else if (!SearchQuery.needsOwnMatching(text)) {
                 // One row more than is shown tells us whether there were more.
-                db.transactionDao().search(pattern, amount, LIMIT + 1).map { rows ->
-                    val shown = rows.take(LIMIT)
-                    SearchUi(asked = true, count = shown.size, days = MonthLedgerBuilder.groupByDay(shown), more = rows.size > LIMIT)
+                db.transactionDao().search(pattern, amount, LIMIT + 1).map(::show)
+            } else {
+                // A letter such as ñ: the database finds every row with any character in its place (a
+                // few more than wanted), and the rows that really have the letter are kept here. The
+                // cut to what is shown comes after that, so no real match is pushed out by a near one.
+                db.transactionDao().search(pattern, amount, Int.MAX_VALUE).map { rows ->
+                    show(
+                        rows.filter { row ->
+                            row.amountCentavos == amount || SearchQuery.matches(text, row.note, row.categoryName, row.fromWalletName, row.toWalletName)
+                        },
+                    )
                 }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUi())
+
+    private fun show(rows: List<RecentTransaction>): SearchUi {
+        val shown = rows.take(LIMIT)
+        return SearchUi(asked = true, count = shown.size, days = MonthLedgerBuilder.groupByDay(shown), more = rows.size > LIMIT)
+    }
 
     companion object {
         const val LIMIT = 100

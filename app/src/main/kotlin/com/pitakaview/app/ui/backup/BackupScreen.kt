@@ -201,6 +201,13 @@ class BackupViewModel(
                 } catch (e: Exception) {
                     // The database is closed by now, so the app cannot carry on as it is. The old data is still on disk.
                     Log.e(TAG, "Restore failed after the database was closed; restarting on the old data", e)
+                    // The restart wipes everything in memory, so what happened is written down first and
+                    // said on Home afterwards. Settings live in their own file, apart from the database.
+                    try {
+                        settings.setRestoreFailed(true)
+                    } catch (noted: Exception) {
+                        Log.e(TAG, "Could not note the failed restore; the app restarts without the message", noted)
+                    }
                 }
                 restartApp()
             }

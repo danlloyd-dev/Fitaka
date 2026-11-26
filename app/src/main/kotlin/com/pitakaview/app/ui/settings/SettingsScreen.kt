@@ -32,7 +32,7 @@ fun rememberAppVersion(): String {
     return remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty() }
 }
 
-/** Settings: money set-up (wallets, categories), reminders, and the look (theme, light/dark). */
+/** Settings: money set-up (wallets, categories), reminders, the look (theme, light/dark), and the app lock. */
 @Composable
 fun SettingsScreen(
     appearance: AppearanceSettings,
@@ -87,15 +87,17 @@ fun SettingsScreen(
         }
         item(key = "reminders-title") { SectionHeader("Reminders") }
         item(key = "reminders") { RemindersCard(reminders, onRemindersChange, onOpenPhoneSettings) }
+        item(key = "theme-title") { SectionHeader("Theme") }
+        item(key = "theme") { ThemePicker(appearance.theme, onThemeChange) }
+        item(key = "mode-title") { SectionHeader("Light or dark") }
+        item(key = "mode") { DarkModePicker(appearance.darkMode, onDarkModeChange) }
+        // Kept well apart from the Reminders switch: with the two one above the other, a thumb aiming
+        // at one could flip the other, and switching reminders off asks for nothing.
         // Not offered on a phone that cannot do it (before Android 10).
         if (lock.support != LockSupport.TOO_OLD) {
             item(key = "lock-title") { SectionHeader("App lock") }
             item(key = "lock") { LockCard(lock, onLockChange) }
         }
-        item(key = "theme-title") { SectionHeader("Theme") }
-        item(key = "theme") { ThemePicker(appearance.theme, onThemeChange) }
-        item(key = "mode-title") { SectionHeader("Light or dark") }
-        item(key = "mode") { DarkModePicker(appearance.darkMode, onDarkModeChange) }
         item(key = "about-title") { SectionHeader("About") }
         item(key = "about") {
             PitakaCard(Modifier.fillMaxWidth()) {

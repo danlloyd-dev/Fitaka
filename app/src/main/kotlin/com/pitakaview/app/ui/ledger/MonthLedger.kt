@@ -19,7 +19,7 @@ import java.time.YearMonth
 data class DayGroup(val date: LocalDate, val totalCentavos: Long, val rows: List<RecentTransaction>)
 
 /** How much of the month went to (or came from) one category. */
-data class CategoryShare(val name: String, val totalCentavos: Long)
+data class CategoryShare(val name: String, val totalCentavos: Long, val iconKey: String? = null)
 
 /** One month of one section (Gastos or Kita): its total, its categories and its entries by day. */
 data class MonthLedger(
@@ -43,7 +43,7 @@ object MonthLedgerBuilder {
         totalCentavos = rows.sumOf { it.amountCentavos },
         entryCount = rows.size,
         categories = rows.groupBy { it.categoryName ?: NO_CATEGORY }
-            .map { (name, list) -> CategoryShare(name, list.sumOf { it.amountCentavos }) }
+            .map { (name, list) -> CategoryShare(name, list.sumOf { it.amountCentavos }, list.first().categoryIconKey) }
             .sortedWith(compareByDescending<CategoryShare> { it.totalCentavos }.thenBy { it.name }),
         days = groupByDay(rows),
         loaded = true,
