@@ -133,13 +133,18 @@ object GoalFormLogic {
         if (form.targetText.isNotBlank() && targetCentavos(form) == null) add(GoalProblem.TARGET)
     }
 
-    fun toEntity(form: GoalForm, existing: SavingsGoalEntity?, now: Instant): SavingsGoalEntity {
+    /**
+     * [walletFixed]: something is logged for the goal, so its wallet stays as it is. Every deposit went
+     * into that wallet and every withdrawal takes from it; until 2026-11-27 the wallet could be changed
+     * after saving into it, and "Take out" then took the money from a wallet that never had it.
+     */
+    fun toEntity(form: GoalForm, existing: SavingsGoalEntity?, now: Instant, walletFixed: Boolean = false): SavingsGoalEntity {
         val base = existing ?: SavingsGoalEntity(name = "", createdAt = now)
         return base.copy(
             name = form.name.trim(),
             targetCentavos = if (form.targetText.isBlank()) null else targetCentavos(form),
             targetDate = form.targetDate,
-            walletId = form.walletId,
+            walletId = if (existing != null && walletFixed) existing.walletId else form.walletId,
         )
     }
 
@@ -212,7 +217,14 @@ data class MoveForm(
     val note: String = "",
 )
 
-enum class MoveProblem { AMOUNT, WALLET, MORE_THAN_SAVED }
+enum class MoveProblem {
+    AMOUNT,
+    WALLET,
+    MORE_THAN_SAVED,
+
+    /** A deposit lowered below what has since been taken out of its goal. */
+    LESS_THAN_TAKEN_OUT,
+}
 
 object MoveFormLogic {
     /** The kinds of entry this form handles. Spending, income and transfers use quick entry instead. */
@@ -223,13 +235,19 @@ object MoveFormLogic {
 
     fun amountCentavos(form: MoveForm): Long? = Peso.parse(form.amountText)?.takeIf { it > 0 }
 
-    /** [mostCentavos], when given, is the most that can be taken out of a goal: what is saved in it. */
-    fun problems(form: MoveForm, purpose: TxPurpose, mostCentavos: Long? = null): Set<MoveProblem> = buildSet {
+    /**
+     * [mostCentavos], when given, is the most that can be taken out of a goal: what is saved in it.
+     * [leastCentavos], when given, is the least an old deposit can be lowered to: what has not been taken out since.
+     */
+    fun problems(form: MoveForm, purpose: TxPurpose, mostCentavos: Long? = null, leastCentavos: Long? = null): Set<MoveProblem> = buildSet {
         val amount = amountCentavos(form)
         if (amount == null) add(MoveProblem.AMOUNT)
         if (form.walletId == null) add(MoveProblem.WALLET)
         if (purpose == TxPurpose.SAVINGS_WITHDRAWAL && amount != null && mostCentavos != null && amount > mostCentavos) {
             add(MoveProblem.MORE_THAN_SAVED)
+        }
+        if (purpose == TxPurpose.SAVINGS_DEPOSIT && amount != null && leastCentavos != null && amount < leastCentavos) {
+            add(MoveProblem.LESS_THAN_TAKEN_OUT)
         }
     }
 

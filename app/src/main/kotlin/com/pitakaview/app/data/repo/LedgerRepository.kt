@@ -17,27 +17,61 @@ class LedgerRepository(private val db: FitakaDatabase) {
 
     private val transactions = db.transactionDao()
 
-    /** Stores [tx] and returns its id. Throws IllegalArgumentException if the row breaks a ledger rule. */
+    /**
+     * Stores [tx] and returns its id. Throws IllegalArgumentException if the row breaks a ledger rule, or
+     * [GoalBelowZeroException] if it takes more out of a savings goal than is in it.
+     */
     suspend fun add(tx: TransactionEntity): Long {
         checkValid(tx)
-        return transactions.insert(tx)
+        val goal = tx.goalId ?: return transactions.insert(tx)
+        return db.withWriteTransaction { guardingGoals(listOf(goal)) { transactions.insert(tx) } }
     }
 
+    /** Stores a change to [tx]. The same refusals as [add]. */
     suspend fun update(tx: TransactionEntity) {
         checkValid(tx)
-        transactions.update(tx)
+        db.withWriteTransaction {
+            // The goal it belonged to as well as the one it belongs to now. One read by id, on an edit.
+            val goals = listOfNotNull(transactions.get(tx.id)?.goalId, tx.goalId)
+            guardingGoals(goals) { transactions.update(tx) }
+        }
     }
 
-    /** Removes [tx]. If it was half of a move between the owner's own wallets, its other half is spending or income again. */
+    /**
+     * Removes [tx]. If it was half of a move between the owner's own wallets, its other half is spending or
+     * income again. A deposit whose money has since been taken out of its goal is refused ([GoalBelowZeroException]).
+     */
     suspend fun delete(tx: TransactionEntity) {
-        if (!tx.purpose.isOwnMove) {
+        if (!tx.purpose.isOwnMove && tx.goalId == null) {
             transactions.delete(tx)
             return
         }
         db.withWriteTransaction {
-            transactions.delete(tx)
-            revertOtherHalfOf(tx)
+            guardingGoals(listOfNotNull(tx.goalId)) {
+                transactions.delete(tx)
+                if (tx.purpose.isOwnMove) revertOtherHalfOf(tx)
+            }
         }
+    }
+
+    /**
+     * Runs [change], inside the caller's write transaction, and refuses it (the transaction is rolled back)
+     * if it leaves one of [goals] with less than nothing saved, lower than it was. Until 2026-11-27 a deposit
+     * could be lowered or deleted after its money was taken out: the goal then showed less than nothing
+     * saved, and the wallet the money was taken from was left short.
+     *
+     * "Lower than it was": a goal already below zero (made so before this rule) can still be put right, by
+     * a deposit or by lowering a withdrawal, one step at a time. Two reads per goal.
+     */
+    private suspend fun <T> guardingGoals(goals: Collection<Long>, change: suspend () -> T): T {
+        val dao = db.savingsGoalDao()
+        val before = goals.distinct().associateWith { dao.savedIn(it) }
+        val result = change()
+        for ((goal, was) in before) {
+            val now = dao.savedIn(goal)
+            if (now < 0 && now < was) throw GoalBelowZeroException(goal)
+        }
+        return result
     }
 
     /**
@@ -225,3 +259,7 @@ class LedgerRepository(private val db: FitakaDatabase) {
         require(problems.isEmpty()) { "Invalid ${tx.purpose} row: $problems" }
     }
 }
+
+/** A change would take more out of savings goal [goalId] than was put into it. */
+class GoalBelowZeroException(val goalId: Long) :
+    IllegalArgumentException("more would be taken out of this savings goal than was put into it")

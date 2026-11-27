@@ -105,6 +105,19 @@ interface SavingsGoalDao {
         deposit: TxPurpose = TxPurpose.SAVINGS_DEPOSIT,
         withdrawal: TxPurpose = TxPurpose.SAVINGS_WITHDRAWAL,
     ): Flow<GoalProgress?>
+
+    /** What is saved in one goal: its deposits minus its withdrawals. One indexed read. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(CASE WHEN purpose = :deposit THEN amountCentavos WHEN purpose = :withdrawal THEN -amountCentavos ELSE 0 END), 0)
+        FROM transactions WHERE goalId = :id
+        """,
+    )
+    suspend fun savedIn(
+        id: Long,
+        deposit: TxPurpose = TxPurpose.SAVINGS_DEPOSIT,
+        withdrawal: TxPurpose = TxPurpose.SAVINGS_WITHDRAWAL,
+    ): Long
 }
 
 @Dao

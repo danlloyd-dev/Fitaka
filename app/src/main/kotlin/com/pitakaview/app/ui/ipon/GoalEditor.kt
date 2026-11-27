@@ -44,6 +44,7 @@ import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
+import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
 import com.pitakaview.app.ui.theme.FitakaTheme
@@ -83,6 +84,10 @@ class GoalEditorViewModel(
     var hasEntries by mutableStateOf(false)
         private set
 
+    /** The name of the wallet the goal is kept in, also when that wallet is hidden. */
+    var keptIn by mutableStateOf<String?>(null)
+        private set
+
     val wallets: StateFlow<List<WalletEntity>> = db.walletDao().observeActiveWithBalance()
         .map { rows -> rows.map { it.wallet } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -93,6 +98,7 @@ class GoalEditorViewModel(
             if (goal != null) {
                 existing = goal
                 hasEntries = db.transactionDao().countForGoal(goal.id) > 0
+                keptIn = goal.walletId?.let { db.walletDao().get(it)?.name }
                 val form = GoalFormLogic.fromEntity(goal)
                 name.setTextAndPlaceCursorAtEnd(form.name)
                 target.setTextAndPlaceCursorAtEnd(form.targetText)
@@ -116,7 +122,7 @@ class GoalEditorViewModel(
         problems = GoalFormLogic.problems(form)
         if (problems.isNotEmpty()) return
         saving.launch(viewModelScope) {
-            val goal = GoalFormLogic.toEntity(form, existing, now())
+            val goal = GoalFormLogic.toEntity(form, existing, now(), walletFixed = hasEntries)
             if (existing == null) db.savingsGoalDao().insert(goal) else db.savingsGoalDao().update(goal)
             done = true
             true
@@ -152,6 +158,9 @@ data class GoalEditorUi(
     val problems: Set<GoalProblem> = emptySet(),
     val hidden: Boolean = false,
     val canDelete: Boolean = false,
+    /** Something is logged for the goal: its wallet is shown, not offered ([keptIn] is its name, null for No wallet). */
+    val walletFixed: Boolean = false,
+    val keptIn: String? = null,
 )
 
 @Composable
@@ -169,6 +178,7 @@ fun GoalEditorRoute(goalId: Long?, onDone: () -> Unit) {
         ui = GoalEditorUi(
             isEdit = vm.isEdit, targetDate = vm.targetDate, wallets = wallets, walletId = vm.walletId, today = today,
             problems = vm.problems, hidden = vm.existing?.isArchived == true, canDelete = vm.isEdit && !vm.hasEntries,
+            walletFixed = vm.isEdit && vm.hasEntries, keptIn = vm.keptIn,
         ),
         name = vm.name, target = vm.target,
         onTargetDate = vm::selectTargetDate, onWallet = vm::selectWallet,
@@ -229,12 +239,23 @@ fun GoalEditorContent(
         }
         item(key = "date") { OptionalDateChoice("Target date", ui.targetDate, ui.today, onTargetDate) }
         item(key = "wallet") {
-            WalletChoice(
-                title = "Where the savings are kept",
-                wallets = ui.wallets, selectedId = ui.walletId, onSelect = onWallet,
-                noneLabel = "No wallet", noneSelected = true,
-                hint = "With No wallet, money is only set aside inside the wallet it is already in.",
-            )
+            if (ui.walletFixed) {
+                // Every entry of the goal went through this wallet; changing it would send "Take out" elsewhere.
+                Column {
+                    SectionHeader("Where the savings are kept")
+                    Spacer(Modifier.height(8.dp))
+                    Text(ui.keptIn ?: GoalText.NO_WALLET, style = type.bodyLarge, color = c.ink)
+                    Spacer(Modifier.height(4.dp))
+                    Text(GoalText.WALLET_FIXED, style = type.bodySmall, color = c.inkMuted)
+                }
+            } else {
+                WalletChoice(
+                    title = "Where the savings are kept",
+                    wallets = ui.wallets, selectedId = ui.walletId, onSelect = onWallet,
+                    noneLabel = "No wallet", noneSelected = true,
+                    hint = "With No wallet, money is only set aside inside the wallet it is already in.",
+                )
+            }
         }
         if (ui.isEdit) {
             item(key = "hide") {
@@ -253,4 +274,10 @@ fun GoalEditorContent(
             }
         }
     }
+}
+
+/** Words on the goal screen. */
+object GoalText {
+    const val NO_WALLET = "No wallet: set aside inside the wallet each amount came from"
+    const val WALLET_FIXED = "This stays as it is once something is saved for this goal, so every entry agrees on where the money is."
 }

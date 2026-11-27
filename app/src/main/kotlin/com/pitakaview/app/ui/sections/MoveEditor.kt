@@ -68,6 +68,9 @@ import kotlinx.coroutines.launch
 
 /** The words on the screen for each kind of section entry. */
 object MoveText {
+    const val DEPOSIT_TAKEN_OUT =
+        "This cannot be deleted: some of it has already been taken out of this goal. Lower or delete what was taken out first."
+
     fun title(purpose: TxPurpose, direction: LoanDirection?, isEdit: Boolean): String = when (purpose) {
         TxPurpose.LOAN_PAYMENT -> when {
             isEdit -> "Edit payment"
@@ -142,6 +145,14 @@ class MoveEditorViewModel(
     var mostCentavos by mutableStateOf<Long?>(null)
         private set
 
+    /** The least an old deposit can be lowered to: what has not been taken out of its goal since. */
+    var leastCentavos by mutableStateOf<Long?>(null)
+        private set
+
+    /** False for an old deposit whose money has since been taken out of its goal. */
+    var canDelete by mutableStateOf(true)
+        private set
+
     private var existing: TransactionEntity? = null
 
     val wallets: StateFlow<List<WalletEntity>> = db.walletDao().observeActiveWithBalance()
@@ -182,11 +193,18 @@ class MoveEditorViewModel(
                     target = MoveTarget(kind, goalId = goal.goalId, goalWalletId = goal.walletId)
                     targetName = goal.name
                     val kept = goal.walletId?.let { id -> db.walletDao().get(id)?.name }
+                    // A goal below zero (made so before the ledger refused it) counts as nothing saved.
+                    val saved = maxOf(goal.savedCentavos, 0)
                     if (kind == TxPurpose.SAVINGS_DEPOSIT) {
                         info = if (kept != null) "It moves into $kept, where this goal is kept." else "It stays in that wallet, set aside for this goal."
+                        if (tx != null) {
+                            // Lowering or removing an old deposit gives back money that may have been taken out since.
+                            leastCentavos = (tx.amountCentavos - saved).takeIf { it > 0 }
+                            canDelete = saved >= tx.amountCentavos
+                        }
                     } else {
                         // Changing an old withdrawal may use the money it already took out.
-                        mostCentavos = goal.savedCentavos + (tx?.amountCentavos ?: 0)
+                        mostCentavos = saved + (tx?.amountCentavos ?: 0)
                         info = "Saved in this goal: ${Peso.format(goal.savedCentavos)}"
                     }
                 }
@@ -228,7 +246,7 @@ class MoveEditorViewModel(
     fun save() {
         val to = target ?: return
         val form = MoveForm(amount.text.toString(), walletId, date, note.text.toString())
-        problems = MoveFormLogic.problems(form, to.purpose, mostCentavos)
+        problems = MoveFormLogic.problems(form, to.purpose, mostCentavos, leastCentavos)
         if (problems.isNotEmpty()) return
         saving.launch(viewModelScope) {
             val tx = MoveFormLogic.toTransaction(form, to, existing, now())
@@ -247,8 +265,15 @@ class MoveEditorViewModel(
 
     fun delete() {
         val tx = existing ?: return
+        if (!canDelete) return
         viewModelScope.launch {
-            ledger.delete(tx)
+            try {
+                ledger.delete(tx)
+            } catch (e: IllegalArgumentException) {
+                // The ledger refused (the goal changed since this screen opened). Say so; nothing was removed.
+                saveError = "This entry could not be deleted: ${e.message}"
+                return@launch
+            }
             done = true
         }
     }
@@ -266,6 +291,8 @@ data class MoveEditorUi(
     val isEdit: Boolean,
     val info: String? = null,
     val mostCentavos: Long? = null,
+    val leastCentavos: Long? = null,
+    val canDelete: Boolean = true,
     val problems: Set<MoveProblem> = emptySet(),
     val saveError: String? = null,
 )
@@ -290,7 +317,8 @@ fun MoveEditorRoute(transactionId: Long?, purpose: TxPurpose?, linkId: Long?, on
             subtitle = vm.targetName,
             walletLabel = MoveText.walletLabel(target.purpose, target.loanDirection),
             wallets = wallets, walletId = vm.walletId, date = vm.date, today = today, isEdit = vm.isEdit,
-            info = vm.info, mostCentavos = vm.mostCentavos, problems = vm.problems, saveError = vm.saveError,
+            info = vm.info, mostCentavos = vm.mostCentavos, leastCentavos = vm.leastCentavos, canDelete = vm.canDelete,
+            problems = vm.problems, saveError = vm.saveError,
         ),
         amount = vm.amount, note = vm.note,
         onWallet = vm::selectWallet, onDate = vm::selectDate, onSave = vm::save, onDelete = vm::delete, onBack = onDone,
@@ -338,12 +366,14 @@ fun MoveEditorContent(
     ) {
         item(key = "amount") {
             val tooMuch = MoveProblem.MORE_THAN_SAVED in ui.problems
+            val tooLittle = MoveProblem.LESS_THAN_TAKEN_OUT in ui.problems
             FitakaTextField(
                 state = amount, label = "Amount", modifier = Modifier.focusRequester(amountFocus), placeholder = "0.00", prefix = Peso.SIGN,
-                isError = MoveProblem.AMOUNT in ui.problems || tooMuch,
+                isError = MoveProblem.AMOUNT in ui.problems || tooMuch || tooLittle,
                 supportingText = when {
                     MoveProblem.AMOUNT in ui.problems -> "Enter an amount above ₱0.00"
                     tooMuch -> "Only ${Peso.format(ui.mostCentavos ?: 0)} is saved in this goal"
+                    tooLittle -> "At least ${Peso.format(ui.leastCentavos ?: 0)}: the rest has already been taken out of this goal"
                     else -> null
                 },
                 inputTransformation = MoneyInput,
@@ -363,7 +393,11 @@ fun MoveEditorContent(
         item(key = "note") { FitakaTextField(state = note, label = "Note", placeholder = "Optional") }
         if (ui.isEdit) {
             item(key = "delete") {
-                FitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                if (ui.canDelete) {
+                    FitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                } else {
+                    Text(MoveText.DEPOSIT_TAKEN_OUT, style = type.bodySmall, color = c.inkMuted)
+                }
             }
         }
     }

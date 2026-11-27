@@ -6,8 +6,12 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import com.pitakaview.app.data.db.entity.SavingsGoalEntity
+import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.domain.WalletType
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -18,7 +22,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.time.Instant
 
 /**
  * Bugs found by the review before 1.0 (2026-11-27) that gave a wrong number or stopped the app, each
@@ -132,5 +135,74 @@ class ReviewBugsFlowTest : FlowTestBase() {
         rule.waitUntil(10_000) { inUse(CategoryKind.EXPENSE).size == before.size - 1 }
         waitFor("For Gastos and Kita")
         assertFalse(shows("Keep at least one"))
+    }
+
+    // ---------- savings goals ----------
+
+    private fun goalSaved(): Long = goals().single().savedCentavos
+
+    private fun openGoal(name: String) {
+        tapTab("Ipon")
+        rule.onNode(hasText(name) and hasClickAction()).performClick()
+        waitFor("Take out")
+    }
+
+    /**
+     * 500.00 saved and 300.00 of it taken back out: the deposit can no longer go below 300.00, nor be
+     * deleted. Until 2026-11-27 both were possible and the goal then had less than nothing in it.
+     */
+    @Test
+    fun aDepositWhoseMoneyWasTakenOutCannotBeLoweredPastThatNorDeleted() {
+        start()
+        val goal = runBlocking { container.database.savingsGoalDao().insert(SavingsGoalEntity(name = "Laptop", createdAt = Instant.now())) }
+        runBlocking {
+            container.ledger.depositToGoal(goal, cashId(), 50_000, today(), Instant.now())
+            container.ledger.withdrawFromGoal(goal, cashId(), 30_000, today(), Instant.now())
+        }
+        openGoal("Laptop")
+        rule.onNode(hasText("Added to savings") and hasClickAction()).performClick()
+        waitFor("Edit savings entry")
+        assertTrue("it says why it cannot be deleted", shows("This cannot be deleted: some of it has already been taken out of this goal."))
+        assertEquals("and offers no way to", 0, rule.onAllNodes(hasText("Delete entry") and hasClickAction()).fetchSemanticsNodes().size)
+
+        field(0).performTextReplacement("200")
+        tapButton("Save")
+        waitFor("At least ₱300.00: the rest has already been taken out of this goal")
+        assertEquals("nothing changed", 20_000L, goalSaved())
+
+        field(0).performTextReplacement("300")
+        tapButton("Save")
+        waitFor("Take out")
+        assertEquals(0L, goalSaved())
+    }
+
+    /**
+     * A goal kept in MariBank: once something is saved into it, its wallet is shown and not offered. Until
+     * 2026-11-27 it could be changed, and "Take out" then took the money from a wallet that never had it.
+     */
+    @Test
+    fun aGoalsWalletIsFixedOnceSomethingIsSavedIntoIt() {
+        start()
+        val mari = runBlocking { container.database.walletDao().insert(WalletEntity(name = "MariBank", type = WalletType.BANK, createdAt = Instant.now())) }
+        val goal = runBlocking { container.database.savingsGoalDao().insert(SavingsGoalEntity(name = "Laptop", walletId = mari, createdAt = Instant.now())) }
+
+        // Nothing saved yet: the wallet can still be chosen.
+        openGoal("Laptop")
+        tapButton("Edit goal")
+        waitFor("Where the savings are kept")
+        rule.onNode(hasText("No wallet") and isSelectable()).assertExists()
+        back()
+        waitFor("Take out")
+
+        runBlocking { container.ledger.depositToGoal(goal, cashId(), 50_000, today(), Instant.now()) }
+        tapButton("Edit goal")
+        waitFor("Where the savings are kept")
+        assertTrue(shows("This stays as it is once something is saved for this goal"))
+        assertEquals("no wallet to pick", 0, rule.onAllNodes(hasText("No wallet") and isSelectable()).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodes(hasText("Cash") and isSelectable()).fetchSemanticsNodes().size)
+        field(0).performTextReplacement("Laptop for school")
+        tapButton("Save")
+        rule.waitUntil(10_000) { goals().single().name == "Laptop for school" }
+        assertEquals("still kept in MariBank", mari, goals().single().walletId)
     }
 }

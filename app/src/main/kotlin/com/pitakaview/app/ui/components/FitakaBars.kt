@@ -166,6 +166,9 @@ data class BottomBarItem(val label: String, val icon: ImageVector, val section: 
 
 /** How far the chosen tab's tile stands above the row of dabs. */
 private val TabLift = 10.dp
+
+/** Above the bar: the chosen tab's tile stands 7.5 above its top edge (16 above the dabs, which sit 8.5 down). */
+private val BarHeadroom = 10.dp
 private val DabSize = DpSize(42.dp, 32.dp)
 private val TileSize = DpSize(48.dp, 44.dp)
 
@@ -183,10 +186,12 @@ private val DabShape = GenericShape { size, _ ->
 }
 
 /**
- * Bottom navigation as a floating bar: outlined and shadowed like a card, clear of the screen's edges,
- * with the list scrolling behind and around it. Every section's icon sits on a dab of its own colour;
- * the section you are in jumps out of the top of the bar as a solid, outlined tile. Every item keeps its
- * text label, and the chosen one is bold, so selection never relies on colour.
+ * Bottom navigation, fixed to the bottom of the screen: the card colour from edge to edge and on down under
+ * the phone's own navigation bar, with an ink line along its top like the line under the top bar. Until
+ * 2026-11-27 it was a floating card, clear of the screen's edges; the owner asked for it to sit on the
+ * bottom. Every section's icon sits on a dab of its own colour; the section you are in jumps out of the top
+ * of the bar as a solid, outlined tile. Every item keeps its text label, and the chosen one is bold, so
+ * selection never relies on colour.
  */
 @Composable
 fun FitakaBottomBar(
@@ -197,22 +202,25 @@ fun FitakaBottomBar(
 ) {
     val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    val shadow = FitakaDimens.shadow
     Box(
         modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            // In line with the cards above it. The top leaves room for the tile that stands above the bar.
-            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            // Room above the bar for the chosen tab's tile, which stands out of its top edge.
+            .padding(top = BarHeadroom),
     ) {
         Row(
             Modifier
-                .padding(end = shadow, bottom = shadow)
                 .fillMaxWidth()
-                // The chosen tab's tile stands out across the bar's top edge, so the bar's outline goes under it.
-                .sketchBox(RoundedCornerShape(24.dp), fill = c.card, border = c.ink, shadow = c.shadow, shadowOffset = shadow, outlineUnderContent = true)
+                // Drawn before the tabs: the chosen tab's tile covers the line where it crosses it.
+                .drawBehind {
+                    drawRect(c.card)
+                    val line = FitakaDimens.border.toPx()
+                    drawLine(c.ink, Offset(0f, line / 2), Offset(size.width, line / 2), line)
+                }
                 .selectableGroup()
-                .padding(start = 11.5.dp, end = 11.5.dp, top = 8.5.dp, bottom = 9.5.dp),
+                // The colour runs on under the phone's navigation bar; the tabs stay above it.
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 8.dp, end = 8.dp, top = 8.5.dp, bottom = 9.5.dp),
         ) {
             items.forEachIndexed { index, item ->
                 val selected = index == selectedIndex
