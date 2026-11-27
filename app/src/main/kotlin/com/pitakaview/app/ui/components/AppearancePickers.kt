@@ -1,7 +1,6 @@
 package com.pitakaview.app.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,11 +31,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.FontChoice
+import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.UiSize
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.domain.ThemeId
+import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaDimens
-import com.pitakaview.app.ui.motion.FitakaMotion
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.family
 import com.pitakaview.app.ui.theme.fitakaColors
@@ -66,7 +65,7 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
             val isSelected = theme == selected
             val swatch = fitakaColors(theme, c.isDark)
             val shadow = FitakaDimens.shadow
-            val rise by animateDpAsState(if (isSelected) SwatchLift else 0.dp, tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized), label = "swatch")
+            val rise by animateDpAsState(if (isSelected) SwatchLift else 0.dp, FitakaSpring.bouncy(), label = "swatch")
             Column(
                 modifier = Modifier
                     .width(SwatchWidth)
@@ -86,7 +85,7 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
                             border = c.ink,
                             borderWidth = if (isSelected) 3.dp else FitakaDimens.borderThin,
                             shadow = c.shadow,
-                            shadowOffset = shadow * (rise / SwatchLift),
+                            shadowOffset = (shadow * (rise / SwatchLift)).coerceAtLeast(0.dp),
                             gloss = Gloss.Swatch,
                         ),
                     contentAlignment = Alignment.Center,

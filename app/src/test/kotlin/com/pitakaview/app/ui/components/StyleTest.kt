@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
  * The four styles in Settings, read from the pixels of a primary button and a plain button on a blue page:
  *
  * - Plain: flat colour, a solid shadow.
- * - Glossy: the paler band across the primary button.
+ * - Glossy: the paler band across the primary button, and the hand-drawn outline Sketch has.
  * - Glassy: the plain button lets the page show through; the primary button keeps its colour.
  * - Sketch: flat colour, an outline that is not the straight one, and a shadow of strokes with gaps.
  */
@@ -134,6 +134,14 @@ class StyleTest {
             val columns = primary.left.roundToInt()..(primary.left + 6.dp.toPx()).roundToInt()
             val differing = rows.sumOf { y -> columns.count { x -> !close(a[x, y], b[x, y]) } }
             assertTrue("Sketch should draw its own outline, but only $differing pixels of the left edge differ from Plain", differing > 20)
+
+            // Glossy is drawn by the same hand: below its band of light, its left edge is Sketch's, not Plain's.
+            val g = pictures.getValue(UiStyle.GLOSSY)
+            val under = (primary.top + 34.dp.toPx()).roundToInt()..(primary.top + 46.dp.toPx()).roundToInt()
+            val fromPlain = under.sumOf { y -> columns.count { x -> !close(a[x, y], g[x, y]) } }
+            val fromSketch = under.sumOf { y -> columns.count { x -> !close(b[x, y], g[x, y]) } }
+            assertTrue("Glossy should be hand-drawn too, but only $fromPlain pixels of its left edge differ from Plain", fromPlain > 10)
+            assertEquals("Glossy's outline is the very one Sketch draws", 0, fromSketch)
         }
     }
 }

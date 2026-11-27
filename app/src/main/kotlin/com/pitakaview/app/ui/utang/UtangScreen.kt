@@ -27,6 +27,7 @@ import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
@@ -134,20 +135,21 @@ class UtangViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewMode
 }
 
 @Composable
-fun UtangRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
+fun UtangRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit, onOpenSettings: () -> Unit) {
     val container = LocalAppContainer.current
     val vm = viewModel { UtangViewModel(container.database, container.dayClock.today) }
     val ui by vm.ui.collectAsStateWithLifecycle()
-    UtangContent(ui, onAdd, onOpen, onSearch)
+    UtangContent(ui, onAdd, onOpen, onSearch, onOpenSettings)
 }
 
 @Composable
-fun UtangContent(ui: UtangUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
+fun UtangContent(ui: UtangUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val section = Section.UTANG
     FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
+        showLogo = true,
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         item(key = "totals") { SectionTotalsCard(section, listOf("You owe" to ui.iOweCentavos, "Owed to you" to ui.owedToMeCentavos)) }
         item(key = "add") {

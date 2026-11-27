@@ -132,9 +132,23 @@ class ThemeContrastTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
+    /**
+     * The hard shadow has to be seen. In light it is the ink. In dark it was pure black until 2026-11-27 and
+     * vanished on the dark page (the owner: "the black shadow is not visible"). Now it stands out from the
+     * page and from a card, and is still quieter than the outline beside it.
+     */
     @Test
-    fun shadowIsInkInLightAndPureBlackInDark() {
-        for (c in all) assertEquals(if (c.isDark) Color.Black else c.ink, c.shadow)
+    fun theHardShadowCanBeSeenInLightAndInDark() {
+        for (c in all) {
+            if (!c.isDark) {
+                assertEquals(c.ink, c.shadow)
+                continue
+            }
+            need(c, "the shadow against the page", c.shadow, c.background, 2.5)
+            need(c, "the shadow against a card", c.shadow, c.card, 2.0)
+            need(c, "the outline against the shadow beside it", c.ink, c.shadow, 2.5)
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
     @Test

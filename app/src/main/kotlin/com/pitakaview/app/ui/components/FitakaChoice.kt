@@ -1,10 +1,16 @@
 package com.pitakaview.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -15,18 +21,35 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.motion.FitakaSpring
+import com.pitakaview.app.ui.motion.PRESS_SQUISH
+import com.pitakaview.app.ui.motion.rememberPressDepth
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** One outlined control split into equal parts; the selected part is filled with ink. */
+/** What tests find the choice strip's sliding dark piece by: it has no words of its own. */
+internal const val CHOICE_PIECE_TAG = "ChoicePiece"
+
 @Composable
 fun FitakaSegmented(
     options: List<String>,
@@ -37,27 +60,50 @@ fun FitakaSegmented(
     val c = FitakaTheme.colors
     val shape = RoundedCornerShape(FitakaDimens.corner)
     val shadow = FitakaDimens.shadow
-    Row(
+    // Where the dark piece is, counted in choices: it slides from one to the next, never jumps.
+    val position by animateFloatAsState(selectedIndex.toFloat(), FitakaSpring.smooth(), label = "choice")
+    val towardsEnd = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+    Box(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)
             .fillMaxWidth()
             .sketchBox(shape, c.card, c.ink, shadow = c.shadow, shadowOffset = shadow, glass = true)
-            .clip(shape)
-            .selectableGroup(),
+            .clip(shape),
     ) {
-        options.forEachIndexed { index, label ->
-            val isSelected = index == selectedIndex
+        // The chosen one is a single dark piece, one choice wide, behind the words. Nothing else is painted:
+        // the strip already has the card colour (or is glass).
+        // Where the piece is, read while composing, at the same moment as the words below read it to change colour.
+        val at = position
+        Box(Modifier.matchParentSize()) {
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 48.dp)
-                    // Only the chosen one paints itself: the strip behind already has the card colour (or is glass).
-                    .then(if (isSelected) Modifier.background(c.ink) else Modifier)
-                    .then(if (isSelected) Modifier.gloss(Gloss.Segment, on = c.ink) else Modifier)
-                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(index) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(label, style = MaterialTheme.typography.labelLarge, color = if (isSelected) c.card else c.ink)
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(1f / options.size)
+                    // Placed, not redrawn: the piece itself is drawn once and moved as a layer.
+                    .layout { measurable, constraints ->
+                        val piece = measurable.measure(constraints)
+                        layout(piece.width, piece.height) {
+                            piece.placeWithLayer((at * piece.width * towardsEnd).roundToInt(), 0)
+                        }
+                    }
+                    .testTag(CHOICE_PIECE_TAG)
+                    .background(c.ink)
+                    .gloss(Gloss.Segment, on = c.ink),
+            )
+        }
+        Row(Modifier.selectableGroup()) {
+            options.forEachIndexed { index, label ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .selectable(selected = index == selectedIndex, role = Role.RadioButton, onClick = { onSelect(index) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // The words turn light as the dark piece arrives under them.
+                    val covered = (1f - abs(position - index)).coerceIn(0f, 1f)
+                    Text(label, style = MaterialTheme.typography.labelLarge, color = lerp(c.ink, c.card, covered))
+                }
             }
         }
     }
@@ -78,12 +124,22 @@ fun FitakaChip(
 ) {
     val c = FitakaTheme.colors
     val shape = RoundedCornerShape(50)
+    val interaction = remember { MutableInteractionSource() }
+    val depth by rememberPressDepth(interaction)
+    val fill by animateColorAsState(if (selected) c.ink else c.card, tween(FitakaMotion.SHORT), label = "chip")
+    val words by animateColorAsState(if (selected) c.card else c.ink, tween(FitakaMotion.SHORT), label = "chip words")
     Box(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = FitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null, glass = !selected)
+            // No shadow to sink into, so it shrinks a touch while held. Read while drawing: nothing is laid out again.
+            .graphicsLayer {
+                val held = 1f - PRESS_SQUISH * depth
+                scaleX = held
+                scaleY = held
+            }
+            .sketchBox(shape, fill = fill, border = c.ink, borderWidth = FitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null, glass = !selected)
             .clip(shape)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, interactionSource = interaction, indication = LocalIndication.current, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -91,7 +147,7 @@ fun FitakaChip(
             text,
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold)
                 .let { if (fontFamily != null) it.copy(fontFamily = fontFamily) else it },
-            color = if (selected) c.card else c.ink,
+            color = words,
             maxLines = 1,
         )
     }

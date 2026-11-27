@@ -17,6 +17,7 @@ import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.CategoryBreakdownCard
@@ -45,12 +46,12 @@ class GastosViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewMod
 }
 
 @Composable
-fun GastosRoute(onAdd: () -> Unit, onOpenEntry: (Long) -> Unit, onSearch: () -> Unit) {
+fun GastosRoute(onAdd: () -> Unit, onOpenEntry: (Long) -> Unit, onSearch: () -> Unit, onOpenSettings: () -> Unit) {
     val container = LocalAppContainer.current
     val vm = viewModel { GastosViewModel(container.database, container.dayClock.today) }
     val ledger by vm.ledger.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
-    GastosContent(ledger, today, vm.month::previous, vm.month::next, vm.month::reset, onAdd, onOpenEntry, onSearch)
+    GastosContent(ledger, today, vm.month::previous, vm.month::next, vm.month::reset, onAdd, onOpenEntry, onSearch, onOpenSettings)
 }
 
 @Composable
@@ -63,12 +64,14 @@ fun GastosContent(
     onAdd: () -> Unit,
     onOpenEntry: (Long) -> Unit,
     onSearch: () -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val section = Section.GASTOS
     FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
+        showLogo = true,
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         item(key = "month") { MonthSwitcher(ledger.month, ledger.isThisMonth, onPreviousMonth, onNextMonth, onThisMonth) }
         item(key = "total") { MonthTotalCard(section, "Spent in ${monthName(ledger.month)}", ledger) }

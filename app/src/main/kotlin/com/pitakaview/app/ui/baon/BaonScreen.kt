@@ -29,6 +29,7 @@ import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
@@ -159,11 +160,12 @@ fun BaonRoute(
     onSpend: (Long) -> Unit,
     onGive: (Long) -> Unit,
     onSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val vm = viewModel { BaonViewModel(container.database, container.dayClock.today) }
     val ui by vm.ui.collectAsStateWithLifecycle()
-    BaonContent(ui, onAdd, onOpen, onReceived, onSpend, onGive, onSearch)
+    BaonContent(ui, onAdd, onOpen, onReceived, onSpend, onGive, onSearch, onOpenSettings)
 }
 
 @Composable
@@ -175,12 +177,14 @@ fun BaonContent(
     onSpend: (Long) -> Unit,
     onGive: (Long) -> Unit,
     onSearch: () -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val section = Section.BAON
     FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
+        showLogo = true,
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         if (ui.leftCentavos != null) {
             item(key = "totals") { SectionTotalsCard(section, listOf("Baon left" to ui.leftCentavos)) }

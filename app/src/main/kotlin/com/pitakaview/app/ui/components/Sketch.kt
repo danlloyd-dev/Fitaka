@@ -45,10 +45,11 @@ import kotlin.math.sin
  * finished in the style chosen in Settings:
  *
  * - **Plain**: just that.
- * - **Glossy**: a [gloss] on the fill (a paler band and a white glint), where the part asks for one.
+ * - **Glossy**: the outline is drawn by an unsteady hand, twice over, and the fill carries a [gloss] (a
+ *   paler band and a white glint, drawn by the same hand), where the part asks for one.
  * - **Glassy**: a part that says it is a pane of [glass] has a see-through fill and a line of light
  *   inside its top edge; every other part is as in Plain.
- * - **Sketch**: the outline is drawn by an unsteady hand, twice over, and the shadow is pencil strokes.
+ * - **Sketch**: the same hand-drawn outline, no gloss, and a shadow of pencil strokes.
  *
  * The shadow is drawn outside this node's bounds, so callers reserve room for it with
  * `padding(end = offset, bottom = offset)` *before* this modifier.
@@ -92,9 +93,11 @@ private fun Modifier.sketchBox(
     pane: Boolean,
 ): Modifier {
     val glass = style == UiStyle.GLASSY && pane
-    val rough = style == UiStyle.SKETCH
+    // Glossy and Sketch are both drawn by an unsteady hand. Only Sketch's shadow is pencil strokes.
+    val handDrawn = style == UiStyle.SKETCH || style == UiStyle.GLOSSY
+    val hatched = style == UiStyle.SKETCH
     val drawnFill = if (glass) fill.copy(alpha = fill.alpha * GLASS_FILL) else fill
-    val drawOwnOutline = rough || outlineUnderContent
+    val drawOwnOutline = handDrawn || outlineUnderContent
     return this
         .drawWithCache {
             // Built once per size, not on every frame.
@@ -103,15 +106,15 @@ private fun Modifier.sketchBox(
             val width = borderWidth.toPx()
             val shine = if (style == UiStyle.GLOSSY) gloss?.let { glossFor(it, fill, inset = width) } else null
             val lines = when {
-                rough -> roughEdges(outline, width, density)
+                handDrawn -> roughEdges(outline, width, density)
                 outlineUnderContent -> listOf(RoughLine(insideEdge(outline, width), width, 1f))
                 else -> emptyList()
             }
             // Under a see-through fill the shadow must not show through: it is cut out where the part lies.
             // The Sketch style's shadow is pencil strokes, kept to where the solid shadow would show.
             val shadowed = offset > 0f && shadow.isSpecified
-            val body = if ((glass || rough) && shadowed) Path().apply { addOutline(outline) } else null
-            val cast = if (rough && body != null) Path().apply { addPath(body, Offset(offset, offset)) } else null
+            val body = if ((glass || hatched) && shadowed) Path().apply { addOutline(outline) } else null
+            val cast = if (hatched && body != null) Path().apply { addPath(body, Offset(offset, offset)) } else null
             val strokes = if (cast != null) hatching(size, offset, density) else null
             val rim = if (glass) insideEdge(outline, width + 2 * density) else null
             val drawLines: DrawScope.() -> Unit = {
@@ -198,16 +201,16 @@ private fun insideEdge(outline: Outline, width: Float): Path = Path().apply {
 }
 
 /**
- * The Sketch style's outline: the part's edge gone over twice by an unsteady hand. Each pass wanders a
- * little to either side of the true edge, in slow waves, and the second is fainter and off the first.
- * The waves depend only on the part's size, so an outline does not shimmer from frame to frame.
+ * [path] as an unsteady hand would draw it: the line wanders a little to either side of the true one, in
+ * slow waves, [sway] dp at most. A point is taken every [every] dp along it. The waves depend only on the
+ * shape's own size, so nothing shimmers from frame to frame; the caller builds this once per size.
  */
-private fun roughEdges(outline: Outline, width: Float, density: Float): List<RoughLine> {
-    val measure = PathMeasure().apply { setPath(insideEdge(outline, width), forceClosed = true) }
+private fun wandering(path: Path, sway: Float, shift: Float, density: Float, every: Float = 4f): Path {
+    val measure = PathMeasure().apply { setPath(path, forceClosed = true) }
     val length = measure.length
-    if (length <= 0f) return emptyList()
-    fun pass(sway: Float, shift: Float): Path = Path().apply {
-        val steps = max(12, (length / (4f * density)).toInt())
+    if (length <= 0f) return path
+    return Path().apply {
+        val steps = max(12, (length / (every * density)).toInt())
         for (i in 0..steps) {
             val at = length * i / steps
             val point = measure.getPosition(at)
@@ -219,8 +222,21 @@ private fun roughEdges(outline: Outline, width: Float, density: Float): List<Rou
         }
         close()
     }
+}
+
+/**
+ * The hand-drawn outline of the Glossy and Sketch styles: the part's edge gone over twice. The second
+ * pass is fainter and off the first.
+ */
+private fun roughEdges(outline: Outline, width: Float, density: Float): List<RoughLine> {
+    val edge = insideEdge(outline, width)
+    val length = PathMeasure().apply { setPath(edge, forceClosed = true) }.length
+    if (length <= 0f) return emptyList()
     val seed = length * 0.011f
-    return listOf(RoughLine(pass(0.9f, seed), width * 0.8f, 1f), RoughLine(pass(1.4f, seed + 2.3f), width * 0.45f, 0.6f))
+    return listOf(
+        RoughLine(wandering(edge, 0.9f, seed, density), width * 0.8f, 1f),
+        RoughLine(wandering(edge, 1.4f, seed + 2.3f, density), width * 0.45f, 0.6f),
+    )
 }
 
 /** The gloss alone, for a part that has no outline of its own (the chosen part of a segmented control). */
@@ -278,6 +294,10 @@ internal const val SOFT_GLOSS_BELOW = 0.12f
 
 private const val GLINT_TURN = -24f
 
+/** How far, in dp, the gloss's band and its glint wander from a ruled shape: less than the outline does. */
+private const val GLOSS_SWAY = 0.8f
+private const val GLINT_SWAY = 0.45f
+
 private fun CacheDrawScope.glossFor(gloss: Gloss, fill: Color, inset: Float): DrawScope.() -> Unit {
     val soft = glossIsSoft(fill)
     val width = size.width - 2 * inset
@@ -291,7 +311,11 @@ private fun CacheDrawScope.glossFor(gloss: Gloss, fill: Color, inset: Float): Dr
     if (band.width <= 0f || band.height <= 0f) return {}
     val upper = if (gloss.dome) CornerRadius(band.width / 2, band.height * 0.78f) else CornerRadius(gloss.topRadius.toPx())
     val lower = if (gloss.dome) CornerRadius(band.width / 2, band.height * 0.22f) else CornerRadius(gloss.bottomRadius.toPx())
-    val path = Path().apply { addRoundRect(RoundRect(band, topLeft = upper, topRight = upper, bottomRight = lower, bottomLeft = lower)) }
+    // Drawn by the same unsteady hand as the outline: the band's edge wanders a little.
+    val path = wandering(
+        Path().apply { addRoundRect(RoundRect(band, topLeft = upper, topRight = upper, bottomRight = lower, bottomLeft = lower)) },
+        sway = GLOSS_SWAY, shift = band.width * 0.013f, density = density,
+    )
     val light = Brush.verticalGradient(
         colors = listOf(Color.White.copy(alpha = if (soft) 0.24f else 0.66f), Color.White.copy(alpha = if (soft) 0.07f else 0.30f)),
         startY = band.top,
@@ -300,11 +324,16 @@ private fun CacheDrawScope.glossFor(gloss: Gloss, fill: Color, inset: Float): Dr
     val glintColor = Color.White.copy(alpha = if (soft) 0.60f else 0.96f)
     val glintSize = gloss.glint?.let { Size(it.width.toPx(), it.height.toPx()) }
     val glintAt = glintSize?.let { Offset(inset + width - gloss.glintEnd.toPx() - it.width, inset + gloss.glintTop.toPx()) }
+    val glint = if (glintSize != null && glintAt != null) {
+        wandering(Path().apply { addOval(Rect(glintAt, glintSize)) }, sway = GLINT_SWAY, shift = 1.3f, density = density, every = 2f)
+    } else {
+        null
+    }
     return {
         drawPath(path, light)
-        if (glintSize != null && glintAt != null) {
+        if (glint != null && glintSize != null && glintAt != null) {
             rotate(GLINT_TURN, pivot = glintAt + Offset(glintSize.width / 2, glintSize.height / 2)) {
-                drawOval(glintColor, glintAt, glintSize)
+                drawPath(glint, glintColor)
             }
         }
     }
@@ -318,21 +347,31 @@ fun Modifier.tileShine(dark: Boolean, inset: Dp = FitakaDimens.border): Modifier
     if (LocalUiStyle.current != UiStyle.GLOSSY) {
         this
     } else {
-        drawBehind {
+        // Built once per size. The streak and the dot are drawn by the same unsteady hand as the outline.
+        drawWithCache {
             val edge = inset.toPx()
             val top = edge + 4.dp.toPx()
             val thick = 6.dp.toPx()
             val streak = Size(size.width - 2 * edge - 9.dp.toPx() - 30.dp.toPx(), thick)
-            if (streak.width > 0f) {
-                drawRoundRect(
-                    color = Color.White.copy(alpha = if (dark) 0.20f else 0.72f),
-                    topLeft = Offset(edge + 9.dp.toPx(), top),
-                    size = streak,
-                    cornerRadius = CornerRadius(thick / 2),
+            val streakPath = if (streak.width > 0f) {
+                wandering(
+                    Path().apply { addRoundRect(RoundRect(Rect(Offset(edge + 9.dp.toPx(), top), streak), CornerRadius(thick / 2))) },
+                    sway = GLOSS_SWAY, shift = streak.width * 0.013f, density = density,
                 )
+            } else {
+                null
             }
             val dot = Size(10.dp.toPx(), thick)
-            drawOval(Color.White.copy(alpha = if (dark) 0.34f else 0.92f), Offset(size.width - edge - 13.dp.toPx() - dot.width, top), dot)
+            val dotPath = wandering(
+                Path().apply { addOval(Rect(Offset(size.width - edge - 13.dp.toPx() - dot.width, top), dot)) },
+                sway = GLINT_SWAY, shift = 1.3f, density = density, every = 2f,
+            )
+            val streakColor = Color.White.copy(alpha = if (dark) 0.20f else 0.72f)
+            val dotColor = Color.White.copy(alpha = if (dark) 0.34f else 0.92f)
+            onDrawBehind {
+                if (streakPath != null) drawPath(streakPath, streakColor)
+                drawPath(dotPath, dotColor)
+            }
         }
     }
 }

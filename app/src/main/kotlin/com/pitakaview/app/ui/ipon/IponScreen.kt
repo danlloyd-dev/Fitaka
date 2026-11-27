@@ -24,6 +24,7 @@ import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -121,20 +122,21 @@ class IponViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewModel
 }
 
 @Composable
-fun IponRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
+fun IponRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit, onOpenSettings: () -> Unit) {
     val container = LocalAppContainer.current
     val vm = viewModel { IponViewModel(container.database, container.dayClock.today) }
     val ui by vm.ui.collectAsStateWithLifecycle()
-    IponContent(ui, onAdd, onOpen, onSearch)
+    IponContent(ui, onAdd, onOpen, onSearch, onOpenSettings)
 }
 
 @Composable
-fun IponContent(ui: IponUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
+fun IponContent(ui: IponUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val section = Section.IPON
     FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
+        showLogo = true,
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         item(key = "totals") { SectionTotalsCard(section, listOf("Saved" to ui.savedCentavos)) }
         item(key = "add") {

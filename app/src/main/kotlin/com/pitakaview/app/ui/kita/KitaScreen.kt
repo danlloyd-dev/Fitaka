@@ -28,6 +28,7 @@ import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -107,6 +108,7 @@ fun KitaRoute(
     onAddPayday: () -> Unit,
     onOpenPayday: (Long) -> Unit,
     onReceived: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val vm = viewModel { KitaViewModel(container.database, container.dayClock.today) }
@@ -115,7 +117,7 @@ fun KitaRoute(
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     KitaContent(
         ledger, paydays, today, vm.month::previous, vm.month::next, vm.month::reset,
-        onAdd, onOpenEntry, onSearch, onAddPayday, onOpenPayday, onReceived,
+        onAdd, onOpenEntry, onSearch, onAddPayday, onOpenPayday, onReceived, onOpenSettings,
     )
 }
 
@@ -133,12 +135,14 @@ fun KitaContent(
     onAddPayday: () -> Unit,
     onOpenPayday: (Long) -> Unit,
     onReceived: (Long) -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val section = Section.KITA
     FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
+        showLogo = true,
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         item(key = "month") { MonthSwitcher(ledger.month, ledger.isThisMonth, onPreviousMonth, onNextMonth, onThisMonth) }
         item(key = "total") { MonthTotalCard(section, "Income in ${monthName(ledger.month)}", ledger) }

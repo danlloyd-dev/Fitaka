@@ -41,10 +41,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -55,8 +55,10 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.R
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
@@ -150,6 +152,16 @@ fun FitakaLogo(modifier: Modifier = Modifier, size: Dp = 44.dp) {
     }
 }
 
+/**
+ * The two round buttons at the top right of every main page (Home and the five sections), so their
+ * headers are the same: the logo at the left, Search and Settings at the right.
+ */
+@Composable
+fun MainPageActions(onSearch: () -> Unit, onOpenSettings: () -> Unit) {
+    FitakaIconButton(FitakaIcons.Search, "Search", onSearch)
+    FitakaIconButton(FitakaIcons.Settings, "Settings", onOpenSettings)
+}
+
 data class BottomBarItem(val label: String, val icon: ImageVector, val section: Section? = null)
 
 /** How far the chosen tab's tile stands above the row of dabs. */
@@ -206,7 +218,8 @@ fun FitakaBottomBar(
                 val selected = index == selectedIndex
                 val shown by animateFloatAsState(
                     targetValue = if (selected) 1f else 0f,
-                    animationSpec = tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized),
+                    // On a spring: the tile pops up with one small bounce, and a second tap mid-way never jumps.
+                    animationSpec = FitakaSpring.bouncy(),
                     label = "tile",
                 )
                 val onTile = if (item.section != null) c.onSectionFill else c.onPrimary
@@ -235,7 +248,7 @@ fun FitakaBottomBar(
                                     .graphicsLayer {
                                         scaleX = 0.7f + 0.3f * shown
                                         scaleY = 0.7f + 0.3f * shown
-                                        alpha = shown
+                                        alpha = shown.coerceIn(0f, 1f)
                                     }
                                     .sketchBox(
                                         RoundedCornerShape(16.dp),

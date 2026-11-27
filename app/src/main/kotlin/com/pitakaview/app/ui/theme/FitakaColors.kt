@@ -66,6 +66,13 @@ internal const val TINT_DARK = 0.34f
 internal const val MUTED_INK = 0.72f
 internal const val MUTED_INK_ON_GLASS = 0.80f
 
+/**
+ * Share of ink in the hard shadow in dark mode. It was pure black until 2026-11-27, which cannot be seen
+ * on a page that is nearly black (the owner: "the black shadow is not visible"). A muted share of the
+ * ink is clearly lighter than the page and a card, and quieter than the outline (ThemeContrastTest).
+ */
+internal const val DARK_SHADOW = 0.40f
+
 /** Share of the primary colour in a round icon button. */
 internal const val ICON_BUTTON_TINT = 0.26f
 
@@ -80,7 +87,7 @@ fun fitakaColors(theme: ThemeId, dark: Boolean): FitakaColors {
         card = base.card,
         ink = base.ink,
         inkMuted = mix(base.ink, base.card, MUTED_INK),
-        shadow = if (dark) Color.Black else base.ink,
+        shadow = if (dark) mix(base.ink, base.background, DARK_SHADOW) else base.ink,
         primary = base.primary,
         onPrimary = base.onPrimary,
         onSectionFill = if (dark) base.background else base.ink,

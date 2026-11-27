@@ -42,6 +42,7 @@ import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.MainPageActions
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -53,12 +54,12 @@ import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.FitakaMotion
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeRoute(
@@ -125,10 +126,7 @@ fun HomeContent(
         title = APP_NAME,
         subtitle = greeting,
         showLogo = true,
-        actions = {
-            FitakaIconButton(FitakaIcons.Search, "Search", onSearch)
-            FitakaIconButton(FitakaIcons.Settings, "Settings", onOpenSettings)
-        },
+        actions = { MainPageActions(onSearch, onOpenSettings) },
     ) {
         // First on the page: the app has just restarted, and the owner needs to know why and what is true now.
         if (restoreFailed) {

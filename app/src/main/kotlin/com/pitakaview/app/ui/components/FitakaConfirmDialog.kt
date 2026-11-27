@@ -2,6 +2,7 @@ package com.pitakaview.app.ui.components
 
 import android.os.Build
 import android.view.WindowManager
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.heading
@@ -24,8 +28,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.ui.theme.LocalUiStyle
+import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.LocalUiStyle
 
 /** How dark the screen behind a question goes, and how far it is blurred where the phone can blur. */
 internal const val QUESTION_DIM = 0.35f
@@ -51,7 +56,17 @@ fun FitakaConfirmDialog(
 ) {
     Dialog(onDismissRequest = { if (enabled) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         BlurWhatIsBehind()
-        Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+        // The card arrives with a small pop, not all at once.
+        val arrived = remember { Animatable(0f) }
+        LaunchedEffect(Unit) { arrived.animateTo(1f, FitakaSpring.bouncy()) }
+        Box(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp).graphicsLayer {
+                val grown = 0.9f + 0.1f * arrived.value
+                scaleX = grown
+                scaleY = grown
+                alpha = arrived.value.coerceIn(0f, 1f)
+            },
+        ) {
             ConfirmCard(title, lines, confirmLabel, dismissLabel, onConfirm, onDismiss, enabled)
         }
     }

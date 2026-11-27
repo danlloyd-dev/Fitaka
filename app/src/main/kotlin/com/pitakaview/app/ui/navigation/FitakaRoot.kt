@@ -5,6 +5,7 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -36,13 +37,13 @@ import androidx.navigation3.ui.NavDisplay
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.DarkModePref
-import com.pitakaview.app.domain.FontChoice
-import com.pitakaview.app.domain.UiSize
-import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.EntryKind
+import com.pitakaview.app.domain.FontChoice
 import com.pitakaview.app.domain.ReminderKind
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.domain.UiSize
+import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.reminders.ReminderOpen
 import com.pitakaview.app.ui.backup.BackupRoute
 import com.pitakaview.app.ui.baon.BaonDetailRoute
@@ -50,9 +51,9 @@ import com.pitakaview.app.ui.baon.BaonEditorRoute
 import com.pitakaview.app.ui.baon.BaonRoute
 import com.pitakaview.app.ui.categories.CategoriesRoute
 import com.pitakaview.app.ui.categories.CategoryEditorRoute
+import com.pitakaview.app.ui.components.FitakaBottomBar
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
 import com.pitakaview.app.ui.components.LocalHazeState
-import com.pitakaview.app.ui.components.FitakaBottomBar
 import com.pitakaview.app.ui.entry.EntryEditorRoute
 import com.pitakaview.app.ui.gastos.GastosRoute
 import com.pitakaview.app.ui.home.HomeRoute
@@ -69,8 +70,8 @@ import com.pitakaview.app.ui.settings.SettingsScreen
 import com.pitakaview.app.ui.settings.rememberLockSettings
 import com.pitakaview.app.ui.settings.rememberReminderSettings
 import com.pitakaview.app.ui.summary.SummaryRoute
-import com.pitakaview.app.ui.theme.FullSize
 import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.FullSize
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.utang.LoanDetailRoute
 import com.pitakaview.app.ui.utang.LoanEditorRoute
@@ -144,7 +145,9 @@ private val pop: ContentTransform =
 
 // Tabs are peers, so they fade through instead of sliding.
 private val fadeThrough: ContentTransform =
-    fadeIn(tween(FitakaMotion.MEDIUM - 60, delayMillis = 60, easing = FitakaMotion.Emphasized)) togetherWith
+    (fadeIn(tween(FitakaMotion.MEDIUM - 60, delayMillis = 60, easing = FitakaMotion.Emphasized)) +
+        // The screen coming in grows the last little bit, so a tab change has a direction: towards you.
+        scaleIn(tween(FitakaMotion.MEDIUM - 60, delayMillis = 60, easing = FitakaMotion.Emphasized), initialScale = 0.97f)) togetherWith
         fadeOut(tween(FitakaMotion.SHORT - 50))
 
 private val tabMetadata = NavDisplay.transitionSpec { fadeThrough } +
@@ -282,11 +285,13 @@ fun FitakaRoot(
                                 onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE)) },
                                 onOpenEntry = openEntry,
                                 onSearch = { backStack.add(SearchKey) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
                             )
                             Section.KITA -> KitaRoute(
                                 onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME)) },
                                 onOpenEntry = openEntry,
                                 onSearch = { backStack.add(SearchKey) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
                                 onAddPayday = { backStack.add(PayScheduleEditorKey()) },
                                 onOpenPayday = { backStack.add(PayScheduleEditorKey(it)) },
                                 onReceived = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME, payScheduleId = it)) },
@@ -295,11 +300,13 @@ fun FitakaRoot(
                                 onAdd = { backStack.add(LoanEditorKey()) },
                                 onOpen = { backStack.add(LoanKey(it)) },
                                 onSearch = { backStack.add(SearchKey) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
                             )
                             Section.IPON -> IponRoute(
                                 onAdd = { backStack.add(GoalEditorKey()) },
                                 onOpen = { backStack.add(GoalKey(it)) },
                                 onSearch = { backStack.add(SearchKey) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
                             )
                             Section.BAON -> BaonRoute(
                                 onAdd = { backStack.add(BaonEditorKey()) },
@@ -308,6 +315,7 @@ fun FitakaRoot(
                                 onSpend = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = it)) },
                                 onGive = { backStack.add(MoveEditorKey(TxPurpose.BAON_GIVEN, it)) },
                                 onSearch = { backStack.add(SearchKey) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
                             )
                         }
                     }

@@ -41,7 +41,7 @@ enum class UiStyle(val label: String) {
     /** Flat colour inside the outlines. */
     PLAIN("Plain"),
 
-    /** A paler band and a white glint on every solid-coloured part, like a jelly sweet. */
+    /** A paler band and a white glint on every solid-coloured part, like a jelly sweet, with outlines drawn by hand. */
     GLOSSY("Glossy"),
 
     /** Cards and buttons you can see through, over soft colour on the page. */

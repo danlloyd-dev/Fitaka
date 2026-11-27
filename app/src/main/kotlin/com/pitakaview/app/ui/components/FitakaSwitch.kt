@@ -1,7 +1,6 @@
 package com.pitakaview.app.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
 
@@ -43,7 +42,7 @@ fun FitakaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
     val c = FitakaTheme.colors
     val knobAt by animateDpAsState(
         targetValue = if (checked) TrackWidth - Knob - KnobInset else KnobInset,
-        animationSpec = tween(FitakaMotion.SHORT, easing = FitakaMotion.Emphasized),
+        animationSpec = FitakaSpring.bouncy(),
         label = "knob",
     )
     Box(

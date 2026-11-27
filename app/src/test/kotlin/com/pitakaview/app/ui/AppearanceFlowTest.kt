@@ -96,26 +96,38 @@ class AppearanceFlowTest : FlowTestBase() {
         assertEquals(FontChoice.ITIM.family(), drawn.single().layoutInput.style.fontFamily)
     }
 
+    /**
+     * Every main page has Home's header (the owner, 2026-11-27: "make the header on each page has logo and
+     * the settings so thats its uniform to home"): the logo at the top left, Search and Settings at the top
+     * right, and Settings opens from each of them. A page with a way back has the Back button there instead.
+     */
     @Test
-    fun theLogoIsAtTheTopLeftOfHomeAndOnNoOtherScreen() {
+    fun everyMainPageHasTheLogoAndSettingsAndAPageWithAWayBackHasNeither() {
         start()
-        val logo = rule.onNodeWithTag(LOGO_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val name = rule.onNode(hasText("Fitaka"), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        with(rule.density) {
-            assertTrue("the logo is at the left edge: $logo", logo.left <= 24.dp.toPx())
-            assertTrue("the logo is at the top: $logo", logo.top <= 80.dp.toPx())
-            assertTrue("the app's name comes after it: $logo then $name", logo.right <= name.left)
-            assertTrue("it is large enough to make out", logo.width >= 40.dp.toPx())
+        fun logos() = rule.onAllNodes(androidx.compose.ui.test.hasTestTag(LOGO_TAG), useUnmergedTree = true).fetchSemanticsNodes()
+        for (tab in listOf("Home", "Kita", "Baon", "Ipon", "Gastos", "Utang")) {
+            tapTab(tab)
+            rule.waitForIdle()
+            val found = logos()
+            assertEquals("$tab: one logo", 1, found.size)
+            val logo = found.single().boundsInRoot
+            with(rule.density) {
+                assertTrue("$tab: the logo is at the left edge: $logo", logo.left <= 24.dp.toPx())
+                assertTrue("$tab: the logo is at the top: $logo", logo.top <= 80.dp.toPx())
+                assertTrue("$tab: it is large enough to make out", logo.width >= 40.dp.toPx())
+            }
+            rule.onNodeWithContentDescription("Search").assertIsDisplayed()
+            rule.onNodeWithContentDescription("Settings").assertIsDisplayed().performClick()
+            waitFor("Money set-up")
+            rule.waitForIdle()
+            assertEquals("$tab > Settings: a page with a way back has the back button there, not the logo", 0, logos().size)
+            back()
+            rule.waitForIdle()
         }
-        fun logos() = rule.onAllNodes(androidx.compose.ui.test.hasTestTag(LOGO_TAG), useUnmergedTree = true).fetchSemanticsNodes().size
-
-        tapTab("Kita")
-        rule.waitForIdle()
-        assertEquals("a section's screen has its own title there", 0, logos())
+        // On Home the app's name comes right after the logo.
         tapTab("Home")
         rule.waitForIdle()
-        assertEquals(1, logos())
-        openSettings()
-        assertEquals("a screen with a way back has the back button there", 0, logos())
+        val name = rule.onNode(hasText("Fitaka"), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertTrue("the app's name comes after the logo", logos().single().boundsInRoot.right <= name.left)
     }
 }

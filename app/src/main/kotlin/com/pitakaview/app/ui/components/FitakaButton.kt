@@ -1,10 +1,7 @@
 package com.pitakaview.app.ui.components
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.ui.icons.sizeFor
+import com.pitakaview.app.ui.motion.rememberPressDepth
 import com.pitakaview.app.ui.theme.ButtonLabelStyle
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
@@ -58,9 +56,10 @@ fun FitakaButton(
 ) {
     val c = FitakaTheme.colors
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
     val shadow = FitakaDimens.shadow
-    val push by animateDpAsState(if (pressed && enabled) shadow else 0.dp, tween(durationMillis = 70), label = "push")
+    // Down into its shadow under the finger, and back up on a spring.
+    val depth by rememberPressDepth(interaction, enabled)
+    val push = shadow * depth
     val fill = if (style == FitakaButtonStyle.Primary) c.primary else c.card
     val content = if (style == FitakaButtonStyle.Primary) c.onPrimary else c.ink
 
@@ -74,7 +73,7 @@ fun FitakaButton(
                 fill = fill,
                 border = c.ink,
                 shadow = c.shadow,
-                shadowOffset = if (enabled) shadow - push else 0.dp,
+                shadowOffset = if (enabled) (shadow - push).coerceAtLeast(0.dp) else 0.dp,
                 gloss = Gloss.Button,
                 glass = style != FitakaButtonStyle.Primary,
             )
@@ -104,15 +103,15 @@ fun FitakaIconButton(
 ) {
     val c = FitakaTheme.colors
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
     val shadow = 3.dp
-    val push by animateDpAsState(if (pressed) shadow else 0.dp, tween(durationMillis = 70), label = "push")
+    val depth by rememberPressDepth(interaction)
+    val push = shadow * depth
     Box(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)
             .offset(x = push, y = push)
             .size(size)
-            .sketchBox(CircleShape, c.iconButton, c.ink, FitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton, glass = true)
+            .sketchBox(CircleShape, c.iconButton, c.ink, FitakaDimens.borderThin, c.shadow, (shadow - push).coerceAtLeast(0.dp), gloss = Gloss.RoundButton, glass = true)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
