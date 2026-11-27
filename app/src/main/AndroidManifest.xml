@@ -7,6 +7,13 @@
     <!-- The app lock: lets the app show the phone's own fingerprint / face / PIN question. The app is only
          told yes or no; it never sees a fingerprint or a PIN. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Updates (the owner's choice, 2026-11-27): only to ask GitHub for a new version and download it. No entry,
+         amount or setting is ever sent anywhere; a switch in Settings turns it off. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- To hand a downloaded update to Android's installer. The phone still asks the owner once to allow it. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- So that an update of this app by itself installs without a second question (Android 12 and later). -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application
         android:name=".FitakaApp"
@@ -30,8 +37,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Android's answers about an update the app handed it to install. Only the app's own session sends here. -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
+
+        <!-- A new version was installed over this one: line the reminder check up again, say the update is done. -->
+        <receiver
+            android:name=".update.AppUpdatedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- WorkManager is started on first use (FitakaApp is its Configuration.Provider), not at every
-             launch: with reminders off the app never touches it. -->
+             launch: it is used by the reminders and the daily look for a new version. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"

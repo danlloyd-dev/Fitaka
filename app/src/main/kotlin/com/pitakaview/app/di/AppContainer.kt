@@ -20,6 +20,19 @@ import com.pitakaview.app.reminders.ReminderAlarm
 import com.pitakaview.app.reminders.ReminderNotifier
 import com.pitakaview.app.reminders.Reminders
 import com.pitakaview.app.reminders.WorkManagerReminderAlarm
+import com.pitakaview.app.update.AndroidPackageReader
+import com.pitakaview.app.update.AndroidUpdateInstaller
+import com.pitakaview.app.update.AndroidUpdateNotifier
+import com.pitakaview.app.update.GitHubReleaseSource
+import com.pitakaview.app.update.PackageReader
+import com.pitakaview.app.update.ReleaseSource
+import com.pitakaview.app.update.UpdateInstaller
+import com.pitakaview.app.update.UpdateNotifier
+import com.pitakaview.app.update.UpdateSchedule
+import com.pitakaview.app.update.Updates
+import com.pitakaview.app.update.WorkManagerUpdateSchedule
+import java.io.File
+import java.time.Instant
 import java.time.LocalDateTime
 
 /** Holds app-wide singletons. Each is created lazily on first use, so app start does no extra work. */
@@ -45,6 +58,25 @@ class AppContainer(context: Context) {
     var reminderAlarm: ReminderAlarm = WorkManagerReminderAlarm(appContext)
     val reminders: Reminders by lazy {
         Reminders(database = { database }, settings = settings, notifier = { reminderNotifier }, alarm = { reminderAlarm }, now = { reminderClock() })
+    }
+
+    /**
+     * New versions from GitHub, and the five things they lean on. Properties, so a test can stand in for
+     * GitHub, Android's installer and the phone's notifications; [updates] reads them each time it uses them.
+     */
+    var releaseSource: ReleaseSource = GitHubReleaseSource()
+    var packageReader: PackageReader = AndroidPackageReader(appContext)
+    var updateInstaller: UpdateInstaller = AndroidUpdateInstaller(appContext)
+    var updateNotifier: UpdateNotifier = AndroidUpdateNotifier(appContext)
+    var updateSchedule: UpdateSchedule = WorkManagerUpdateSchedule(appContext)
+    var updateClock: () -> Instant = Instant::now
+    val updates: Updates by lazy {
+        Updates(
+            settings,
+            source = { releaseSource }, packages = { packageReader }, installer = { updateInstaller },
+            notifier = { updateNotifier }, schedule = { updateSchedule },
+            folder = File(appContext.cacheDir, "updates"), now = { updateClock() },
+        )
     }
 
     /** Reads the words of a PDF statement (a property so tests can stand in for Android's reader). */

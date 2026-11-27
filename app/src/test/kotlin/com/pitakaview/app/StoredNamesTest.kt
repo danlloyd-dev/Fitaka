@@ -12,6 +12,10 @@ import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY
 import com.pitakaview.app.reminders.WorkManagerReminderAlarm
 import com.pitakaview.app.ui.backup.backupFileName
 import com.pitakaview.app.ui.backup.sheetFileName
+import com.pitakaview.app.update.AndroidUpdateNotifier
+import com.pitakaview.app.update.UpdateIntents
+import com.pitakaview.app.update.UpdateWorker
+import com.pitakaview.app.update.WorkManagerUpdateSchedule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,6 +90,21 @@ class StoredNamesTest {
     fun aReminderAlreadyShowingCanStillBeRead() {
         assertEquals("com.pitakaview.app.reminder.KIND", ReminderIntents.EXTRA_KIND)
         assertEquals("com.pitakaview.app.reminder.ID", ReminderIntents.EXTRA_ID)
+    }
+
+    /**
+     * New in 1.1.0 (updates). The daily look is lined up under this name and stored with its class's full name;
+     * the phone keeps the owner's choices for update notifications under the channel's id, and a notification
+     * already showing carries the extra.
+     */
+    @Test
+    fun theUpdatePartsKeepTheirNames() {
+        assertEquals("update-check", WorkManagerUpdateSchedule.NAME)
+        assertEquals("com.pitakaview.app.update.UpdateWorker", UpdateWorker::class.java.name)
+        assertEquals("updates", AndroidUpdateNotifier.CHANNEL)
+        assertEquals("com.pitakaview.app.update.OPEN", UpdateIntents.EXTRA_OPEN)
+        // And it is not the reminders' name: one would replace the other.
+        assertTrue(WorkManagerUpdateSchedule.NAME != WorkManagerReminderAlarm.NAME)
     }
 
     /** New files take the new name. The ending stays .pitaka, as on every backup made so far. */

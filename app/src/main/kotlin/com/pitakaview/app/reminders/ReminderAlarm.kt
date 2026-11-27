@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.await
 import kotlinx.coroutines.flow.first
 import java.time.Duration
+import java.util.UUID
 
 /** Wakes the app for its daily look for reminders. An interface so the rules around it can be tested with a stand-in. */
 interface ReminderAlarm {
@@ -52,15 +53,20 @@ class WorkManagerReminderAlarm(private val context: Context) : ReminderAlarm {
     private val work: WorkManager get() = WorkManager.getInstance(context)
 
     /**
-     * Whether the phone's own list holds a job for this app's work. A property so a test, where WorkManager
+     * Whether the phone's own list holds the job for the check [workId]. A property so a test, where WorkManager
      * keeps work to itself and gives the phone nothing, can say what the phone has.
+     *
+     * The job is found by the work's id, which WorkManager writes on each job it gives the phone: since 1.1.0
+     * the app has a second kind of work (the daily look for a new version), whose job must not pass for the
+     * reminder's. Before, any job of WorkManager's counted, and the update's job would have hidden a reminder
+     * job the phone had lost.
      *
      * A phone whose list cannot be read is taken at WorkManager's word: better to keep the check there is
      * than to cancel and line up again at every opening of the app.
      */
-    var phoneHasAJob: () -> Boolean = {
+    var phoneHolds: (workId: UUID) -> Boolean = { workId ->
         try {
-            phoneJobs(context).isNotEmpty()
+            phoneJobs(context).any { it.extras.getString(WORK_ID_EXTRA) == workId.toString() }
         } catch (e: RuntimeException) {
             Log.w(LOG, "The phone's job list could not be read; going by WorkManager's books", e)
             true
@@ -78,7 +84,7 @@ class WorkManagerReminderAlarm(private val context: Context) : ReminderAlarm {
         val unfinished = checks().filter { !it.state.isFinished }
         // A check running right now lines up the next one itself.
         if (unfinished.any { it.state == WorkInfo.State.RUNNING }) return
-        if (unfinished.size == 1 && phoneHasAJob()) return
+        if (unfinished.size == 1 && phoneHolds(unfinished.single().id)) return
         // Nothing is waiting, or more than one is, or WorkManager believes one is waiting and the phone holds
         // no job for it. Start afresh: whatever is on the books goes, and one check is given to the phone now.
         work.cancelAllWorkByTag(TAG).await()
@@ -113,6 +119,12 @@ class WorkManagerReminderAlarm(private val context: Context) : ReminderAlarm {
 
 /** The service WorkManager's jobs run in; the phone lists a waiting job under it. */
 internal const val WORK_JOB_SERVICE = "androidx.work.impl.background.systemjob.SystemJobService"
+
+/**
+ * The extra on each of WorkManager's jobs that names the work it runs (read from the bytecode of 2.12.0,
+ * SystemJobInfoConverter.EXTRA_WORK_SPEC_ID; PhoneJobListTest holds it against WorkManager's own constant).
+ */
+internal const val WORK_ID_EXTRA = "EXTRA_WORK_SPEC_ID"
 
 /**
  * From Android 14 the phone keeps separate, named lists of jobs, and WorkManager (2.10 and later) puts its

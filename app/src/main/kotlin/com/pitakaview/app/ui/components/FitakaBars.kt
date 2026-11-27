@@ -62,6 +62,8 @@ import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
+import com.pitakaview.app.ui.update.LocalUpdateWaiting
+import com.pitakaview.app.ui.update.UpdateDot
 
 /**
  * A top bar on frosted glass (content scrolls under it): optional back button, big handwritten title,
@@ -159,8 +161,16 @@ fun FitakaLogo(modifier: Modifier = Modifier, size: Dp = 44.dp) {
 @Composable
 fun MainPageActions(onSearch: () -> Unit, onOpenSettings: () -> Unit) {
     FitakaIconButton(FitakaIcons.Search, "Search", onSearch)
-    FitakaIconButton(FitakaIcons.Settings, "Settings", onOpenSettings)
+    // A newer version is waiting: a small red dot on the button's top right corner, and words to say so.
+    val updateWaiting = LocalUpdateWaiting.current
+    Box {
+        FitakaIconButton(FitakaIcons.Settings, if (updateWaiting) SETTINGS_WITH_UPDATE else "Settings", onOpenSettings)
+        if (updateWaiting) UpdateDot(Modifier.align(Alignment.TopEnd))
+    }
 }
+
+/** What a screen reader says for the Settings button while a new version is waiting. */
+const val SETTINGS_WITH_UPDATE = "Settings, a new version is out"
 
 data class BottomBarItem(val label: String, val icon: ImageVector, val section: Section? = null)
 

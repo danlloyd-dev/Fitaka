@@ -22,7 +22,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +64,8 @@ fun FitakaScreen(
     pinnedAction: (@Composable () -> Unit)? = null,
     /** An item of the list to bring into view: on a form, the first field with a problem after a refused Save. */
     reveal: RevealRequest? = null,
+    /** Which cards stand above the page's first item; when it changes, a page still at its top stays there. */
+    topCards: Any? = null,
     content: LazyListScope.() -> Unit,
 ) {
     val c = FitakaTheme.colors
@@ -74,6 +78,18 @@ fun FitakaScreen(
     val clearBelow = if (pinnedAction != null) 0.dp else maxOf(tabBar, keyboard)
     // The keys of the list's items in order, noted as the content declares them, so [reveal] can find its item.
     val keys = remember { ArrayList<Any?>() }
+    // A card that comes in at the top of a page nobody has scrolled (Home's update banner, which arrives a
+    // moment after Home opens) is shown there. Left alone, the list keeps its first item where it was, by
+    // its key, and the new card lands above it, out of sight under the top bar (found by UpdateFlowTest).
+    // Asked only when [topCards] changes: a request like this one stops any scroll under way, such as [reveal]'s.
+    val atTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
+    val topCardsSeen = remember { arrayOf(topCards) }
+    SideEffect {
+        if (topCardsSeen[0] != topCards) {
+            topCardsSeen[0] = topCards
+            if (atTop) listState.requestScrollToItem(0)
+        }
+    }
     if (reveal != null) {
         LaunchedEffect(reveal.tick) {
             if (reveal.tick == 0) return@LaunchedEffect

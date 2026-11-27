@@ -29,12 +29,19 @@ class AppNameTest {
     @Test
     fun theDescriptionIsTheOwnersAndItsVersionIsTheInstalledOne() {
         assertTrue(AboutText.DESCRIPTION.startsWith("Fitaka (Financial + Pitaka) is an Android app"))
-        for (part in listOf("Kita", "Baon", "Ipon", "Gastos", "Utang", "Everything stays on your phone", "six colour themes")) {
+        // Since 1.1.0 the app goes online for updates, so it no longer says "Everything stays on your phone"
+        // (the owner agreed to the new words, 2026-11-27): it says what stays and what goes online.
+        for (part in listOf("Kita", "Baon", "Ipon", "Gastos", "Utang", "Your entries stay on your phone", "goes online only to ask GitHub", "six colour themes")) {
             assertTrue(part, AboutText.DESCRIPTION.contains(part))
         }
         // It names a version. When the version moves on, the sentence must be looked at again.
         val installed = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         assertTrue("the description says which version this is: ($installed)", AboutText.DESCRIPTION.contains("($installed)"))
+    }
+
+    @Test
+    fun theOldPromiseIsGoneNowThatTheAppGoesOnline() {
+        assertTrue(!AboutText.DESCRIPTION.contains("Everything stays"))
     }
 
     @Test

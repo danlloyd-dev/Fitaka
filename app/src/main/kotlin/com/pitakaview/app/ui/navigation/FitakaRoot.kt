@@ -75,8 +75,13 @@ import com.pitakaview.app.ui.theme.FullSize
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.utang.LoanDetailRoute
 import com.pitakaview.app.ui.utang.LoanEditorRoute
+import com.pitakaview.app.ui.update.LocalUpdateWaiting
+import com.pitakaview.app.ui.update.UpdateQuestionHost
+import com.pitakaview.app.ui.update.rememberUpdateControls
 import com.pitakaview.app.ui.utang.UtangRoute
 import com.pitakaview.app.ui.wallets.WalletEditorRoute
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.ui.wallets.WalletsRoute
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.serialization.Serializable
@@ -180,9 +185,22 @@ fun FitakaRoot(
     /** The screen a tapped reminder asked for; [onReminderOpened] is called once the app is there. */
     reminderToOpen: ReminderOpen? = null,
     onReminderOpened: () -> Unit = {},
+    /** A tapped "new version" notification: open Settings at its Updates card; [onUpdatesOpened] once there. */
+    openUpdates: Boolean = false,
+    onUpdatesOpened: () -> Unit = {},
 ) {
     val c = FitakaTheme.colors
+    val container = LocalAppContainer.current
     val backStack = rememberNavBackStack(HomeKey)
+    // Whether a newer version is waiting: the Settings button on every main page then wears a red dot.
+    val updateWaiting by container.updates.waiting.collectAsStateWithLifecycle(initialValue = null)
+    var revealUpdates by remember { mutableIntStateOf(0) }
+    LaunchedEffect(openUpdates) {
+        if (!openUpdates) return@LaunchedEffect
+        backStack.open(SettingsKey)
+        revealUpdates++
+        onUpdatesOpened()
+    }
     val haze = rememberHazeState()
     val density = LocalDensity.current
     var barHeight by remember { mutableStateOf(0.dp) }
@@ -208,7 +226,10 @@ fun FitakaRoot(
     CompositionLocalProvider(
         LocalHazeState provides haze,
         LocalBottomBarPadding provides if (currentTab != null) barHeight else 0.dp,
+        LocalUpdateWaiting provides (updateWaiting != null),
     ) {
+        // Android's "Do you want to update this app?", when it asks after all, goes on screen from here.
+        UpdateQuestionHost()
         Box(Modifier.fillMaxSize().background(c.background)) {
             NavDisplay(
                 backStack = backStack,
@@ -338,6 +359,7 @@ fun FitakaRoot(
                     entry<SettingsKey> { key ->
                         val reminders = rememberReminderSettings()
                         val lock = rememberLockSettings()
+                        val update = rememberUpdateControls()
                         SettingsScreen(
                             appearance, onThemeChange, onDarkModeChange,
                             onBack = { backStack.close(key) },
@@ -353,6 +375,13 @@ fun FitakaRoot(
                             onSizeChange = onSizeChange,
                             onStyleChange = onStyleChange,
                             onFontChange = onFontChange,
+                            updates = update.ui,
+                            onUpdateChecksChange = update.onChecksChange,
+                            onCheckForUpdates = update.onCheckNow,
+                            onUpdate = update.onUpdate,
+                            onAllowInstalling = update.onAllow,
+                            onAllowUpdateNotifications = update.onAllowNotifications,
+                            revealUpdates = revealUpdates,
                         )
                     }
                     entry<EntryEditorKey> { key ->

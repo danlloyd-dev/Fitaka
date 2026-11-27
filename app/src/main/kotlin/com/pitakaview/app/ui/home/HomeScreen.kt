@@ -54,6 +54,9 @@ import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.FitakaMotion
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
+import com.pitakaview.app.ui.update.UpdateBanner
+import com.pitakaview.app.ui.update.UpdatesUi
+import com.pitakaview.app.ui.update.rememberUpdateControls
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -80,10 +83,15 @@ fun HomeRoute(
     // A restore that broke off restarts the app, which lands here: this is where the owner is told.
     val restoreFailed by container.settings.restoreFailed.collectAsStateWithLifecycle(initialValue = false)
     val scope = rememberCoroutineScope()
+    val update = rememberUpdateControls()
     HomeContent(
         state, today, greetingFor(LocalTime.now()), onOpenSection, onAddTransaction, onOpenSettings, onOpenEntry, onOpenWallets, onOpenBackup, onSearch, onOpenSummary,
         restoreFailed = restoreFailed,
         onRestoreNoticeSeen = { scope.launch { container.settings.setRestoreFailed(false) } },
+        update = if (update.banner != null) update.ui else null,
+        onUpdate = update.onUpdate,
+        onUpdateLater = update.onLater,
+        onAllowInstalling = update.onAllow,
     )
 }
 
@@ -120,6 +128,11 @@ fun HomeContent(
     /** The last restore broke off and the app restarted on the data it had before. */
     restoreFailed: Boolean = false,
     onRestoreNoticeSeen: () -> Unit = {},
+    /** A newer version is waiting and its banner was not put off today: what the banner shows. */
+    update: UpdatesUi? = null,
+    onUpdate: () -> Unit = {},
+    onUpdateLater: () -> Unit = {},
+    onAllowInstalling: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     FitakaScreen(
@@ -127,10 +140,16 @@ fun HomeContent(
         subtitle = greeting,
         showLogo = true,
         actions = { MainPageActions(onSearch, onOpenSettings) },
+        // Both can come in after Home is on screen; Home, if not scrolled, then shows them.
+        topCards = restoreFailed to (update != null),
     ) {
         // First on the page: the app has just restarted, and the owner needs to know why and what is true now.
         if (restoreFailed) {
             item(key = "restore-failed") { RestoreFailedCard(onOpenBackup, onRestoreNoticeSeen) }
+        }
+        // Above the wallet: a new version is news the owner is meant to see when the app opens.
+        if (update != null) {
+            item(key = "update") { UpdateBanner(update, onUpdate, onUpdateLater, onAllowInstalling) }
         }
         item(key = "hero") { WholeWalletCard(state, onOpenWallets) }
         item(key = "add") {

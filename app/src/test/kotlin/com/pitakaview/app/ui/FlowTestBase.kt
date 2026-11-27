@@ -48,6 +48,9 @@ abstract class FlowTestBase {
     /** What a tapped reminder asks the app to open. A test sets it the way MainActivity does from the intent. */
     protected var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
 
+    /** A tapped "new version" notification, set the way MainActivity does from the intent. */
+    protected var openUpdates by mutableStateOf(false)
+
     /** The look chosen in Settings, kept and handed back the way MainActivity does, so a test can change it by tapping. */
     protected var appearance by mutableStateOf(AppearanceSettings(ThemeId.MANGO, DarkModePref.LIGHT))
 
@@ -69,6 +72,7 @@ abstract class FlowTestBase {
                         onStyleChange = { appearance = appearance.copy(style = it) },
                         onFontChange = { appearance = appearance.copy(font = it) },
                         reminderToOpen = reminderToOpen, onReminderOpened = { reminderToOpen = null },
+                        openUpdates = openUpdates, onUpdatesOpened = { openUpdates = false },
                     )
                 }
             }

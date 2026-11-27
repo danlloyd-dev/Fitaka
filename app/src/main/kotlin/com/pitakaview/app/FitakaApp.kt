@@ -10,7 +10,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-class FitakaApp : Application(), Configuration.Provider {
+// Open only so the tests' TestFitakaApp can keep the app off the internet.
+open class FitakaApp : Application(), Configuration.Provider {
     /** App-wide dependencies, built by hand instead of a DI framework to keep the app light. */
     lateinit var container: AppContainer
         private set

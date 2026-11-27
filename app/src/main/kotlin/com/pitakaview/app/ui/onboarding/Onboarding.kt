@@ -340,7 +340,7 @@ fun OnboardingContent(
                     }
                 }
                 item(key = "private") {
-                    Text("Everything stays on this phone.", style = type.bodyMedium, color = c.inkMuted, modifier = Modifier.padding(horizontal = 4.dp))
+                    Text("Your entries stay on this phone.", style = type.bodyMedium, color = c.inkMuted, modifier = Modifier.padding(horizontal = 4.dp))
                 }
             }
             1 -> {

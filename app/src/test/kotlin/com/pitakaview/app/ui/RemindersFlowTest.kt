@@ -94,7 +94,7 @@ class RemindersFlowTest : FlowTestBase() {
         val config = Configuration.Builder().setMinimumLoggingLevel(Log.DEBUG).setExecutor(SynchronousExecutor()).build()
         WorkManagerTestInitHelper.initializeTestWorkManager(rule.activity.application, config)
         // WorkManager's test set-up gives the phone no job; a healthy phone has one for whatever is waiting.
-        (container.reminderAlarm as WorkManagerReminderAlarm).phoneHasAJob = { waitingChecks().isNotEmpty() }
+        (container.reminderAlarm as WorkManagerReminderAlarm).phoneHolds = { id -> waitingChecks().any { it.id == id } }
         clock = today().atTime(9, 0)
         container.reminderClock = { clock }
         // Counts every reminder handed to the phone: a second post to the same slot would otherwise go unseen.

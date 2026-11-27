@@ -59,6 +59,15 @@ class Reminders(
         }
     }
 
+    /**
+     * A new version of the app was installed over this one. Installing closes the app, and the owner may not
+     * open it again before the next morning, so the daily check is made sure of here, as an opening would.
+     */
+    suspend fun afterUpdate() {
+        if (!settings.remindersOn.first()) return
+        alarm().ensureScheduled(delayToNextRun())
+    }
+
     /** The background run: line up tomorrow's first, so a failure below cannot end the chain, then look. */
     suspend fun dailyRun() {
         if (!settings.remindersOn.first()) return

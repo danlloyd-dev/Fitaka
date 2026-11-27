@@ -1,0 +1,48 @@
+{
+  "html_url": "https://github.com/danlloyd-dev/Fitaka/releases/tag/v1.0.0",
+  "id": 460359406,
+  "tag_name": "v1.0.0",
+  "target_commitish": "main",
+  "name": "Fitaka 1.0.0",
+  "draft": false,
+  "immutable": false,
+  "prerelease": false,
+  "created_at": "2026-11-27T08:07:25Z",
+  "published_at": "2026-11-27T08:58:35Z",
+  "assets": [
+    {
+      "id": 799729925,
+      "name": "fitaka-1.0.0.aab",
+      "content_type": "application/octet-stream",
+      "state": "uploaded",
+      "size": 6378350,
+      "digest": "sha256:0cca5d450b9918dda250d19e8e0e1c30022b9526472b33e6c334cddb49c8e58b",
+      "created_at": "2026-11-27T08:58:13Z",
+      "updated_at": "2026-11-27T08:58:34Z",
+      "browser_download_url": "https://github.com/danlloyd-dev/Fitaka/releases/download/v1.0.0/fitaka-1.0.0.aab"
+    },
+    {
+      "id": 799729953,
+      "name": "fitaka-1.0.0.apk",
+      "content_type": "application/vnd.android.package-archive",
+      "state": "uploaded",
+      "size": 2864829,
+      "digest": "sha256:1e2336a9757c9cc67da1b57508bc3bd897a599094252ce3d3b9e4ac4eff303c6",
+      "created_at": "2026-11-27T08:58:13Z",
+      "updated_at": "2026-11-27T08:58:25Z",
+      "browser_download_url": "https://github.com/danlloyd-dev/Fitaka/releases/download/v1.0.0/fitaka-1.0.0.apk"
+    },
+    {
+      "id": 799729926,
+      "name": "SHA256SUMS.txt",
+      "content_type": "text/plain; charset=utf-8",
+      "state": "uploaded",
+      "size": 166,
+      "digest": "sha256:876307835aee0a039b147961b5e83fdcd0e632404ae573ab9c7bbe1ed4d25959",
+      "created_at": "2026-11-27T08:58:13Z",
+      "updated_at": "2026-11-27T08:58:13Z",
+      "browser_download_url": "https://github.com/danlloyd-dev/Fitaka/releases/download/v1.0.0/SHA256SUMS.txt"
+    }
+  ],
+  "body": "(release notes)"
+}

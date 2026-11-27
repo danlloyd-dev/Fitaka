@@ -128,7 +128,66 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { if (failed) it[RESTORE_FAILED] = true else it.remove(RESTORE_FAILED) }
     }
 
+    /** Whether the app asks GitHub for a new version (once a day, and when it opens). On until the owner switches it off. */
+    val updateChecksOn: Flow<Boolean> = prefs.map { it[UPDATE_CHECKS_ON] ?: true }.distinctUntilChanged()
+
+    /** Switching off also forgets a version found before, so nothing about updates shows any more. */
+    suspend fun setUpdateChecksOn(on: Boolean) {
+        store.edit {
+            it[UPDATE_CHECKS_ON] = on
+            if (!on) {
+                it.remove(UPDATE_FOUND)
+                it.remove(UPDATE_LATER)
+                it.remove(UPDATE_NOTIFIED)
+            }
+        }
+    }
+
+    /** When GitHub last answered a look for a new version, or null if it never has. */
+    val updateCheckedAt: Flow<Instant?> = prefs.map { it[UPDATE_CHECKED_AT]?.let(Instant::ofEpochMilli) }.distinctUntilChanged()
+
+    /** A newer version GitHub said is out, in the form [com.pitakaview.app.update.ReleaseJson.toStored] writes; null when there is none. */
+    val updateFound: Flow<String?> = prefs.map { it[UPDATE_FOUND] }.distinctUntilChanged()
+
+    /** Records one answer from GitHub in a single write: when, and the newer version it named (null for none). */
+    suspend fun recordUpdateCheck(at: Instant, found: String?) {
+        store.edit {
+            it[UPDATE_CHECKED_AT] = at.toEpochMilli()
+            if (found != null) it[UPDATE_FOUND] = found else it.remove(UPDATE_FOUND)
+        }
+    }
+
+    /** Which version's banner on Home was put off, and on which day ("v1.1.0 2026-11-27"). */
+    val updateLater: Flow<String?> = prefs.map { it[UPDATE_LATER] }.distinctUntilChanged()
+
+    suspend fun setUpdateLater(mark: String) {
+        store.edit { it[UPDATE_LATER] = mark }
+    }
+
+    /** The tag of the version the phone's notifications last told about, so each version is told once. */
+    val updateNotified: Flow<String?> = prefs.map { it[UPDATE_NOTIFIED] }.distinctUntilChanged()
+
+    suspend fun setUpdateNotified(tag: String) {
+        store.edit { it[UPDATE_NOTIFIED] = tag }
+    }
+
+    /**
+     * The tag of the version the app handed to Android to install, until the new version has started: then
+     * it tells the owner the update is done. It has to be stored, as installing ends the app that asked.
+     */
+    val updateInstalling: Flow<String?> = prefs.map { it[UPDATE_INSTALLING] }.distinctUntilChanged()
+
+    suspend fun setUpdateInstalling(tag: String?) {
+        store.edit { if (tag != null) it[UPDATE_INSTALLING] = tag else it.remove(UPDATE_INSTALLING) }
+    }
+
     companion object {
+        internal val UPDATE_CHECKS_ON = booleanPreferencesKey("update_checks_on")
+        internal val UPDATE_CHECKED_AT = longPreferencesKey("update_checked_at")
+        internal val UPDATE_FOUND = stringPreferencesKey("update_found")
+        internal val UPDATE_LATER = stringPreferencesKey("update_later")
+        internal val UPDATE_NOTIFIED = stringPreferencesKey("update_notified")
+        internal val UPDATE_INSTALLING = stringPreferencesKey("update_installing")
         internal val RESTORE_FAILED = booleanPreferencesKey("restore_failed")
         internal val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         internal val LOCK_ON = booleanPreferencesKey("lock_on")

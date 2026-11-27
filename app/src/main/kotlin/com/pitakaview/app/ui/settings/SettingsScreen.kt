@@ -29,10 +29,13 @@ import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.ThemePicker
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.update.UpdatesCard
+import com.pitakaview.app.ui.update.UpdatesUi
 
 /** The credit lines in the About card, here so a test can hold them to the licences' wording. */
 object AboutText {
@@ -46,12 +49,16 @@ object AboutText {
         "It also shows how much sits in each wallet, such as Cash, GCash, Maya and MariBank. " +
         "You can log an entry in a few taps, bring in entries from a GCash or MariBank statement, get reminders for paydays " +
         "and loan due dates, and see a monthly summary with a chart. " +
-        "Everything stays on your phone, with no account and no sign-up, plus an optional fingerprint lock and a backup file " +
-        "you keep yourself. It has a playful hand-drawn look with six colour themes in light and dark. " +
-        "This is the first full version (1.0.0), and feedback is very welcome."
+        "Your entries stay on your phone, with no account and no sign-up, plus an optional fingerprint lock and a backup file " +
+        "you keep yourself. The app goes online only to ask GitHub for a new version, and you can turn that off. " +
+        "It has a playful hand-drawn look with six colour themes in light and dark. " +
+        "This version (1.1.0) can update itself from inside the app, and feedback is very welcome."
     const val FONT = "Fonts: Shantell Sans, Mali, Pangolin, Fuzzy Bubbles, Itim. SIL Open Font License 1.1"
     const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
 }
+
+/** The key of the Updates heading in Settings, which a tapped "new version" notification brings into view. */
+const val UPDATES_TITLE_KEY = "updates-title"
 
 /** The version of the app that is installed, as Android knows it: never a number typed into the screen that can go stale. */
 @Composable
@@ -80,10 +87,18 @@ fun SettingsScreen(
     onSizeChange: (UiSize) -> Unit = {},
     onStyleChange: (UiStyle) -> Unit = {},
     onFontChange: (FontChoice) -> Unit = {},
+    updates: UpdatesUi = UpdatesUi(installed = version),
+    onUpdateChecksChange: (Boolean) -> Unit = {},
+    onCheckForUpdates: () -> Unit = {},
+    onUpdate: () -> Unit = {},
+    onAllowInstalling: () -> Unit = {},
+    onAllowUpdateNotifications: () -> Unit = {},
+    /** Counts up each time the Updates card is to be brought into view (a tapped "new version" notification). */
+    revealUpdates: Int = 0,
 ) {
     val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    FitakaScreen(title = "Settings", onBack = onBack) {
+    FitakaScreen(title = "Settings", onBack = onBack, reveal = if (revealUpdates > 0) RevealRequest(UPDATES_TITLE_KEY, revealUpdates) else null) {
         item(key = "money-title") { SectionHeader("Money set-up") }
         item(key = "money") {
             FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
@@ -134,6 +149,11 @@ fun SettingsScreen(
         if (lock.support != LockSupport.TOO_OLD) {
             item(key = "lock-title") { SectionHeader("App lock") }
             item(key = "lock") { LockCard(lock, onLockChange) }
+        }
+        // Beside About, which also says which version this is.
+        item(key = UPDATES_TITLE_KEY) { SectionHeader("Updates") }
+        item(key = "updates") {
+            UpdatesCard(updates, onUpdateChecksChange, onCheckForUpdates, onUpdate, onAllowInstalling, onAllowUpdateNotifications)
         }
         item(key = "about-title") { SectionHeader("About") }
         item(key = "about") {

@@ -36,6 +36,7 @@ import com.pitakaview.app.ui.onboarding.OnboardingLogic
 import com.pitakaview.app.ui.onboarding.OnboardingRoute
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.resolve
+import com.pitakaview.app.update.UpdateIntents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,6 +46,9 @@ class MainActivity : ComponentActivity() {
     /** The screen a tapped reminder asked for, until the app has gone there. */
     private var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
 
+    /** A tapped "new version" notification, until the app has opened Settings at its Updates card. */
+    private var updatesToOpen by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -53,7 +57,10 @@ class MainActivity : ComponentActivity() {
         val appLock = container.appLock
         // Only on a fresh start: after a rotation the same intent is still attached, and the owner has
         // already been taken where the reminder pointed.
-        if (savedInstanceState == null) reminderToOpen = ReminderIntents.read(intent)
+        if (savedInstanceState == null) {
+            reminderToOpen = ReminderIntents.read(intent)
+            updatesToOpen = UpdateIntents.read(intent)
+        }
 
         // Keep the app's idea of "today" fresh: re-read it whenever the app comes to the front, and again
         // just after each midnight while it stays open. One sleeping coroutine; no polling.
@@ -70,6 +77,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 withContext(Dispatchers.Default) { container.reminders.onAppOpened() }
+            }
+        }
+        // And for updates, apart, so waiting on GitHub never holds the reminders up: with checks on, keep the
+        // daily look lined up and ask GitHub if a day has passed since its last answer.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                withContext(Dispatchers.Default) { container.updates.onAppOpened() }
             }
         }
 
@@ -137,6 +151,8 @@ class MainActivity : ComponentActivity() {
                                         onFontChange = { scope.launch { settings.setFont(it) } },
                                         reminderToOpen = reminderToOpen,
                                         onReminderOpened = { reminderToOpen = null },
+                                        openUpdates = updatesToOpen,
+                                        onUpdatesOpened = { updatesToOpen = false },
                                     )
                                 }
                             }
@@ -153,6 +169,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         ReminderIntents.read(intent)?.let { reminderToOpen = it }
+        if (UpdateIntents.read(intent)) updatesToOpen = true
     }
 
     private fun askToUnlock() {

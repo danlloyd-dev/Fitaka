@@ -51,7 +51,7 @@ class ReminderWorkTest {
         container.reminderClock = { clock }
         // WorkManager's test set-up keeps work to itself and gives the phone no job. A healthy phone has a
         // job for whatever is waiting; the test of an unhealthy one says so itself.
-        alarm.phoneHasAJob = { waiting().isNotEmpty() }
+        alarm.phoneHolds = { id -> waiting().any { it.id == id } }
     }
 
     /** Every check there is or was, under either of its two names. */
@@ -199,7 +199,7 @@ class ReminderWorkTest {
     fun aCheckThePhoneHasLostIsLinedUpAgainWhenTheAppOpens() = runBlocking {
         container.reminders.turnOn()
         val lost = waiting().single()
-        alarm.phoneHasAJob = { false }
+        alarm.phoneHolds = { false }
 
         container.reminders.onAppOpened()
         val fresh = waiting().single()
@@ -207,7 +207,7 @@ class ReminderWorkTest {
         assertTrue("the lost one waits no more", work().none { it.id == lost.id && !it.state.isFinished })
 
         // With the phone holding the job again, further opens change nothing.
-        alarm.phoneHasAJob = { waiting().isNotEmpty() }
+        alarm.phoneHolds = { id -> waiting().any { it.id == id } }
         repeat(3) { container.reminders.onAppOpened() }
         assertEquals(fresh.id, waiting().single().id)
     }

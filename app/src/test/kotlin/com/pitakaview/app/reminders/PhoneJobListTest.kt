@@ -66,6 +66,14 @@ class PhoneJobListTest {
         assertEquals(listOf(7), workJobsIn(list).map { it.id })
     }
 
+    /** The app tells its reminder job from its update job by this extra; it must be the one WorkManager writes. */
+    @Test
+    fun theWorkIdIsReadUnderTheNameWorkManagerWritesItUnder() {
+        val theirs = Class.forName("androidx.work.impl.background.systemjob.SystemJobInfoConverter")
+            .getDeclaredField("EXTRA_WORK_SPEC_ID").apply { isAccessible = true }.get(null)
+        assertEquals(theirs, WORK_ID_EXTRA)
+    }
+
     @Test
     fun withNoJobsThePhoneHasNone() {
         assertEquals(0, phoneJobs(app).size)
