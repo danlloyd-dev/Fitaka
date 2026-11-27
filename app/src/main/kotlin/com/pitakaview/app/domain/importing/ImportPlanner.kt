@@ -20,6 +20,12 @@ enum class ImportStatus {
 
     /** The app already has an entry in this wallet on that day for that amount (typed in by hand, most likely). Unticked, but the owner may tick it. */
     LOOKS_LIKE_EXISTING,
+
+    /**
+     * The file names a wallet for each line (the app's own export does) and this line's is not the wallet
+     * being imported into. Not brought in: until 2026-11-27 every wallet's lines went into that one wallet.
+     */
+    OTHER_WALLET,
 }
 
 /** One line of the file as the review screen shows it. */
@@ -62,6 +68,8 @@ object ImportPlanner {
         existing: List<LedgerMark>,
         expenseCategories: List<CategoryEntity>,
         incomeCategories: List<CategoryEntity>,
+        /** The name of the wallet being imported into, to compare with the wallet a line is named for. */
+        walletName: String? = null,
     ): List<ImportCandidate> {
         val unmatched = existing.groupingBy { it }.eachCount().toMutableMap()
         val seenRefs = HashSet<String>()
@@ -69,6 +77,9 @@ object ImportPlanner {
             val ref = refFor(source, walletId, row)
             val mark = LedgerMark(row.date, row.amountCentavos, row.moneyIn)
             val status = when {
+                // First: a line for another wallet uses up no reference and no existing entry.
+                row.walletName != null && walletName != null && !row.walletName.trim().equals(walletName.trim(), ignoreCase = true) ->
+                    ImportStatus.OTHER_WALLET
                 ref != null && ref in importedRefs -> ImportStatus.ALREADY_IMPORTED
                 ref != null && !seenRefs.add(ref) -> ImportStatus.TWICE_IN_FILE
                 (unmatched[mark] ?: 0) > 0 -> {
@@ -145,4 +156,51 @@ object ImportPlanner {
 
     /** Every amount the other way round, for a file that does not say which way its money went. */
     fun flipped(rows: List<StatementRow>): List<StatementRow> = rows.map { it.copy(moneyIn = !it.moneyIn) }
+
+    /**
+     * A line the file does not settle ([open]: its direction is a guess, or the file does not say at all
+     * which way its money went) may have been brought in before the other way round, after the owner said
+     * so. The ledger then knows which way it went:
+     *  - by the line's reference, when it has one ([importedRefs] holds its key one way and not the other);
+     *  - without a reference, by an entry of that day and amount going the other way while none goes this
+     *    way ([existing]; each entry is used for one line).
+     * Such a line takes the ledger's direction, so it is recognised. Until 2026-11-27 it was offered
+     * again, the first way round, and importing it stored the same money a second time, the wrong way.
+     * A reference settles the line; a look-alike entry only turns the guess, and the line stays open.
+     */
+    fun settledByLedger(
+        rows: List<StatementRow>,
+        open: (StatementRow) -> Boolean,
+        source: ImportSource,
+        walletId: Long,
+        importedRefs: Set<String>,
+        existing: List<LedgerMark>,
+    ): List<StatementRow> {
+        val left = existing.groupingBy { it }.eachCount().toMutableMap()
+        fun take(mark: LedgerMark): Boolean {
+            val count = left[mark] ?: 0
+            if (count > 0) left[mark] = count - 1
+            return count > 0
+        }
+        return rows.map { row ->
+            if (!open(row)) return@map row
+            val turned = row.copy(moneyIn = !row.moneyIn)
+            val thisWay = refFor(source, walletId, row)
+            if (thisWay != null) {
+                val here = thisWay in importedRefs
+                val there = refFor(source, walletId, turned) in importedRefs
+                when {
+                    here == there -> row
+                    here -> row.copy(sure = true)
+                    else -> turned.copy(sure = true)
+                }
+            } else {
+                when {
+                    take(LedgerMark(row.date, row.amountCentavos, row.moneyIn)) -> row
+                    take(LedgerMark(row.date, row.amountCentavos, !row.moneyIn)) -> turned
+                    else -> row
+                }
+            }
+        }
+    }
 }

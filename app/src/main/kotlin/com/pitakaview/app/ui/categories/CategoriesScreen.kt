@@ -47,6 +47,7 @@ import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.Gloss
+import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
@@ -152,6 +153,10 @@ class CategoryEditorViewModel(
         private set
     private val saving = OneAtATime()
 
+    /** Hiding was refused: this is the last category of its kind still in use. */
+    var hideBlocked by mutableStateOf(false)
+        private set
+
     init {
         viewModelScope.launch {
             if (categoryId != null) {
@@ -198,6 +203,12 @@ class CategoryEditorViewModel(
     fun toggleHidden() {
         val row = current ?: return
         viewModelScope.launch {
+            // One of each kind stays in use. With none, a new entry of that kind has no category to go
+            // under, and a statement brought in had none to give its lines, which stopped the app.
+            if (!row.isArchived && db.categoryDao().countActive(row.kind) <= 1) {
+                hideBlocked = true
+                return@launch
+            }
             db.categoryDao().update(row.copy(isArchived = !row.isArchived))
             done = true
         }
@@ -216,6 +227,7 @@ fun CategoryEditorRoute(categoryId: Long?, kind: CategoryKind, onDone: () -> Uni
     CategoryEditorContent(
         vm.isEdit, vm.kind, vm.name, vm.current, vm.nameProblem, vm.iconKey,
         onIcon = vm::pickIcon, onSave = vm::save, onToggleHidden = vm::toggleHidden, onBack = onDone,
+        hideBlocked = vm.hideBlocked,
     )
 }
 
@@ -255,6 +267,7 @@ fun CategoryEditorContent(
     onSave: () -> Unit,
     onToggleHidden: () -> Unit,
     onBack: () -> Unit,
+    hideBlocked: Boolean = false,
 ) {
     val c = FitakaTheme.colors
     FitakaScreen(
@@ -286,6 +299,7 @@ fun CategoryEditorContent(
                         color = c.inkMuted,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
+                    if (hideBlocked) ProblemText("Keep at least one ${kind.sectionLabel} category in use")
                 }
             }
         }

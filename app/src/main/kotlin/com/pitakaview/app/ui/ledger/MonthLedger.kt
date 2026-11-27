@@ -15,8 +15,13 @@ import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.YearMonth
 
-/** One day's entries with their sum. */
-data class DayGroup(val date: LocalDate, val totalCentavos: Long, val rows: List<RecentTransaction>)
+/**
+ * One day's entries. [totalCentavos] is their sum when they are all of one kind (a day of spending, a day
+ * of payments), and null when they are not: money put into a goal and money taken out of it, or what a
+ * search turned up, cannot be added into one figure. Until 2026-11-27 they were, and the heading of such
+ * a day showed a number that meant nothing.
+ */
+data class DayGroup(val date: LocalDate, val totalCentavos: Long?, val rows: List<RecentTransaction>)
 
 /** How much of the month went to (or came from) one category. */
 data class CategoryShare(val name: String, val totalCentavos: Long, val iconKey: String? = null)
@@ -51,7 +56,10 @@ object MonthLedgerBuilder {
 
     /** Keeps the rows' order, so newest-first rows give newest-first days. */
     fun groupByDay(rows: List<RecentTransaction>): List<DayGroup> =
-        rows.groupBy { it.occurredOn }.map { (date, list) -> DayGroup(date, list.sumOf { it.amountCentavos }, list) }
+        rows.groupBy { it.occurredOn }.map { (date, list) ->
+            val oneKind = list.all { it.purpose == list.first().purpose }
+            DayGroup(date, if (oneKind) list.sumOf { it.amountCentavos } else null, list)
+        }
 
     /** "42%", "<1%" for a sliver, "" when there is no total to compare with. */
     fun percentText(partCentavos: Long, totalCentavos: Long): String {

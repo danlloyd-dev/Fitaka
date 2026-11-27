@@ -224,11 +224,44 @@ object MariBankStatementReader {
         null
     }
 
+    /**
+     * Each word as a whole word (with an optional plural), never as letters inside another word. Until
+     * 2026-11-27 they were looked for anywhere: "send" was found in "Rosendo", "fee" in "coffee" and "tax"
+     * in "taxi", and a name decided which way a line went.
+     */
+    private fun wholeWords(words: List<String>) =
+        Regex(words.joinToString("|", prefix = "(?<![a-z0-9])(?:", postfix = ")s?(?![a-z0-9])") { Regex.escape(it) })
+    private val IN_PATTERN = wholeWords(IN_WORDS)
+    private val OUT_PATTERN = wholeWords(OUT_WORDS)
+
     private fun hint(words: String): Boolean? {
         val text = words.lowercase()
-        val into = IN_WORDS.any { it in text }
-        val out = OUT_WORDS.any { it in text }
+        val into = IN_PATTERN.containsMatchIn(text)
+        val out = OUT_PATTERN.containsMatchIn(text)
         return if (into == out) null else into
+    }
+
+    /**
+     * A line's words may suggest which way it went; they may not settle it against a line of the same
+     * amount that the words say nothing about. With the words taken as facts, the totals push that other
+     * line the opposite way and both came out marked sure, though the two could change places and reach
+     * the same totals: had the word been wrong, both were stored the wrong way round and the review said
+     * the lines add up. Such lines keep their direction as a first guess and are left for the owner.
+     */
+    private fun tiesLeftOpen(amounts: List<Long>, hints: List<Boolean?>, solved: List<Direction>): List<Direction> {
+        fun amountsOf(fromWords: Boolean, moneyIn: Boolean) =
+            amounts.indices.filter { (hints[it] != null) == fromWords && solved[it].moneyIn == moneyIn }.mapTo(HashSet()) { amounts[it] }
+        val wordsIn = amountsOf(fromWords = true, moneyIn = true)
+        val wordsOut = amountsOf(fromWords = true, moneyIn = false)
+        val silentIn = amountsOf(fromWords = false, moneyIn = true)
+        val silentOut = amountsOf(fromWords = false, moneyIn = false)
+        return solved.mapIndexed { i, direction ->
+            val acrossFromIt = when {
+                hints[i] != null -> if (direction.moneyIn) silentOut else silentIn
+                else -> if (direction.moneyIn) wordsOut else wordsIn
+            }
+            if (amounts[i] in acrossFromIt) direction.copy(sure = false) else direction
+        }
     }
 
     private class Entry(val date: LocalDate, val description: String, val amount: Long)
@@ -315,8 +348,11 @@ object MariBankStatementReader {
         val amounts = entries.map { it.amount }
         val hints = entries.map { hint(it.description) }
         // The words are tried as facts first; if the totals cannot be reached that way, the totals alone decide.
-        val directions = totals?.let { DirectionSolver.solve(amounts, hints, it) ?: DirectionSolver.solve(amounts, hints.map { null }, it) }
-            ?: hints.map { Direction(it ?: false, sure = false) }
+        val fromWords = totals?.let { DirectionSolver.solve(amounts, hints, it) }
+        val directions = when {
+            fromWords != null -> tiesLeftOpen(amounts, hints, fromWords)
+            else -> totals?.let { DirectionSolver.solve(amounts, hints.map { null }, it) } ?: hints.map { Direction(it ?: false, sure = false) }
+        }
 
         return StatementRead.Rows(
             rows = entries.mapIndexed { i, entry ->

@@ -135,4 +135,68 @@ class ImportPlannerTest {
         val forced = plan(listOf(row(reference = "R1")), importedRefs = setOf("CSV:7:R1:out:25000")).map { it.copy(picked = true) }
         assertEquals(0, ImportPlanner.toTransactions(forced, wallet, 5, now).size)
     }
+
+    // ---------- a line brought in before, the other way round (review before 1.0, 2026-11-27) ----------
+
+    private fun settled(rows: List<StatementRow>, importedRefs: Set<String> = emptySet(), existing: List<LedgerMark> = emptyList(), open: Boolean = true) =
+        ImportPlanner.settledByLedger(rows, { open }, ImportSource.CSV, wallet, importedRefs, existing)
+
+    @Test
+    fun aLineBroughtInTheOtherWayRoundIsRecognisedByItsReference() {
+        val file = listOf(row("Sideline pay", 50_000, moneyIn = false, reference = "R1"))
+        val broughtInAsMoneyIn = setOf(ImportPlanner.refFor(ImportSource.CSV, wallet, file[0].copy(moneyIn = true))!!)
+
+        val rows = settled(file, importedRefs = broughtInAsMoneyIn)
+        assertTrue("it takes the direction the ledger has", rows.single().moneyIn)
+        assertTrue(rows.single().sure)
+        assertEquals(ImportStatus.ALREADY_IMPORTED, plan(rows, importedRefs = broughtInAsMoneyIn).single().status)
+        assertEquals("without this it was offered again, as new", ImportStatus.NEW, plan(file, importedRefs = broughtInAsMoneyIn).single().status)
+    }
+
+    @Test
+    fun withoutAReferenceItIsRecognisedByTheEntryOfThatDayAndAmount() {
+        val file = listOf(row("Sideline pay", 50_000, moneyIn = false))
+        val existing = listOf(LedgerMark(nov3, 50_000, moneyIn = true))
+
+        val rows = settled(file, existing = existing)
+        assertTrue(rows.single().moneyIn)
+        assertEquals(ImportStatus.LOOKS_LIKE_EXISTING, plan(rows, existing = existing).single().status)
+        assertFalse("and it is not ticked", plan(rows, existing = existing).single().picked)
+    }
+
+    @Test
+    fun anEntryGoingTheSameWayComesFirstAndEachEntryIsUsedForOneLine() {
+        // Two 500.00 lines read as money out; the ledger has one 500.00 out and one 500.00 in on that day.
+        val file = listOf(row("First", 50_000), row("Second", 50_000), row("Third", 50_000))
+        val existing = listOf(LedgerMark(nov3, 50_000, moneyIn = false), LedgerMark(nov3, 50_000, moneyIn = true))
+        assertEquals("the third has no entry left and stays as it was read", listOf(false, true, false), settled(file, existing = existing).map { it.moneyIn })
+    }
+
+    @Test
+    fun aLineTheFileSettlesIsNeverTurnedRound() {
+        val file = listOf(row("Sideline pay", 50_000, moneyIn = false, reference = "R1"), row("Lunch", 25_000))
+        val otherWay = setOf(ImportPlanner.refFor(ImportSource.CSV, wallet, file[0].copy(moneyIn = true))!!)
+        val existing = listOf(LedgerMark(nov3, 25_000, moneyIn = true))
+        assertEquals(file, settled(file, importedRefs = otherWay, existing = existing, open = false))
+    }
+
+    // ---------- the app's own export names a wallet for each line ----------
+
+    @Test
+    fun aLineNamedForAnotherWalletIsNotBroughtIn() {
+        val rows = listOf(row("Lunch").copy(walletName = "Cash"), row("Grab", 18_000).copy(walletName = "GCash"), row("From a bank file", 9_900))
+        val plan = ImportPlanner.plan(rows, ImportSource.CSV, wallet, emptySet(), emptyList(), expense, income, walletName = " cash ")
+        assertEquals(listOf(ImportStatus.NEW, ImportStatus.OTHER_WALLET, ImportStatus.NEW), plan.map { it.status })
+        assertEquals(listOf(true, false, true), plan.map { it.picked })
+        assertFalse("and it cannot be ticked", plan[1].canPick)
+        assertEquals("only the two are turned into entries", 2, ImportPlanner.toTransactions(plan, wallet, 5, Instant.parse("2026-11-25T08:00:00Z")).size)
+    }
+
+    @Test
+    fun aLineForAnotherWalletUsesUpNoExistingEntry() {
+        // The GCash line and the Cash line are the same day and amount; Cash has one such entry already.
+        val rows = listOf(row("Lunch").copy(walletName = "GCash"), row("Lunch").copy(walletName = "Cash"))
+        val plan = ImportPlanner.plan(rows, ImportSource.CSV, wallet, emptySet(), listOf(LedgerMark(nov3, 25_000, moneyIn = false)), expense, income, walletName = "Cash")
+        assertEquals(listOf(ImportStatus.OTHER_WALLET, ImportStatus.LOOKS_LIKE_EXISTING), plan.map { it.status })
+    }
 }

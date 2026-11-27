@@ -200,7 +200,7 @@ class LoanEditorViewModel(
             if (current == null) {
                 ledger.addLoan(loan) { id -> LoanFormLogic.startRow(form, id, now()) }
             } else {
-                db.loanDao().update(loan)
+                ledger.updateLoan(loan)
             }
             done = true
             true

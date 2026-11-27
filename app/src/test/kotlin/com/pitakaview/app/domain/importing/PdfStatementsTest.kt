@@ -294,4 +294,74 @@ class PdfStatementsTest {
         assertEquals(StatementRead.Unreadable(UnreadableReason.NO_HEADER), PdfStatementReader.read(listOf("Hello\nThis is a letter, not a statement.")))
         assertEquals(StatementRead.Unreadable(UnreadableReason.NO_HEADER), PdfStatementReader.read(emptyList()))
     }
+
+    // ---------- words as hints (found in the review before 1.0, 2026-11-27) ----------
+
+    private val mariTotalsWithOneMoreThousandOut = mariPage1.replace("SAVINGS 10.00 21,000.45 19,500.00 1,510.45", "SAVINGS 10.00 21,000.45 20,500.00 510.45")
+
+    private fun mariWithASecondThousand(name: String, kind: String) =
+        rows(PdfStatementReader.read(listOf(
+            mariTotalsWithOneMoreThousandOut,
+            mariPage2.replace("09 OCT ATM Cash Withdrawal", "06 OCT $name\n$kind\n1,000.00\n09 OCT ATM Cash Withdrawal"),
+            mariPage3,
+        )))
+
+    /**
+     * The hint words were looked for as letters anywhere, so a name decided which way a line went ("send"
+     * in Rosendo, "fee" in coffee, "tax" in taxi). Here there is no way round that: 1,300.00 from Rosendo
+     * came IN, and 1,000.00 and 300.00 went OUT. Read as "send", the 1,300.00 was put down as money out,
+     * the totals then forced the 1,000.00 and the 300.00 in, and all three came out marked sure and wrong,
+     * with the lines adding up. With the name saying nothing, the totals can be reached two ways (the
+     * 1,300.00 in, or the 1,000.00 and the 300.00 in), so the three are left for the owner.
+     */
+    @Test
+    fun lettersInsideANameDoNotDecideWhichWayALineWent() {
+        for (name in listOf("Rosendo Cruz", "Kape Coffee Shop", "Taxi Ride")) {
+            val read = rows(PdfStatementReader.read(listOf(
+                // 0.45 + 20,000.00 + 1,300.00 in; 500.00 + 1,000.00 + 300.00 + 19,000.00 out.
+                mariPage1.replace("SAVINGS 10.00 21,000.45 19,500.00 1,510.45", "SAVINGS 10.00 21,300.45 20,800.00 510.45"),
+                mariPage2.replace(
+                    "09 OCT ATM Cash Withdrawal",
+                    "06 OCT $name\nTransfer\n1,300.00\n07 OCT Via Other Banks Channel\nTransfer\n300.00\n09 OCT ATM Cash Withdrawal",
+                ),
+                mariPage3,
+            )))
+            assertEquals(StatementTotals(2_130_045, 2_080_000), read.totals)
+            assertEquals(listOf(100_000L, 130_000L, 30_000L), listOf(3, 4, 5).map { read.rows[it].amountCentavos })
+            assertEquals("$name: the three lines the totals leave open are left for the owner", listOf(3, 4, 5), read.rows.indices.filter { !read.rows[it].sure })
+            assertTrue("and the 20,000.00 is still settled by the totals", read.rows[1].sure && read.rows[1].moneyIn)
+        }
+    }
+
+    /** The same names beside a line of the same amount: both are left open (this much the tie rule gives by itself). */
+    @Test
+    fun aNameWithThoseLettersAndALineOfTheSameAmountAreBothLeftOpen() {
+        for (name in listOf("Rosendo Cruz", "Kape Coffee Shop", "Taxi Ride")) {
+            val read = mariWithASecondThousand(name, "Transfer")
+            assertEquals(6, read.rows.size)
+            assertEquals("$name: the two equal lines are both left for the owner", listOf(3, 4), read.rows.indices.filter { !read.rows[it].sure })
+        }
+    }
+
+    /** A real hint word suggests; it does not settle its line against a line of the same amount that the words say nothing about. */
+    @Test
+    fun aWordDoesNotSettleATieBetweenTwoLinesOfTheSameAmount() {
+        val read = mariWithASecondThousand("Lazada", "Payment")
+        assertEquals("both are left for the owner", listOf(3, 4), read.rows.indices.filter { !read.rows[it].sure })
+        assertTrue("the first guess still follows the word: the transfer in", read.rows[3].moneyIn)
+        assertFalse("and the payment out", read.rows[4].moneyIn)
+        assertTrue("a word with no such twin still settles its line (Shopee, 500.00)", read.rows[2].sure)
+        assertFalse(read.rows[2].moneyIn)
+    }
+
+    @Test
+    fun aHintWordIsStillFoundAsAWholeWordAndInItsPlural() {
+        // "Fees" and "Cash In": with the words as facts the 20,000.00 transfer is the only line left open.
+        val read = rows(PdfStatementReader.read(listOf(
+            mariPage1.replace("03 OCT Shopee\nPayment", "03 OCT Service Fees\nMonthly").replace("02 OCT Via Other Banks Channel\nTransfer", "02 OCT GCash\nCash In"),
+            mariPage2, mariPage3,
+        )))
+        assertTrue(read.rows.all { it.sure })
+        assertEquals(listOf(true, true, false, true, false), read.rows.map { it.moneyIn })
+    }
 }

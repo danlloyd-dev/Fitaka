@@ -205,7 +205,9 @@ private fun DayGroupCard(day: DayGroup, today: LocalDate, onOpenEntry: (Long) ->
     Column {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(friendlyDate(day.date, today), style = type.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
-            if (day.rows.size > 1) Text(Peso.format(day.totalCentavos), style = type.labelLarge, color = c.inkMuted)
+            // The day's sum, when there is more than one entry to add and they are of one kind (see DayGroup).
+            val total = day.totalCentavos
+            if (day.rows.size > 1 && total != null) Text(Peso.format(total), style = type.labelLarge, color = c.inkMuted)
         }
         FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
             day.rows.forEachIndexed { i, row ->

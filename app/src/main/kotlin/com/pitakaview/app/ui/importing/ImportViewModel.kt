@@ -101,7 +101,7 @@ sealed interface ImportNotice {
     data class Refused(val why: Refusal) : ImportNotice
 }
 
-enum class Refusal { TOO_BIG, EMPTY, NO_TABLE, MIXED_DATES, NOTHING_IN_IT, PDF_NEEDS_NEWER_ANDROID, PDF_UNREADABLE, COULD_NOT_SAVE }
+enum class Refusal { TOO_BIG, EMPTY, NO_TABLE, MIXED_DATES, NOTHING_IN_IT, PDF_NEEDS_NEWER_ANDROID, PDF_UNREADABLE, COULD_NOT_SAVE, NO_CATEGORY_IN_USE }
 
 class ImportViewModel(
     private val db: FitakaDatabase,
@@ -188,21 +188,24 @@ class ImportViewModel(
         val wallet = walletId ?: return
         if (expenseCategories.isEmpty()) expenseCategories = db.categoryDao().observeActive(CategoryKind.EXPENSE).first()
         if (incomeCategories.isEmpty()) incomeCategories = db.categoryDao().observeActive(CategoryKind.INCOME).first()
-        // A line whose direction is still a guess is asked for both ways: if it was brought in before,
-        // the owner settled it then, and the ledger knows which way it went. Still one query.
+        // Every line gets a category of its kind. The category screen now keeps one of each kind in use;
+        // data from before that (2026-11-27) may have none, and guessing from an empty list stopped the app.
+        if (expenseCategories.isEmpty() || incomeCategories.isEmpty()) {
+            refuse(Refusal.NO_CATEGORY_IN_USE)
+            return
+        }
+        // A line the file does not settle (its direction is a guess, or the file does not say at all which
+        // way its money went) is asked for both ways: if it was brought in before, the owner settled it
+        // then, and the ledger knows which way it went (see ImportPlanner.settledByLedger). Still one query.
+        val open = { row: StatementRow -> !row.sure || !read.directionKnown }
         fun ref(row: StatementRow, moneyIn: Boolean) = ImportPlanner.refFor(read.source, wallet, row.copy(moneyIn = moneyIn))
-        val refs = rows.flatMap { row -> if (row.sure) listOfNotNull(ref(row, row.moneyIn)) else listOfNotNull(ref(row, true), ref(row, false)) }
+        val refs = rows.flatMap { row -> if (open(row)) listOfNotNull(ref(row, true), ref(row, false)) else listOfNotNull(ref(row, row.moneyIn)) }
         val imported = if (refs.isEmpty()) emptySet() else ledger.knownRefs(refs)
-        val settled = settleFromTotals(
-            rows.map { row ->
-                val cameIn = !row.sure && ref(row, true) in imported
-                val wentOut = !row.sure && ref(row, false) in imported
-                if (cameIn != wentOut) row.copy(moneyIn = cameIn, sure = true) else row
-            },
-            read.totals,
-        )
         val existing = db.transactionDao().marksFor(wallet, rows.minOf { it.date }, rows.maxOf { it.date })
-        val fresh = ImportPlanner.plan(settled, read.source, wallet, imported, existing, expenseCategories, incomeCategories)
+        val settled = settleFromTotals(ImportPlanner.settledByLedger(rows, open, read.source, wallet, imported, existing), read.totals)
+        // Only a file that names wallets (the app's own export) needs the wallet's name: one small read then.
+        val walletName = if (rows.any { it.walletName != null }) db.walletDao().get(wallet)?.name else null
+        val fresh = ImportPlanner.plan(settled, read.source, wallet, imported, existing, expenseCategories, incomeCategories, walletName)
         stage = ImportStage.Review(
             fileName, read,
             fresh.mapIndexed { i, line ->

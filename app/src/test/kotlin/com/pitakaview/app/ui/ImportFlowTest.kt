@@ -568,4 +568,97 @@ class ImportFlowTest : FlowTestBase() {
         assertTrue("and the screen still says so", shows("Imported 3 entries into Cash."))
         assertFalse(shows("The import could not be saved"))
     }
+
+    /**
+     * Found in the review before 1.0 (2026-11-27): builds until then let every category of a kind be hidden,
+     * and the next file chosen stopped the app (a guess was taken from an empty list).
+     */
+    @Test
+    fun withEveryKitaCategoryHiddenAFileIsRefusedWithAReason() {
+        picked = file("november.csv", statement)
+        start()
+        runBlocking {
+            val dao = container.database.categoryDao()
+            dao.observeActive(CategoryKind.INCOME).first().forEach { dao.update(it.copy(isArchived = true)) }
+        }
+        openImport()
+        tapButton("Choose a file")
+        waitFor("Show one again in Settings, under Categories")
+        assertFalse("the file is not laid out for review", shows("3 lines read"))
+        assertEquals(0, entries().size)
+
+        // Shown again, the same file goes through.
+        runBlocking {
+            val dao = container.database.categoryDao()
+            dao.observeAll(CategoryKind.INCOME).first().forEach { dao.update(it.copy(isArchived = false)) }
+        }
+        tapButton("Choose a file")
+        waitFor("3 lines read · 3 new")
+    }
+
+    /**
+     * Found in the review before 1.0 (2026-11-27): a file that does not say which way its money went, brought
+     * in as money coming in, was offered again as new spending the next time it was opened.
+     */
+    @Test
+    fun aFileBroughtInTheOtherWayRoundIsRecognisedTheNextTime() {
+        picked = file("list.csv", "Date,Description,Reference,Amount\n2026-11-03,Sideline pay,S1,500\n2026-11-04,Sideline pay,S2,700\n")
+        start()
+        openImport()
+        tapButton("Choose a file")
+        waitFor("2 lines read · 2 new")
+        rule.onNode(hasText("These amounts are money coming in") and isToggleable()).performClick()
+        waitFor("+₱500.00")
+        tapButton("Import 2 entries")
+        waitFor("Imported 2 entries into Cash.")
+        assertEquals(120_000L, cashBalance())
+
+        // The same file again: it reads as money out, as before, but the ledger knows better.
+        tapButton("Choose a file")
+        waitFor("2 lines read · 0 new · 2 already imported")
+        assertTrue("shown the way it was brought in", shows("+₱500.00"))
+        assertEquals(2, entries().size)
+        assertEquals(120_000L, cashBalance())
+    }
+
+    /** The same, for a file with no reference numbers: recognised by the entries of those days and amounts. */
+    @Test
+    fun withoutReferencesAFileBroughtInTheOtherWayRoundIsNotOfferedAsNew() {
+        picked = file("list.csv", "Date,Description,Amount\n2026-11-03,Sideline pay,500\n")
+        start()
+        openImport()
+        tapButton("Choose a file")
+        waitFor("list.csv")
+        rule.onNode(hasText("These amounts are money coming in") and isToggleable()).performClick()
+        waitFor("+₱500.00")
+        tapButton("Import 1 entry")
+        waitFor("Imported 1 entry into Cash.")
+
+        tapButton("Choose a file")
+        waitFor("1 line read · 0 new · 1 looks like an entry you already have")
+        assertEquals(1, entries().size)
+    }
+
+    /**
+     * Found in the review before 1.0 (2026-11-27): the app's own export names a wallet for each line, and
+     * read back in, every wallet's lines went into the one wallet being imported into.
+     */
+    @Test
+    fun theAppsOwnExportBringsInOnlyTheLinesOfTheChosenWallet() {
+        picked = file(
+            "fitaka-entries.csv",
+            "Date,Type,Category,Amount,In or out,From wallet,To wallet,For,Note\r\n" +
+                "2026-11-03,Gastos,Food,250.00,out,Cash,,,Lunch\r\n" +
+                "2026-11-04,Gastos,Transport,180.00,out,GCash,,,Grab ride\r\n" +
+                "2026-11-05,Kita,Salary,15000.00,in,,GCash,,Payroll\r\n",
+        )
+        start()
+        openImport()
+        tapButton("Choose a file")
+        waitFor("3 lines read · 1 new · 2 for another wallet")
+        tapButton("Import 1 entry")
+        waitFor("Imported 1 entry into Cash.")
+        assertEquals("only the Cash line", -25_000L, cashBalance())
+        assertEquals(1, entries().size)
+    }
 }

@@ -149,8 +149,9 @@ class StatementReadingTest {
         )
         assertEquals(
             listOf(
-                StatementRow(day(11, 3), "Lunch", null, 25_000, moneyIn = false),
-                StatementRow(day(11, 4), "Salary", null, 1_500_000, moneyIn = true),
+                // Each line carries the wallet the file names for it: the one money left, or the one it reached.
+                StatementRow(day(11, 3), "Lunch", null, 25_000, moneyIn = false, walletName = "Cash"),
+                StatementRow(day(11, 4), "Salary", null, 1_500_000, moneyIn = true, walletName = "GCash"),
             ),
             read.rows,
         )
@@ -201,5 +202,26 @@ class StatementReadingTest {
         assertFalse("Juan" in sample)
         // The page's title line, the first MAX_LINES lines, and the "… more lines" line.
         assertEquals(1 + TextMask.MAX_LINES + 1, sample.substringBefore("\n\n— Page 2").lines().size)
+    }
+
+    // ---------- the app's own export (review before 1.0, 2026-11-27) ----------
+
+    @Test
+    fun theAppsOwnExportSaysWhichWalletEachLineBelongsTo() {
+        val read = CsvStatementReader.read(
+            "Date,Type,Category,Amount,In or out,From wallet,To wallet,For,Note\r\n" +
+                "2026-11-03,Gastos,Food,250.00,out,Cash,,,Lunch\r\n" +
+                "2026-11-05,Kita,Salary,15000.00,in,,GCash,,Payroll\r\n" +
+                "2026-11-06,Lipat,,500.00,move,Cash,GCash,,\r\n",
+        ) as StatementRead.Rows
+        assertEquals("money out is named for the wallet it left, money in for the wallet it reached", listOf("Cash", "GCash"), read.rows.map { it.walletName })
+        assertEquals(listOf(false, true), read.rows.map { it.moneyIn })
+        assertEquals(1, read.movesLeftOut)
+    }
+
+    @Test
+    fun aBanksFileNamesNoWallet() {
+        val read = CsvStatementReader.read("Date,Description,Debit,Credit\n2026-11-03,Lunch,250.00,\n") as StatementRead.Rows
+        assertNull(read.rows.single().walletName)
     }
 }

@@ -38,6 +38,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun get(id: Long): TransactionEntity?
 
+    /** The oldest entry of one kind for a loan: with LOAN_START, the money that changed hands when it was added. */
+    @Query("SELECT * FROM transactions WHERE loanId = :loanId AND purpose = :purpose ORDER BY id LIMIT 1")
+    suspend fun firstForLoan(loanId: Long, purpose: TxPurpose): TransactionEntity?
+
     @Query("SELECT * FROM transactions WHERE occurredOn BETWEEN :start AND :end ORDER BY occurredOn DESC, id DESC")
     fun observeBetween(start: LocalDate, end: LocalDate): Flow<List<TransactionEntity>>
 

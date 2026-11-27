@@ -77,6 +77,36 @@ class LedgerRepository(private val db: FitakaDatabase) {
             id
         }
 
+    /**
+     * Stores an edited loan and, as the same all-or-nothing step, carries a change of its amount or its day
+     * over to the entry for the money that changed hands. They are one event: until 2026-11-27 only the loan
+     * was changed, so correcting a typing slip in the amount left the wallet with the first amount.
+     *
+     * Only what was in step moves. An entry the owner set apart on purpose in its own form (less arrived
+     * than was borrowed, or it arrived on another day) keeps its amount or its day. A loan from before the
+     * app has no such entry, and none is made.
+     *
+     * One extra read for an edit that leaves amount and day alone; two reads and a write for one that changes them.
+     */
+    suspend fun updateLoan(loan: LoanEntity) = db.withWriteTransaction {
+        val before = requireNotNull(db.loanDao().get(loan.id)) { "No loan ${loan.id}" }
+        db.loanDao().update(loan)
+        if (before.principalCentavos != loan.principalCentavos || before.startDate != loan.startDate) {
+            val start = transactions.firstForLoan(loan.id, TxPurpose.LOAN_START)
+            if (start != null) {
+                val row = start.copy(
+                    amountCentavos = if (start.amountCentavos == before.principalCentavos) loan.principalCentavos else start.amountCentavos,
+                    occurredOn = if (start.occurredOn == before.startDate) loan.startDate else start.occurredOn,
+                )
+                if (row != start) {
+                    val problems = LedgerRules.validate(row, loan.direction)
+                    require(problems.isEmpty()) { "Invalid ${row.purpose} row: $problems" }
+                    transactions.update(row)
+                }
+            }
+        }
+    }
+
     /** Puts money toward a goal: into the goal's wallet, or earmarked in [fromWalletId] if the goal has none. */
     suspend fun depositToGoal(
         goalId: Long,

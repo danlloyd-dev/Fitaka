@@ -22,6 +22,11 @@ data class StatementRow(
      * its totals leave it open. The review screen then asks the owner, and will not import before that.
      */
     val sure: Boolean = true,
+    /**
+     * The wallet the file itself names for this line: the app's own export has one per line, a bank's file
+     * has none. A line named for another wallet than the one being imported into is not brought in.
+     */
+    val walletName: String? = null,
 )
 
 enum class UnreadableReason {
@@ -208,6 +213,8 @@ object CsvStatementReader {
     private val CREDIT = setOf("credit", "credits", "credit amount", "deposit", "deposits", "money in", "paid in", "in")
     private val DIRECTION = setOf("in or out", "direction", "debit/credit", "dr/cr")
     private val CATEGORY = setOf("category")
+    private val FROM_WALLET = setOf("from wallet")
+    private val TO_WALLET = setOf("to wallet")
 
     private val MEANS_IN = setOf("in", "credit", "cr", "deposit", "money in")
     private val MEANS_OUT = setOf("out", "debit", "dr", "withdrawal", "money out")
@@ -221,6 +228,7 @@ object CsvStatementReader {
     private class Columns(
         val date: Int, val description: Int?, val category: Int?, val reference: Int?,
         val amount: Int?, val debit: Int?, val credit: Int?, val direction: Int?,
+        val fromWallet: Int?, val toWallet: Int?,
     )
 
     private fun columns(row: List<String>): Columns? {
@@ -231,7 +239,7 @@ object CsvStatementReader {
         val debit = find(DEBIT)
         val credit = find(CREDIT)
         if (amount == null && debit == null && credit == null) return null
-        return Columns(date, find(DESCRIPTION), find(CATEGORY), find(REFERENCE), amount, debit, credit, find(DIRECTION))
+        return Columns(date, find(DESCRIPTION), find(CATEGORY), find(REFERENCE), amount, debit, credit, find(DIRECTION), find(FROM_WALLET), find(TO_WALLET))
     }
 
     fun read(text: String): StatementRead {
@@ -303,6 +311,8 @@ object CsvStatementReader {
                 reference = cell(cols.reference).ifEmpty { null },
                 amountCentavos = Math.abs(signed),
                 moneyIn = signed > 0,
+                // Money in sits in the wallet it went to, money out in the wallet it came from.
+                walletName = cell(if (signed > 0) cols.toWallet else cols.fromWallet).ifEmpty { null },
             )
         }
         return StatementRead.Rows(

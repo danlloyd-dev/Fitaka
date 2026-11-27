@@ -29,6 +29,10 @@ interface CategoryDao {
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun count(): Int
 
+    /** How many categories of [kind] are still offered for new entries. */
+    @Query("SELECT COUNT(*) FROM categories WHERE kind = :kind AND isArchived = 0")
+    suspend fun countActive(kind: CategoryKind): Int
+
     @Query("SELECT * FROM categories WHERE kind = :kind AND isArchived = 0 ORDER BY sortOrder, id")
     fun observeActive(kind: CategoryKind): Flow<List<CategoryEntity>>
 }

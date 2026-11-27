@@ -99,6 +99,7 @@ object ImportText {
         review.count(ImportStatus.ALREADY_IMPORTED).takeIf { it > 0 }?.let { add("$it already imported") }
         review.count(ImportStatus.LOOKS_LIKE_EXISTING).takeIf { it > 0 }?.let { add("$it looks like an entry you already have") }
         review.count(ImportStatus.TWICE_IN_FILE).takeIf { it > 0 }?.let { add("$it twice in this file") }
+        review.count(ImportStatus.OTHER_WALLET).takeIf { it > 0 }?.let { add("$it for another wallet") }
     }.joinToString(" · ")
 
     fun status(status: ImportStatus): String? = when (status) {
@@ -106,6 +107,7 @@ object ImportText {
         ImportStatus.ALREADY_IMPORTED -> "Already imported"
         ImportStatus.TWICE_IN_FILE -> "Twice in this file"
         ImportStatus.LOOKS_LIKE_EXISTING -> "Looks like an entry you already have"
+        ImportStatus.OTHER_WALLET -> "For another wallet"
     }
 
     /** The sign says which way the money went, so a line whose direction is still a guess is shown without one. */
@@ -129,6 +131,9 @@ object ImportText {
             Refusal.PDF_NEEDS_NEWER_ANDROID -> "Opening a PDF statement needs Android 15 or later on this phone."
             Refusal.PDF_UNREADABLE -> "That PDF could not be opened."
             Refusal.COULD_NOT_SAVE -> "The import could not be saved. Nothing of that file was added."
+            Refusal.NO_CATEGORY_IN_USE ->
+                "Every Gastos category, or every Kita category, is hidden, so the lines of a file would have no category to go under. " +
+                    "Show one again in Settings, under Categories, then choose the file again."
         }
     }
 
