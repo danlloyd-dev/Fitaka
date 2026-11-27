@@ -120,6 +120,8 @@ object UtangUiBuilder {
             amountCentavos = LoanMath.remaining(loan, row.paidCentavos).coerceAtLeast(0),
             lines = listOfNotNull(
                 "${if (owe) "Paid" else "Collected"} ${Peso.format(row.paidCentavos)} of ${Peso.format(loan.totalPayableCentavos)}",
+                // Counted above, but in no wallet and in none of the entries below: say where it is.
+                if (loan.paidBeforeCentavos > 0) "${Peso.format(loan.paidBeforeCentavos)} of it before Fitaka" else null,
                 status(loan, row.paidCentavos, today),
                 loan.note,
             ),

@@ -3,6 +3,8 @@ package com.pitakaview.app.data.backup
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.pitakaview.app.data.db.FITAKA_DB_VERSION
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY_V1
 import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.CategoryEntity
@@ -176,6 +178,15 @@ class BackupManagerTest {
                 ),
             ),
         )
+        fun roomFile(name: String, version: Int, identity: String) = sqlite(
+            name, "CREATE TABLE transactions (id INTEGER, occurredOn INTEGER)", "CREATE TABLE wallets (id INTEGER)",
+            "CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)",
+            "INSERT INTO room_master_table VALUES (42, '$identity')",
+            "PRAGMA user_version = $version",
+        )
+        // Since layout version 2 (2026-11-27) each backup is checked against its own version's fingerprint.
+        assertEquals("version 1, with version 2's fingerprint", BackupCheck.NotABackup, manager.inspect(roomFile("v1as2.db", 1, FITAKA_DB_IDENTITY)))
+        assertEquals("version 2, with version 1's fingerprint", BackupCheck.NotABackup, manager.inspect(roomFile("v2as1.db", 2, FITAKA_DB_IDENTITY_V1)))
         assertEquals(
             "a backup from a newer app",
             BackupCheck.TooNew,

@@ -8,7 +8,9 @@ import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.reminders.AndroidReminderNotifier
 import com.pitakaview.app.reminders.ReminderIntents
 import com.pitakaview.app.reminders.ReminderWorker
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITIES
 import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY_V1
 import com.pitakaview.app.reminders.WorkManagerReminderAlarm
 import com.pitakaview.app.ui.backup.backupFileName
 import com.pitakaview.app.ui.backup.sheetFileName
@@ -58,8 +60,20 @@ class StoredNamesTest {
     fun theDatabaseLayoutOfVersionOneIsUnchanged() {
         val layout = File("schemas/com.pitakaview.app.data.db.FitakaDatabase/1.json").readText()
         assertTrue(layout.contains("\"identityHash\": \"dcffe3a34ad6eab4e0ceef41a2738b77\""))
-        // And the fingerprint a restore checks a backup against is that same one.
-        assertTrue(layout.contains("\"identityHash\": \"$FITAKA_DB_IDENTITY\""))
+        // And the fingerprint a restore checks a version 1 backup against is that same one.
+        assertTrue(layout.contains("\"identityHash\": \"$FITAKA_DB_IDENTITY_V1\""))
+    }
+
+    /**
+     * Version 2 (2026-11-27: what was paid on a loan before the app, and loans paid twice a month). Its
+     * fingerprint is the one Room now checks at every opening; a backup of either version is checked
+     * against its own version's.
+     */
+    @Test
+    fun eachLayoutVersionKeepsItsFingerprint() {
+        val two = File("schemas/com.pitakaview.app.data.db.FitakaDatabase/2.json").readText()
+        assertTrue(two.contains("\"identityHash\": \"$FITAKA_DB_IDENTITY\""))
+        assertEquals(mapOf(1 to FITAKA_DB_IDENTITY_V1, 2 to FITAKA_DB_IDENTITY), FITAKA_DB_IDENTITIES)
     }
 
     /** The theme, size, style, font, reminders and the app lock's switch. Under another name they all reset, and the lock turns off. */

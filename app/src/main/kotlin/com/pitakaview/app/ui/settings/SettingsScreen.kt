@@ -52,7 +52,7 @@ object AboutText {
         "Your entries stay on your phone, with no account and no sign-up, plus an optional fingerprint lock and a backup file " +
         "you keep yourself. The app goes online only to ask GitHub for a new version, and you can turn that off. " +
         "It has a playful hand-drawn look with six colour themes in light and dark. " +
-        "This version (1.1.0) can update itself from inside the app, and feedback is very welcome."
+        "This version (1.2.0) updates itself from inside the app and knows loans paid twice a month, and feedback is very welcome."
     const val FONT = "Fonts: Shantell Sans, Mali, Pangolin, Fuzzy Bubbles, Itim. SIL Open Font License 1.1"
     const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
 }

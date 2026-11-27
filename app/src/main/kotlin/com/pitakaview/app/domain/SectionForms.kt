@@ -12,7 +12,18 @@ import java.time.LocalDate
 // ---------- a loan ----------
 
 /** How a loan is meant to be paid back. */
-enum class LoanPlan { NO_DATE, ONE_DATE, MONTHLY }
+enum class LoanPlan {
+    NO_DATE,
+    ONE_DATE,
+    MONTHLY,
+
+    /** Twice a month on two set days, e.g. the 15th and the last day (the owner's ask, 2026-11-27). */
+    TWICE_A_MONTH,
+    ;
+
+    /** Paid in equal amounts on set dates: what was paid before the app is then said as a number of them. */
+    val inInstallments: Boolean get() = this == MONTHLY || this == TWICE_A_MONTH
+}
 
 data class LoanForm(
     val direction: LoanDirection = LoanDirection.I_OWE,
@@ -22,9 +33,16 @@ data class LoanForm(
     val totalText: String = "",
     val startDate: LocalDate,
     val plan: LoanPlan = LoanPlan.NO_DATE,
-    /** The due date, or the first payment date of a monthly loan. */
+    /** The due date, or the first payment date of a loan paid in installments. */
     val dueDate: LocalDate? = null,
     val installmentText: String = "",
+    /** Twice a month: the two days of the month a payment is due (31 means the last day). */
+    val firstDayText: String = "15",
+    val secondDayText: String = "31",
+    /** Paid before the app, for a loan paid in installments: how many of them (months, or payments twice a month). */
+    val paidBeforeCountText: String = "",
+    /** Paid before the app, for any other loan: how much. */
+    val paidBeforeAmountText: String = "",
     val note: String = "",
     /** Only when adding: the wallet the money went into or came out of. Null for a loan from before the app. */
     val walletId: Long? = null,
@@ -32,7 +50,15 @@ data class LoanForm(
     val remind: Boolean = true,
 )
 
-enum class LoanProblem { WHO, AMOUNT, TOTAL, DUE_DATE, INSTALLMENT }
+enum class LoanProblem {
+    WHO, AMOUNT, TOTAL, DUE_DATE, INSTALLMENT,
+
+    /** Twice a month: a day that is not 1 to 31, or the same day twice. */
+    DAYS,
+
+    /** What was paid before the app is not a whole number (or an amount), or is more than the whole loan. */
+    PAID_BEFORE,
+}
 
 object LoanFormLogic {
     fun amountCentavos(form: LoanForm): Long? = Peso.parse(form.amountText)?.takeIf { it > 0 }
@@ -43,6 +69,24 @@ object LoanFormLogic {
 
     fun installmentCentavos(form: LoanForm): Long? = Peso.parse(form.installmentText)?.takeIf { it > 0 }
 
+    /** How many installments were paid before the app: 0 when the field is empty, null when it is not a whole number. */
+    fun paidBeforeCount(form: LoanForm): Int? = form.paidBeforeCountText.trim().let { if (it.isEmpty()) 0 else it.toIntOrNull()?.takeIf { n -> n >= 0 } }
+
+    /**
+     * What was paid before the app, in centavos: so many installments, or the amount typed. 0 when nothing
+     * was typed; null when what was typed cannot be read, or the installment it counts in is not known yet.
+     */
+    fun paidBeforeCentavos(form: LoanForm): Long? = if (form.plan.inInstallments) {
+        val count = paidBeforeCount(form)
+        when {
+            count == null -> null
+            count == 0 -> 0
+            else -> installmentCentavos(form)?.let { it * count }
+        }
+    } else {
+        form.paidBeforeAmountText.trim().let { if (it.isEmpty()) 0 else Peso.parse(it)?.takeIf { cents -> cents >= 0 } }
+    }
+
     fun problems(form: LoanForm): Set<LoanProblem> = buildSet {
         if (form.who.isBlank()) add(LoanProblem.WHO)
         val amount = amountCentavos(form)
@@ -51,7 +95,17 @@ object LoanFormLogic {
         // Paying back less than was lent is not a loan with interest; it is a typing slip.
         if (form.totalText.isNotBlank() && (total == null || (amount != null && total < amount))) add(LoanProblem.TOTAL)
         if (form.plan != LoanPlan.NO_DATE && form.dueDate == null) add(LoanProblem.DUE_DATE)
-        if (form.plan == LoanPlan.MONTHLY && installmentCentavos(form) == null) add(LoanProblem.INSTALLMENT)
+        val installment = installmentCentavos(form)
+        if (form.plan.inInstallments && installment == null) add(LoanProblem.INSTALLMENT)
+        if (form.plan == LoanPlan.TWICE_A_MONTH) {
+            val first = PayScheduleFormLogic.day(form.firstDayText)
+            val second = PayScheduleFormLogic.day(form.secondDayText)
+            if (first == null || second == null || first == second) add(LoanProblem.DAYS)
+        }
+        // Unreadable, or more than the whole loan. A count with no installment yet is the installment's problem.
+        val unreadable = if (form.plan.inInstallments) paidBeforeCount(form) == null else paidBeforeCentavos(form) == null
+        val before = paidBeforeCentavos(form)
+        if (unreadable || (before != null && total != null && before > total)) add(LoanProblem.PAID_BEFORE)
     }
 
     /**
@@ -65,36 +119,53 @@ object LoanFormLogic {
             direction = form.direction, counterparty = "", principalCentavos = amount, totalPayableCentavos = total,
             startDate = form.startDate, createdAt = now,
         )
-        val monthly = form.plan == LoanPlan.MONTHLY
+        val twice = form.plan == LoanPlan.TWICE_A_MONTH
         return base.copy(
             counterparty = form.who.trim(),
             principalCentavos = amount,
             totalPayableCentavos = total,
             startDate = form.startDate,
             dueDate = if (form.plan == LoanPlan.NO_DATE) null else form.dueDate,
-            installmentCentavos = if (monthly) installmentCentavos(form) else null,
-            dueDayOfMonth = if (monthly) form.dueDate?.dayOfMonth else null,
+            installmentCentavos = if (form.plan.inInstallments) installmentCentavos(form) else null,
+            dueDayOfMonth = when (form.plan) {
+                LoanPlan.MONTHLY -> form.dueDate?.dayOfMonth
+                LoanPlan.TWICE_A_MONTH -> PayScheduleFormLogic.day(form.firstDayText)
+                else -> null
+            },
+            secondDueDay = if (twice) PayScheduleFormLogic.day(form.secondDayText) else null,
+            paidBeforeCentavos = requireNotNull(paidBeforeCentavos(form)) { "Paid-before must be checked with problems() first" },
             note = form.note.trim().ifEmpty { null },
             remind = form.remind,
         )
     }
 
-    fun fromEntity(loan: LoanEntity) = LoanForm(
-        direction = loan.direction,
-        who = loan.counterparty,
-        amountText = EntryFormLogic.plainAmount(loan.principalCentavos),
-        totalText = if (loan.totalPayableCentavos == loan.principalCentavos) "" else EntryFormLogic.plainAmount(loan.totalPayableCentavos),
-        startDate = loan.startDate,
-        plan = when {
+    fun fromEntity(loan: LoanEntity): LoanForm {
+        val plan = when {
+            loan.installmentCentavos != null && loan.dueDate != null && loan.secondDueDay != null -> LoanPlan.TWICE_A_MONTH
             loan.installmentCentavos != null && loan.dueDate != null -> LoanPlan.MONTHLY
             loan.dueDate != null -> LoanPlan.ONE_DATE
             else -> LoanPlan.NO_DATE
-        },
-        dueDate = loan.dueDate,
-        installmentText = loan.installmentCentavos?.let(EntryFormLogic::plainAmount).orEmpty(),
-        note = loan.note.orEmpty(),
-        remind = loan.remind,
-    )
+        }
+        val installment = loan.installmentCentavos
+        val before = loan.paidBeforeCentavos
+        return LoanForm(
+            direction = loan.direction,
+            who = loan.counterparty,
+            amountText = EntryFormLogic.plainAmount(loan.principalCentavos),
+            totalText = if (loan.totalPayableCentavos == loan.principalCentavos) "" else EntryFormLogic.plainAmount(loan.totalPayableCentavos),
+            startDate = loan.startDate,
+            plan = plan,
+            dueDate = loan.dueDate,
+            installmentText = installment?.let(EntryFormLogic::plainAmount).orEmpty(),
+            firstDayText = if (plan == LoanPlan.TWICE_A_MONTH) loan.dueDayOfMonth?.toString() ?: "15" else "15",
+            secondDayText = loan.secondDueDay?.toString() ?: "31",
+            // Both are filled, so a change of plan in the form keeps what was paid: as a count, or as the amount.
+            paidBeforeCountText = if (before > 0 && installment != null && installment > 0) (before / installment).toString() else "",
+            paidBeforeAmountText = if (before > 0) EntryFormLogic.plainAmount(before) else "",
+            note = loan.note.orEmpty(),
+            remind = loan.remind,
+        )
+    }
 
     /**
      * The entry for the money changing hands when a new loan is added with a wallet: into the wallet

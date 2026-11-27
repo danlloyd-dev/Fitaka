@@ -74,10 +74,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-private val DayPattern = Regex("""^\d{0,2}$""")
+internal val DayPattern = Regex("""^\d{0,2}$""")
 
 /** A day of the month: up to two digits. Whether it is 1 to 31 is checked on Save. */
-private val DayInput = InputTransformation { if (!DayPattern.matches(asCharSequence())) revertAllChanges() }
+internal val DayInput = InputTransformation { if (!DayPattern.matches(asCharSequence())) revertAllChanges() }
 
 val PayFrequency.label: String
     get() = when (this) {
@@ -437,10 +437,10 @@ fun PayScheduleEditorContent(
     }
 }
 
-private const val LAST_DAY_HINT = "31 means the last day of the month."
+internal const val LAST_DAY_HINT = "31 means the last day of the month."
 
 @Composable
-private fun DayField(state: TextFieldState, label: String, isError: Boolean, hint: String?) {
+internal fun DayField(state: TextFieldState, label: String, isError: Boolean, hint: String?) {
     FitakaTextField(
         state = state, label = label, placeholder = "1 to 31",
         isError = isError,

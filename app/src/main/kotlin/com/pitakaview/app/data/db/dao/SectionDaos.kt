@@ -135,11 +135,14 @@ interface LoanDao {
     @Delete
     suspend fun delete(loan: LoanEntity)
 
-    /** Every loan, settled ones too, with how much has been paid: the Utang tab. */
+    /**
+     * Every loan, settled ones too, with how much has been paid: the Utang tab. "Paid" in all three queries
+     * here is what was paid before the app plus every payment logged for the loan.
+     */
     @Query(
         """
         SELECT l.*,
-            COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
+            l.paidBeforeCentavos + COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
                       WHERE t.loanId = l.id AND t.purpose = :payment), 0) AS paidCentavos
         FROM loans l
         ORDER BY l.id
@@ -150,7 +153,7 @@ interface LoanDao {
     @Query(
         """
         SELECT l.*,
-            COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
+            l.paidBeforeCentavos + COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
                       WHERE t.loanId = l.id AND t.purpose = :payment), 0) AS paidCentavos
         FROM loans l
         WHERE l.id = :id
@@ -162,7 +165,7 @@ interface LoanDao {
     @Query(
         """
         SELECT l.*,
-            COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
+            l.paidBeforeCentavos + COALESCE((SELECT SUM(t.amountCentavos) FROM transactions t
                       WHERE t.loanId = l.id AND t.purpose = :payment), 0) AS paidCentavos
         FROM loans l
         WHERE l.closedAt IS NULL

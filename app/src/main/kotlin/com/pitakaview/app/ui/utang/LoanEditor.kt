@@ -22,6 +22,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -58,6 +59,8 @@ import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.kita.DayField
+import com.pitakaview.app.ui.kita.LAST_DAY_HINT
 import com.pitakaview.app.ui.sections.WalletChoice
 import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.theme.FitakaTheme
@@ -78,7 +81,30 @@ val LoanPlan.label: String
         LoanPlan.NO_DATE -> "No due date"
         LoanPlan.ONE_DATE -> "One due date"
         LoanPlan.MONTHLY -> "Every month"
+        LoanPlan.TWICE_A_MONTH -> "Twice a month"
     }
+
+/** The words of the "already paid" field, here so tests can hold them. */
+object PaidBeforeText {
+    const val MONTHS = "Months already paid"
+    const val PAYMENTS = "Payments already paid"
+    const val AMOUNT = "Already paid"
+    const val HINT = "Paid before you used Fitaka. No wallet changes."
+    const val TOO_MUCH = "That is more than the whole loan"
+    const val NOT_A_COUNT = "Type a whole number, like 4"
+    const val NOT_AN_AMOUNT = "Type an amount, like 1500"
+
+    fun label(plan: LoanPlan) = when (plan) {
+        LoanPlan.MONTHLY -> MONTHS
+        LoanPlan.TWICE_A_MONTH -> PAYMENTS
+        LoanPlan.NO_DATE, LoanPlan.ONE_DATE -> AMOUNT
+    }
+}
+
+/** At most three digits: a number of payments (twice a month for four years is 96). */
+private val CountInput = androidx.compose.foundation.text.input.InputTransformation {
+    if (!Regex("""^\d{0,3}$""").matches(asCharSequence())) revertAllChanges()
+}
 
 /** Add or change a loan. Checks what was typed with [LoanFormLogic]. */
 class LoanEditorViewModel(
@@ -93,6 +119,12 @@ class LoanEditorViewModel(
     val amount = TextFieldState()
     val total = TextFieldState()
     val installment = TextFieldState()
+    /** Twice a month: the two days of the month (the 15th and the last day unless changed). */
+    val firstDay = TextFieldState("15")
+    val secondDay = TextFieldState("31")
+    /** Paid before the app: a count for a loan paid in installments, an amount for any other. */
+    val paidCount = TextFieldState()
+    val paidAmount = TextFieldState()
     val note = TextFieldState()
 
     var direction by mutableStateOf(LoanDirection.I_OWE)
@@ -153,6 +185,10 @@ class LoanEditorViewModel(
                 amount.setTextAndPlaceCursorAtEnd(form.amountText)
                 total.setTextAndPlaceCursorAtEnd(form.totalText)
                 installment.setTextAndPlaceCursorAtEnd(form.installmentText)
+                firstDay.setTextAndPlaceCursorAtEnd(form.firstDayText)
+                secondDay.setTextAndPlaceCursorAtEnd(form.secondDayText)
+                paidCount.setTextAndPlaceCursorAtEnd(form.paidBeforeCountText)
+                paidAmount.setTextAndPlaceCursorAtEnd(form.paidBeforeAmountText)
                 note.setTextAndPlaceCursorAtEnd(form.note)
                 direction = form.direction
                 startDate = form.startDate
@@ -167,6 +203,8 @@ class LoanEditorViewModel(
     private fun form() = LoanForm(
         direction = direction, who = who.text.toString(), amountText = amount.text.toString(), totalText = total.text.toString(),
         startDate = startDate, plan = plan, dueDate = dueDate, installmentText = installment.text.toString(),
+        firstDayText = firstDay.text.toString(), secondDayText = secondDay.text.toString(),
+        paidBeforeCountText = paidCount.text.toString(), paidBeforeAmountText = paidAmount.text.toString(),
         note = note.text.toString(), walletId = walletId, remind = remind,
     )
 
@@ -281,6 +319,7 @@ fun LoanEditorRoute(loanId: Long?, onDone: () -> Unit) {
             remind = vm.remind, remindersOn = remindersOn,
         ),
         who = vm.who, amount = vm.amount, total = vm.total, installment = vm.installment, note = vm.note,
+        firstDay = vm.firstDay, secondDay = vm.secondDay, paidCount = vm.paidCount, paidAmount = vm.paidAmount,
         onDirection = vm::selectDirection, onStartDate = vm::selectStartDate, onPlan = vm::selectPlan, onDueDate = vm::selectDueDate,
         onMoney = vm::selectMoney, onSave = vm::save, onToggleSettled = vm::toggleSettled, onDelete = vm::delete, onBack = onDone,
         onRemind = vm::selectRemind,
@@ -306,6 +345,10 @@ fun LoanEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
     onRemind: (Boolean) -> Unit = {},
+    firstDay: TextFieldState = remember { TextFieldState("15") },
+    secondDay: TextFieldState = remember { TextFieldState("31") },
+    paidCount: TextFieldState = remember { TextFieldState() },
+    paidAmount: TextFieldState = remember { TextFieldState() },
 ) {
     val c = FitakaTheme.colors
     val type = MaterialTheme.typography
@@ -335,7 +378,9 @@ fun LoanEditorContent(
             "total".takeIf { LoanProblem.TOTAL in ui.problems },
             "money".takeIf { ui.moneyProblem },
             "installment".takeIf { LoanProblem.INSTALLMENT in ui.problems },
+            "days".takeIf { LoanProblem.DAYS in ui.problems },
             "due".takeIf { LoanProblem.DUE_DATE in ui.problems },
+            "paid-before".takeIf { LoanProblem.PAID_BEFORE in ui.problems },
         ),
         onBack = onBack,
         pinnedAction = {
@@ -396,21 +441,33 @@ fun LoanEditorContent(
                 }
             }
         }
-        if (ui.plan == LoanPlan.MONTHLY) {
+        if (ui.plan.inInstallments) {
+            val monthly = ui.plan == LoanPlan.MONTHLY
             item(key = "installment") {
                 FitakaTextField(
-                    state = installment, label = "How much each month", placeholder = "0.00", prefix = Peso.SIGN,
+                    state = installment, label = if (monthly) "How much each month" else "How much each time", placeholder = "0.00", prefix = Peso.SIGN,
                     isError = LoanProblem.INSTALLMENT in ui.problems,
-                    supportingText = if (LoanProblem.INSTALLMENT in ui.problems) "Enter the monthly amount" else null,
+                    supportingText = if (LoanProblem.INSTALLMENT in ui.problems) (if (monthly) "Enter the monthly amount" else "Enter the amount paid each time") else null,
                     inputTransformation = MoneyInput, keyboardOptions = money,
                 )
+            }
+        }
+        if (ui.plan == LoanPlan.TWICE_A_MONTH) {
+            // The same two days as a payday twice a month: the 15th and the last day unless changed.
+            item(key = "days") {
+                Column {
+                    DayField(firstDay, "First payment day (day of the month)", LoanProblem.DAYS in ui.problems, hint = null)
+                    Spacer(Modifier.height(8.dp))
+                    DayField(secondDay, "Second payment day (day of the month)", LoanProblem.DAYS in ui.problems, hint = LAST_DAY_HINT)
+                    if (LoanProblem.DAYS in ui.problems) ProblemText("Two different days from 1 to 31")
+                }
             }
         }
         if (ui.plan != LoanPlan.NO_DATE) {
             item(key = "due") {
                 Column {
                     OptionalDateChoice(
-                        title = if (ui.plan == LoanPlan.MONTHLY) "First payment on" else "Due on",
+                        title = if (ui.plan.inInstallments) "First payment on" else "Due on",
                         date = ui.dueDate, today = ui.today, onDate = onDueDate, noneLabel = "Not set",
                     )
                     if (LoanProblem.DUE_DATE in ui.problems) ProblemText("Pick the date")
@@ -423,6 +480,33 @@ fun LoanEditorContent(
                     checked = ui.remind,
                     onCheckedChange = onRemind,
                     subtitle = if (ui.remindersOn) "The day before and on the day." else REMINDERS_OFF_HINT,
+                )
+            }
+        }
+        // A loan the owner already had before Fitaka: what was paid then counts as paid, from no wallet.
+        item(key = "paid-before") {
+            val problem = LoanProblem.PAID_BEFORE in ui.problems
+            if (ui.plan.inInstallments) {
+                FitakaTextField(
+                    state = paidCount, label = PaidBeforeText.label(ui.plan), placeholder = "0",
+                    isError = problem,
+                    supportingText = when {
+                        !problem -> PaidBeforeText.HINT
+                        paidCount.text.isNotBlank() && paidCount.text.toString().toIntOrNull() == null -> PaidBeforeText.NOT_A_COUNT
+                        else -> PaidBeforeText.TOO_MUCH
+                    },
+                    inputTransformation = CountInput, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            } else {
+                FitakaTextField(
+                    state = paidAmount, label = PaidBeforeText.label(ui.plan), placeholder = "0.00", prefix = Peso.SIGN,
+                    isError = problem,
+                    supportingText = when {
+                        !problem -> PaidBeforeText.HINT
+                        Peso.parse(paidAmount.text.toString()) == null -> PaidBeforeText.NOT_AN_AMOUNT
+                        else -> PaidBeforeText.TOO_MUCH
+                    },
+                    inputTransformation = MoneyInput, keyboardOptions = money,
                 )
             }
         }
