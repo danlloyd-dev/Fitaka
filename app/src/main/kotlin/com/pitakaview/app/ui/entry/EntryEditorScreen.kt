@@ -37,15 +37,15 @@ import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.EntryProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.DateChoice
-import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaSegmented
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -73,6 +73,8 @@ data class EntryEditorUi(
     val paydayName: String? = null,
     /** True when opened from a payday's "Received" button: the kind is not offered. */
     val kindLocked: Boolean = false,
+    /** Null unless this entry is half of a move between the owner's own wallets; then whether it stays one. */
+    val ownMove: Boolean? = null,
 )
 
 @Composable
@@ -112,12 +114,15 @@ fun EntryEditorRoute(
             categories = if (vm.kind == EntryKind.INCOME) income else expense,
             wallets = wallets, categoryId = vm.categoryId, fromWalletId = vm.fromWalletId, toWalletId = vm.toWalletId,
             date = vm.date, today = today, problems = vm.problems, saveError = vm.saveError,
-            baons = baons, baonId = vm.baonId, paydayName = vm.paydayName, kindLocked = vm.kindLocked,
+            baons = baons, baonId = vm.baonId, paydayName = vm.paydayName,
+            // A half is money out or money in and stays that; what can change is whether it was a move.
+            kindLocked = vm.kindLocked || vm.ownMove != null, ownMove = vm.ownMove,
         ),
         amount = vm.amount, note = vm.note,
         onKind = vm::selectKind, onCategory = vm::selectCategory,
         onFromWallet = vm::selectFromWallet, onToWallet = vm::selectToWallet, onDate = vm::selectDate, onBaon = vm::selectBaon,
         onSave = vm::save, onDelete = vm::delete, onBack = onDone, onOpenWallets = onOpenWallets,
+        onOwnMove = vm::selectOwnMove,
     )
 }
 
@@ -137,6 +142,7 @@ fun EntryEditorContent(
     onBack: () -> Unit,
     onOpenWallets: () -> Unit,
     onBaon: (Long?) -> Unit = {},
+    onOwnMove: (Boolean) -> Unit = {},
 ) {
     val c = FitakaTheme.colors
     val type = MaterialTheme.typography
@@ -175,6 +181,24 @@ fun EntryEditorContent(
             }
         }
 
+        // One half of a move between the owner's own wallets, as a bank statement showed it.
+        ui.ownMove?.let { stays ->
+            item(key = "own-move") {
+                FitakaCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        Text(EntryText.ownMoveTitle(ui.kind), style = type.titleSmall, color = c.ink)
+                        Spacer(Modifier.height(4.dp))
+                        Text(EntryText.ownMoveWords(ui.kind, stays), style = type.bodySmall, color = c.inkMuted)
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FitakaChip(EntryText.OWN_MOVE, selected = stays, onClick = { onOwnMove(true) })
+                            FitakaChip(EntryText.notOwnMove(ui.kind), selected = !stays, onClick = { onOwnMove(false) })
+                        }
+                    }
+                }
+            }
+        }
+
         item(key = "amount") {
             FitakaTextField(
                 state = amount,
@@ -191,7 +215,9 @@ fun EntryEditorContent(
             if (!ui.isEdit) LaunchedEffect(Unit) { amountFocus.requestFocus() }
         }
 
-        if (ui.kind != EntryKind.TRANSFER) {
+        // A move has no category: not a transfer typed in as one entry, and not a half while it stays a
+        // move (it keeps the one it had, unseen, to go back to).
+        if (ui.kind != EntryKind.TRANSFER && ui.ownMove != true) {
             item(key = "category") {
                 Column {
                     SectionHeader("Category")
@@ -270,5 +296,20 @@ private fun WalletChoice(title: String, wallets: List<WalletEntity>, selectedId:
             wallets.forEach { FitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
         }
         if (problem) ProblemText("Pick a wallet")
+    }
+}
+
+/** The words for an entry that is half of a move between the owner's own wallets. */
+object EntryText {
+    const val OWN_MOVE = "My own transfer"
+
+    fun notOwnMove(kind: EntryKind) = if (kind == EntryKind.INCOME) "It was income" else "It was spending"
+
+    fun ownMoveTitle(kind: EntryKind) = if (kind == EntryKind.INCOME) "Moved from another wallet of yours" else "Moved to another wallet of yours"
+
+    fun ownMoveWords(kind: EntryKind, stays: Boolean) = when {
+        stays -> "Your bank statements show this money leaving one of your wallets and arriving in another. It is not counted as spending or as income."
+        kind == EntryKind.INCOME -> "Saved like this, it counts as income again, and its other half counts as spending again."
+        else -> "Saved like this, it counts as spending again, and its other half counts as income again."
     }
 }

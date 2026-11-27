@@ -6,6 +6,8 @@ import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.TxPurpose
 import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
 /** Why a line of the file is, or is not, offered for import. */
 enum class ImportStatus {
@@ -36,12 +38,22 @@ data class ImportCandidate(
     val externalRef: String?,
     val categoryId: Long,
     val picked: Boolean,
+    /** The entry in another wallet that this line looks like the other half of, when there is one. */
+    val ownMove: OwnMoveCandidate? = null,
+    /** Whether the line is brought in as that other half; the owner can say it is not. */
+    val asOwnMove: Boolean = false,
 ) {
     val canPick: Boolean get() = status == ImportStatus.NEW || status == ImportStatus.LOOKS_LIKE_EXISTING
 }
 
 /** An entry the wallet already has, reduced to what a statement line can be compared with. */
 data class LedgerMark(val date: LocalDate, val amountCentavos: Long, val moneyIn: Boolean)
+
+/**
+ * Plain spending or income in ANOTHER of the owner's wallets that a statement line may be the other half
+ * of: money moved from one wallet to another shows in both wallets' statements, out in one and in in the other.
+ */
+data class OwnMoveCandidate(val entryId: Long, val walletName: String, val date: LocalDate, val amountCentavos: Long, val moneyIn: Boolean)
 
 /** Turns the lines read from a file into what to add to the ledger. Pure, so every rule is unit-tested. */
 object ImportPlanner {
@@ -70,8 +82,12 @@ object ImportPlanner {
         incomeCategories: List<CategoryEntity>,
         /** The name of the wallet being imported into, to compare with the wallet a line is named for. */
         walletName: String? = null,
+        /** Spending and income in the owner's other wallets around the file's dates. */
+        ownMoves: List<OwnMoveCandidate> = emptyList(),
     ): List<ImportCandidate> {
         val unmatched = existing.groupingBy { it }.eachCount().toMutableMap()
+        val freeHalves = ownMoves.toMutableList()
+        fun daysApart(other: OwnMoveCandidate, row: StatementRow) = abs(ChronoUnit.DAYS.between(other.date, row.date))
         val seenRefs = HashSet<String>()
         return rows.map { row ->
             val ref = refFor(source, walletId, row)
@@ -88,12 +104,21 @@ object ImportPlanner {
                 }
                 else -> ImportStatus.NEW
             }
+            // Only a new line can be the other half of a move: the same amount, going the other way, in
+            // another wallet, at most a day apart (banks post a day apart). The nearest day wins, and one
+            // entry is one line's other half.
+            val half = if (status != ImportStatus.NEW) null else freeHalves
+                .filter { it.amountCentavos == row.amountCentavos && it.moneyIn != row.moneyIn && daysApart(it, row) <= OWN_MOVE_DAYS }
+                .minWithOrNull(compareBy<OwnMoveCandidate> { daysApart(it, row) }.thenBy { it.entryId })
+                ?.also { freeHalves.remove(it) }
             ImportCandidate(
                 row = row,
                 status = status,
                 externalRef = ref,
                 categoryId = guessCategory(row.description, if (row.moneyIn) incomeCategories else expenseCategories),
                 picked = status == ImportStatus.NEW,
+                ownMove = half,
+                asOwnMove = half != null,
             )
         }
     }
@@ -141,7 +166,11 @@ object ImportPlanner {
         candidates.filter { it.picked && it.canPick }.map { candidate ->
             val row = candidate.row
             TransactionEntity(
-                purpose = if (row.moneyIn) TxPurpose.INCOME else TxPurpose.EXPENSE,
+                purpose = when {
+                    candidate.asOwnMove && candidate.ownMove != null -> if (row.moneyIn) TxPurpose.OWN_MOVE_IN else TxPurpose.OWN_MOVE_OUT
+                    row.moneyIn -> TxPurpose.INCOME
+                    else -> TxPurpose.EXPENSE
+                },
                 amountCentavos = row.amountCentavos,
                 occurredOn = row.date,
                 fromWalletId = if (row.moneyIn) null else walletId,
@@ -153,6 +182,13 @@ object ImportPlanner {
                 createdAt = now,
             )
         }
+
+    /** How far apart, in days, the two halves of a move between the owner's own wallets may be dated. */
+    const val OWN_MOVE_DAYS = 1L
+
+    /** The entries in other wallets that the ticked lines are brought in as the other half of. */
+    fun pairedEntryIds(candidates: List<ImportCandidate>): List<Long> =
+        candidates.filter { it.picked && it.canPick && it.asOwnMove }.mapNotNull { it.ownMove?.entryId }
 
     /** Every amount the other way round, for a file that does not say which way its money went. */
     fun flipped(rows: List<StatementRow>): List<StatementRow> = rows.map { it.copy(moneyIn = !it.moneyIn) }

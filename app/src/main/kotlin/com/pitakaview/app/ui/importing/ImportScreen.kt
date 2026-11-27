@@ -100,6 +100,7 @@ object ImportText {
         review.count(ImportStatus.LOOKS_LIKE_EXISTING).takeIf { it > 0 }?.let { add("$it looks like an entry you already have") }
         review.count(ImportStatus.TWICE_IN_FILE).takeIf { it > 0 }?.let { add("$it twice in this file") }
         review.count(ImportStatus.OTHER_WALLET).takeIf { it > 0 }?.let { add("$it for another wallet") }
+        review.candidates.count { it.asOwnMove && it.picked && it.canPick }.takeIf { it > 0 }?.let { add("$it moved between your own wallets") }
     }.joinToString(" · ")
 
     fun status(status: ImportStatus): String? = when (status) {
@@ -118,6 +119,19 @@ object ImportText {
     }
 
     fun day(line: ImportCandidate): String = DAY.format(line.row.date)
+
+    /**
+     * For a line that looks like the other half of a move between the owner's own wallets, what the entry
+     * in the other wallet says: money in here left there, money out here arrived there.
+     */
+    fun ownMove(line: ImportCandidate): String? = line.ownMove?.let { other ->
+        val amount = Peso.format(line.row.amountCentavos)
+        if (line.row.moneyIn) "$amount left ${other.walletName} on ${DAY.format(other.date)}" else "$amount arrived in ${other.walletName} on ${DAY.format(other.date)}"
+    }
+
+    const val OWN_MOVE = "My own transfer"
+
+    fun notOwnMove(line: ImportCandidate) = if (line.row.moneyIn) "No, it is income" else "No, it is spending"
 
     fun notice(notice: ImportNotice): String = when (notice) {
         is ImportNotice.Imported -> "Imported ${entries(notice.count)} into ${notice.walletName}."
@@ -241,7 +255,7 @@ fun ImportRoute(onBack: () -> Unit) {
         onWallet = vm::selectWallet,
         // Every kind of file is offered: CSV files turn up under several names, so the app checks the content itself.
         onChooseFile = { pick.launch(arrayOf("*/*")) },
-        onToggle = vm::toggle, onShowChoices = vm::showChoices, onCategory = vm::setCategory, onDirection = vm::setDirection, onFlip = vm::flip,
+        onToggle = vm::toggle, onShowChoices = vm::showChoices, onCategory = vm::setCategory, onDirection = vm::setDirection, onOwnMove = vm::setOwnMove, onFlip = vm::flip,
         onImport = vm::importPicked, onCancel = vm::cancel, onUndo = vm::undo, onUnlockPdf = vm::unlockPdf,
         onCopy = { text ->
             context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("$APP_NAME statement layout", text))
@@ -266,6 +280,7 @@ fun ImportContent(
     onShowChoices: (Int) -> Unit,
     onCategory: (Int, Long) -> Unit,
     onDirection: (Int, Boolean) -> Unit,
+    onOwnMove: (Int, Boolean) -> Unit = { _, _ -> },
     onFlip: () -> Unit,
     onImport: () -> Unit,
     onCancel: () -> Unit,
@@ -406,6 +421,7 @@ fun ImportContent(
                         onShowChoices = { onShowChoices(index) },
                         onCategory = { onCategory(index, it) },
                         onDirection = { onDirection(index, it) },
+                        onOwnMove = { onOwnMove(index, it) },
                     )
                 }
             }
@@ -473,6 +489,7 @@ private fun CandidateLine(
     onShowChoices: () -> Unit,
     onCategory: (Long) -> Unit,
     onDirection: (Boolean) -> Unit,
+    onOwnMove: (Boolean) -> Unit,
 ) {
     val c = FitakaTheme.colors
     val type = MaterialTheme.typography
@@ -520,7 +537,21 @@ private fun CandidateLine(
         if (!line.row.sure) {
             Box(Modifier.padding(start = 38.dp, top = 4.dp, bottom = 4.dp)) { direction() }
         }
-        if (line.canPick) {
+        // A line that looks like the other half of a move between the owner's own wallets says so here,
+        // with the answer beside it: brought in as that, it is neither income nor spending.
+        val otherHalf = ImportText.ownMove(line)
+        if (otherHalf != null && line.canPick) {
+            Column(Modifier.padding(start = 38.dp, top = 4.dp, bottom = 6.dp)) {
+                Text("$otherHalf. Is this that money?", style = type.bodySmall, color = c.ink)
+                Spacer(Modifier.height(6.dp))
+                FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
+                    FitakaChip(ImportText.OWN_MOVE, selected = line.asOwnMove, onClick = { onOwnMove(true) })
+                    FitakaChip(ImportText.notOwnMove(line), selected = !line.asOwnMove, onClick = { onOwnMove(false) })
+                }
+            }
+        }
+        // A category is for spending and income; a move between the owner's own wallets has none to pick.
+        if (line.canPick && !line.asOwnMove) {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = "Change this line", onClick = onShowChoices).padding(start = 38.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -529,7 +560,7 @@ private fun CandidateLine(
                 Text(if (open) "Close" else "Change", style = type.labelLarge, color = c.ink)
             }
         }
-        if (open && line.canPick) {
+        if (open && line.canPick && !line.asOwnMove) {
             Column(Modifier.padding(start = 38.dp, bottom = 8.dp)) {
                 // A settled line can still be turned round here, if the owner knows better.
                 if (line.row.sure) {

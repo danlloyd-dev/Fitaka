@@ -32,8 +32,8 @@ enum class LedgerProblem {
 object LedgerRules {
 
     fun walletShape(purpose: TxPurpose, loanDirection: LoanDirection? = null): WalletShape = when (purpose) {
-        TxPurpose.INCOME, TxPurpose.BAON_RECEIVED -> WalletShape.INTO
-        TxPurpose.EXPENSE, TxPurpose.BAON_GIVEN -> WalletShape.OUT_OF
+        TxPurpose.INCOME, TxPurpose.BAON_RECEIVED, TxPurpose.OWN_MOVE_IN -> WalletShape.INTO
+        TxPurpose.EXPENSE, TxPurpose.BAON_GIVEN, TxPurpose.OWN_MOVE_OUT -> WalletShape.OUT_OF
         TxPurpose.TRANSFER, TxPurpose.SAVINGS_DEPOSIT, TxPurpose.SAVINGS_WITHDRAWAL -> WalletShape.BETWEEN
         TxPurpose.LOAN_START ->
             if (requireNotNull(loanDirection) { "LOAN_START needs the loan's direction" } == LoanDirection.I_OWE) {
@@ -78,6 +78,8 @@ object LedgerRules {
             TxPurpose.SAVINGS_DEPOSIT, TxPurpose.SAVINGS_WITHDRAWAL ->
                 if (tx.goalId == null) problems += LedgerProblem.GOAL_REQUIRED
             TxPurpose.LOAN_START, TxPurpose.LOAN_PAYMENT -> Unit
+            // A half of an own move keeps the category it had, so it can go back to spending or income.
+            TxPurpose.OWN_MOVE_OUT, TxPurpose.OWN_MOVE_IN -> Unit
         }
         return problems
     }

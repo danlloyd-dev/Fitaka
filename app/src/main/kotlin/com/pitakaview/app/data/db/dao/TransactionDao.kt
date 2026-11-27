@@ -9,6 +9,7 @@ import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.domain.ExportRow
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.domain.importing.LedgerMark
+import com.pitakaview.app.domain.importing.OwnMoveCandidate
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -200,4 +201,40 @@ interface TransactionDao {
         """,
     )
     suspend fun marksFor(walletId: Long, start: LocalDate, end: LocalDate): List<LedgerMark>
+
+    /**
+     * Plain spending and income in every wallet but [walletId] between two dates, for finding the other
+     * half of a move between the owner's own wallets. Pay received for a payday and spending out of a baon
+     * are what they say they are, and are left out.
+     */
+    @Query(
+        """
+        SELECT t.id AS entryId, w.name AS walletName, t.occurredOn AS date, t.amountCentavos AS amountCentavos,
+               (t.toWalletId IS NOT NULL) AS moneyIn
+        FROM transactions t JOIN wallets w ON w.id = COALESCE(t.fromWalletId, t.toWalletId)
+        WHERE t.purpose IN (:spending, :income) AND t.occurredOn BETWEEN :start AND :end
+          AND COALESCE(t.fromWalletId, t.toWalletId) != :walletId
+          AND t.payScheduleId IS NULL AND t.baonId IS NULL
+        ORDER BY t.id
+        """,
+    )
+    suspend fun ownMoveCandidates(walletId: Long, start: LocalDate, end: LocalDate, spending: TxPurpose, income: TxPurpose): List<OwnMoveCandidate>
+
+    /** The halves of moves between the owner's own wallets that one imported file added. */
+    @Query("SELECT * FROM transactions WHERE importBatchId = :batchId AND purpose IN (:out, :into)")
+    suspend fun ownMoveHalvesOf(batchId: Long, out: TxPurpose, into: TxPurpose): List<TransactionEntity>
+
+    /**
+     * The other half of an own move: the nearest entry of [purpose] for the same amount in another wallet,
+     * dated from [from] to [until] (a day either side of [day]).
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE purpose = :purpose AND amountCentavos = :amountCentavos AND occurredOn BETWEEN :from AND :until
+          AND COALESCE(fromWalletId, toWalletId) != :walletId
+        ORDER BY ABS(occurredOn - :day), id LIMIT 1
+        """,
+    )
+    suspend fun ownMovePartner(purpose: TxPurpose, amountCentavos: Long, day: LocalDate, from: LocalDate, until: LocalDate, walletId: Long): TransactionEntity?
 }

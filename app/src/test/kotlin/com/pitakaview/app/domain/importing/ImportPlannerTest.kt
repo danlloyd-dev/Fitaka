@@ -5,13 +5,13 @@ import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.ImportSource
 import com.pitakaview.app.domain.LedgerRules
 import com.pitakaview.app.domain.TxPurpose
+import java.time.Instant
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
 
 /** What an imported file adds to the ledger, and what it leaves out as already there. */
 class ImportPlannerTest {
@@ -198,5 +198,82 @@ class ImportPlannerTest {
         val rows = listOf(row("Lunch").copy(walletName = "GCash"), row("Lunch").copy(walletName = "Cash"))
         val plan = ImportPlanner.plan(rows, ImportSource.CSV, wallet, emptySet(), listOf(LedgerMark(nov3, 25_000, moneyIn = false)), expense, income, walletName = "Cash")
         assertEquals(listOf(ImportStatus.OTHER_WALLET, ImportStatus.LOOKS_LIKE_EXISTING), plan.map { it.status })
+    }
+
+    // ---------- the other half of a move between the owner's own wallets (owner's choice, 2026-11-27) ----------
+
+    private val at = Instant.parse("2026-11-25T08:00:00Z")
+
+    /** 5,000.00 of plain spending in GCash on the 3rd, unless said otherwise. */
+    private fun inGcash(id: Long, centavos: Long = 500_000, moneyIn: Boolean = false, date: LocalDate = nov3) = OwnMoveCandidate(id, "GCash", date, centavos, moneyIn)
+
+    private fun planWith(rows: List<StatementRow>, ownMoves: List<OwnMoveCandidate>, existing: List<LedgerMark> = emptyList()) =
+        ImportPlanner.plan(rows, ImportSource.CSV, wallet, emptySet(), existing, expense, income, ownMoves = ownMoves)
+
+    @Test
+    fun moneyInThatLeftAnotherWalletIsBroughtInAsTheOtherHalfOfAMove() {
+        val plan = planWith(listOf(row("Via Other Banks Channel", 500_000, moneyIn = true), row("Lunch")), listOf(inGcash(41)))
+        assertEquals(41L, plan[0].ownMove?.entryId)
+        assertTrue(plan[0].asOwnMove)
+        assertTrue("it is still a new line, ticked", plan[0].picked && plan[0].status == ImportStatus.NEW)
+        assertNull("the lunch is nobody's other half", plan[1].ownMove)
+        assertFalse(plan[1].asOwnMove)
+
+        val entries = ImportPlanner.toTransactions(plan, wallet, 5, at)
+        assertEquals(listOf(TxPurpose.OWN_MOVE_IN, TxPurpose.EXPENSE), entries.map { it.purpose })
+        assertEquals("it arrives in this wallet, like income", wallet, entries[0].toWalletId)
+        assertNull(entries[0].fromWalletId)
+        assertTrue("both are rows the ledger accepts", entries.all { LedgerRules.validate(it, null).isEmpty() })
+        assertEquals("and the GCash entry is the one to pair it with", listOf(41L), ImportPlanner.pairedEntryIds(plan))
+    }
+
+    @Test
+    fun moneyOutThatArrivedInAnotherWalletIsTheOtherHalfToo() {
+        val plan = planWith(listOf(row("Transfer to GCash", 500_000, moneyIn = false)), listOf(inGcash(42, moneyIn = true)))
+        assertEquals(42L, plan.single().ownMove?.entryId)
+        assertEquals(TxPurpose.OWN_MOVE_OUT, ImportPlanner.toTransactions(plan, wallet, 5, at).single().purpose)
+    }
+
+    @Test
+    fun itMustBeTheSameAmountGoingTheOtherWayADayApartAtMost() {
+        val line = listOf(row("Via Other Banks Channel", 500_000, moneyIn = true))
+        assertNull("money in here and money in there is not one move", planWith(line, listOf(inGcash(1, moneyIn = true))).single().ownMove)
+        assertNull("another amount", planWith(line, listOf(inGcash(1, centavos = 500_001))).single().ownMove)
+        assertNull("two days apart", planWith(line, listOf(inGcash(1, date = nov3.minusDays(2)))).single().ownMove)
+        assertEquals("the day before", 1L, planWith(line, listOf(inGcash(1, date = nov3.minusDays(1)))).single().ownMove?.entryId)
+        assertEquals("the day after", 1L, planWith(line, listOf(inGcash(1, date = nov3.plusDays(1)))).single().ownMove?.entryId)
+    }
+
+    @Test
+    fun theNearestDayWinsAndOneEntryIsOneLinesOtherHalf() {
+        val lines = listOf(row("First", 500_000, moneyIn = true, date = nov3), row("Second", 500_000, moneyIn = true, date = nov3.plusDays(1)))
+        val two = planWith(lines, listOf(inGcash(41, date = nov3.plusDays(1)), inGcash(42, date = nov3)))
+        assertEquals("each line takes the entry of its own day", listOf(42L, 41L), two.map { it.ownMove?.entryId })
+
+        val one = planWith(lines, listOf(inGcash(41, date = nov3)))
+        assertEquals("one entry cannot be the other half of two lines", listOf(41L, null), one.map { it.ownMove?.entryId })
+        assertEquals(listOf(TxPurpose.OWN_MOVE_IN, TxPurpose.INCOME), ImportPlanner.toTransactions(one, wallet, 5, at).map { it.purpose })
+    }
+
+    @Test
+    fun aLineThatIsNotNewIsNotOfferedAsOne() {
+        val lines = listOf(row("Via Other Banks Channel", 500_000, moneyIn = true), row("Again", 500_000, moneyIn = true))
+        // This wallet already has an entry for the first line's day and amount.
+        val plan = planWith(lines, listOf(inGcash(41)), existing = listOf(LedgerMark(nov3, 500_000, moneyIn = true)))
+        assertEquals(listOf(ImportStatus.LOOKS_LIKE_EXISTING, ImportStatus.NEW), plan.map { it.status })
+        assertEquals("the entry is left for the line that is new", listOf(null, 41L), plan.map { it.ownMove?.entryId })
+    }
+
+    @Test
+    fun whenTheOwnerSaysItIsNotTheirTransferOrUnticksItNothingIsPaired() {
+        val plan = planWith(listOf(row("Via Other Banks Channel", 500_000, moneyIn = true)), listOf(inGcash(41)))
+
+        val saidNo = plan.map { it.copy(asOwnMove = false) }
+        assertEquals("brought in as income, as before", TxPurpose.INCOME, ImportPlanner.toTransactions(saidNo, wallet, 5, at).single().purpose)
+        assertEquals(emptyList<Long>(), ImportPlanner.pairedEntryIds(saidNo))
+
+        val unticked = plan.map { it.copy(picked = false) }
+        assertEquals(0, ImportPlanner.toTransactions(unticked, wallet, 5, at).size)
+        assertEquals("a line that is not brought in changes no other entry", emptyList<Long>(), ImportPlanner.pairedEntryIds(unticked))
     }
 }

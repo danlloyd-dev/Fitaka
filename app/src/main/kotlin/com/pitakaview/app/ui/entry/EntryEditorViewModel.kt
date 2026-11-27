@@ -20,6 +20,7 @@ import com.pitakaview.app.domain.EntryForm
 import com.pitakaview.app.domain.EntryFormLogic
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.EntryProblem
+import com.pitakaview.app.domain.isOwnMove
 import com.pitakaview.app.ui.OneAtATime
 import java.time.Instant
 import java.time.LocalDate
@@ -88,6 +89,14 @@ class EntryEditorViewModel(
     /** Opened from a payday's "Received" button: it is income, so the kind is not offered. */
     val kindLocked = payScheduleId != null && transactionId == null
 
+    /** Null unless the entry opened is half of a move between the owner's own wallets; then whether it stays one. */
+    var ownMove by mutableStateOf<Boolean?>(null)
+        private set
+
+    fun selectOwnMove(stays: Boolean) {
+        if (ownMove != null) ownMove = stays
+    }
+
     /** The baon this spending is paid out of, if any. It then counts against what is left of that baon. */
     var baonId by mutableStateOf<Long?>(null)
         private set
@@ -125,6 +134,7 @@ class EntryEditorViewModel(
                     date = form.date
                     linkedScheduleId = form.payScheduleId
                     baonId = form.baonId
+                    if (form.ownMove) ownMove = true
                     paydayName = form.payScheduleId?.let { db.payScheduleDao().get(it) }?.name
                 }
             } else {
@@ -195,13 +205,20 @@ class EntryEditorViewModel(
             fromWalletId = fromWalletId, toWalletId = toWalletId, date = date, note = note.text.toString(),
             payScheduleId = linkedScheduleId,
             baonId = if (kind == EntryKind.EXPENSE) baonId else null,
+            ownMove = ownMove == true,
         )
         problems = EntryFormLogic.problems(form)
         if (problems.isNotEmpty()) return
         saving.launch(viewModelScope) {
             val tx = EntryFormLogic.toTransaction(form, existing, now())
             try {
-                if (existing == null) ledger.add(tx) else ledger.update(tx)
+                val was = existing
+                when {
+                    was == null -> ledger.add(tx)
+                    // A half that is no longer one takes its other half back with it, in one step.
+                    was.purpose.isOwnMove -> ledger.updateHalf(was, tx)
+                    else -> ledger.update(tx)
+                }
             } catch (e: IllegalArgumentException) {
                 // The ledger refused the row. Say so instead of closing as if it had been saved.
                 saveError = "This entry could not be saved: ${e.message}"

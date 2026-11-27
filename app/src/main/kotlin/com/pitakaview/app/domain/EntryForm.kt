@@ -24,6 +24,11 @@ data class EntryForm(
     val payScheduleId: Long? = null,
     /** Set when spending is paid out of a baon the owner receives, so it counts against that baon. */
     val baonId: Long? = null,
+    /**
+     * True for one half of a move between the owner's own wallets (see TxPurpose.OWN_MOVE_OUT). It is
+     * edited like spending or income and saved as the half it is, unless the owner says it was no move.
+     */
+    val ownMove: Boolean = false,
 )
 
 enum class EntryProblem { AMOUNT, CATEGORY, WALLET, SAME_WALLET }
@@ -63,12 +68,12 @@ object EntryFormLogic {
         val note = form.note.trim().ifEmpty { null }
         return when (form.kind) {
             EntryKind.EXPENSE -> base.copy(
-                purpose = TxPurpose.EXPENSE, amountCentavos = amount, occurredOn = form.date,
+                purpose = if (form.ownMove) TxPurpose.OWN_MOVE_OUT else TxPurpose.EXPENSE, amountCentavos = amount, occurredOn = form.date,
                 fromWalletId = form.fromWalletId, toWalletId = null, categoryId = form.categoryId, note = note,
                 payScheduleId = null, baonId = form.baonId,
             )
             EntryKind.INCOME -> base.copy(
-                purpose = TxPurpose.INCOME, amountCentavos = amount, occurredOn = form.date,
+                purpose = if (form.ownMove) TxPurpose.OWN_MOVE_IN else TxPurpose.INCOME, amountCentavos = amount, occurredOn = form.date,
                 fromWalletId = null, toWalletId = form.toWalletId, categoryId = form.categoryId, note = note,
                 baonId = null, payScheduleId = form.payScheduleId,
             )
@@ -83,15 +88,15 @@ object EntryFormLogic {
     /** The form for an existing row, or null when that row is not one of the three quick-entry kinds. */
     fun fromTransaction(tx: TransactionEntity): EntryForm? {
         val kind = when (tx.purpose) {
-            TxPurpose.EXPENSE -> EntryKind.EXPENSE
-            TxPurpose.INCOME -> EntryKind.INCOME
+            TxPurpose.EXPENSE, TxPurpose.OWN_MOVE_OUT -> EntryKind.EXPENSE
+            TxPurpose.INCOME, TxPurpose.OWN_MOVE_IN -> EntryKind.INCOME
             TxPurpose.TRANSFER -> EntryKind.TRANSFER
             else -> return null
         }
         return EntryForm(
             kind = kind, amountText = plainAmount(tx.amountCentavos), categoryId = tx.categoryId,
             fromWalletId = tx.fromWalletId, toWalletId = tx.toWalletId, date = tx.occurredOn, note = tx.note.orEmpty(),
-            payScheduleId = tx.payScheduleId, baonId = tx.baonId,
+            payScheduleId = tx.payScheduleId, baonId = tx.baonId, ownMove = tx.purpose.isOwnMove,
         )
     }
 

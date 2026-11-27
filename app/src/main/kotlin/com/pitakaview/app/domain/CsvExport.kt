@@ -56,7 +56,8 @@ object CsvExport {
 
     /** Money leaving a wallet is "out", arriving is "in", and going between two of your own wallets is "move". */
     fun direction(row: ExportRow): String = when {
-        row.fromWalletName != null && row.toWalletName != null -> "move"
+        // A half of a move between the owner's own wallets is a move too, though it names one wallet.
+        row.fromWalletName != null && row.toWalletName != null || row.purpose.isOwnMove -> "move"
         row.toWalletName != null -> "in"
         else -> "out"
     }

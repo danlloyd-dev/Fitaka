@@ -41,7 +41,23 @@ enum class TxPurpose {
 
     /** Utang: a repayment (paid out of a wallet, or received into one). */
     LOAN_PAYMENT,
+
+    /**
+     * One half of a move between two of the owner's own wallets, as the two wallets' bank statements show
+     * it: this half is the money leaving a wallet. Its other half is an [OWN_MOVE_IN] in the other wallet.
+     * Neither spending nor income: no total counts it. Unlike [TRANSFER], which is one entry for both
+     * wallets, each half is one statement's own line with that statement's reference, so each file can be
+     * opened again or taken back out by itself. A half keeps the category it had as spending or income,
+     * and goes back to being that when its other half goes (see LedgerRepository).
+     */
+    OWN_MOVE_OUT,
+
+    /** The other half: the money arriving in a wallet. See [OWN_MOVE_OUT]. */
+    OWN_MOVE_IN,
 }
+
+/** Whether this is one half of a move between the owner's own wallets. */
+val TxPurpose.isOwnMove: Boolean get() = this == TxPurpose.OWN_MOVE_OUT || this == TxPurpose.OWN_MOVE_IN
 
 enum class BaonDirection { RECEIVE, GIVE }
 

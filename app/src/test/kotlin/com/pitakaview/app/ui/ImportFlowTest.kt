@@ -39,6 +39,11 @@ import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.importing.PdfText
 import com.pitakaview.app.importing.PdfTextReader
 import com.pitakaview.app.ui.importing.ImportViewModel
+import java.io.File
+import java.time.Instant
+import java.time.LocalDate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -49,11 +54,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import java.io.File
-import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Importing a file through the real screens, on a phone-sized screen. Android's "pick a file" screen
@@ -660,5 +660,109 @@ class ImportFlowTest : FlowTestBase() {
         waitFor("Imported 1 entry into Cash.")
         assertEquals("only the Cash line", -25_000L, cashBalance())
         assertEquals(1, entries().size)
+    }
+
+    // ---------- a move between the owner's own wallets (owner's choice, 2026-11-27: "Pair them") ----------
+
+    private val november = LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 30)
+
+    private fun monthTotal(purpose: TxPurpose): Long = runBlocking {
+        container.database.transactionDao().observeTotalsByPurpose(november.first, november.second).first().firstOrNull { it.purpose == purpose }?.totalCentavos ?: 0L
+    }
+
+    private fun balanceOf(walletName: String): Long = wallets().first { it.wallet.name == walletName }.balanceCentavos
+
+    /** Cash's statement is brought in: 5,000.00 left it on the 3rd, and there was a lunch. Then MariBank is chosen for the next file. */
+    private fun cashStatementInThenMariBankChosen() {
+        picked = file("cash.csv", "Date,Description,Reference No.,Debit,Credit\n2026-11-03,Transfer to MariBank,C1,5000.00,\n2026-11-03,Payment to Jollibee,C2,250.00,\n")
+        start()
+        addWallet("MariBank")
+        openImport()
+        tapButton("Choose a file")
+        waitFor("2 lines read · 2 new")
+        tapButton("Import 2 entries")
+        waitFor("Imported 2 entries into Cash.")
+        assertEquals("until the other statement comes, the money that left counts as spending", 525_000L, monthTotal(TxPurpose.EXPENSE))
+
+        // MariBank's statement: the 5,000.00 arrived the day after.
+        picked = file("mari.csv", "Date,Description,Reference No.,Debit,Credit\n2026-11-04,Via Other Banks Channel,M1,,5000.00\n")
+        walletChip("MariBank").performClick()
+        tapButton("Choose a file")
+        waitFor("mari.csv")
+    }
+
+    /**
+     * Money moved from one wallet to another is in both wallets' statements: out in one, in in the other.
+     * Brought in separately it counted as spending AND as income, and the month's totals were 5,000.00
+     * too high each way. The review now says what it looks like and brings it in as one move.
+     */
+    @Test
+    fun moneyMovedBetweenTwoWalletsCountsAsNeitherSpendingNorIncome() {
+        cashStatementInThenMariBankChosen()
+        waitFor("1 line read · 1 new · 1 moved between your own wallets")
+        assertTrue("it says which entry it looks like the other half of", shows("₱5,000.00 left Cash on"))
+        rule.onNode(hasText("My own transfer") and isSelectable()).assertIsSelected()
+        assertFalse("a move has no category to pick", shows("Category:"))
+
+        tapButton("Import 1 entry")
+        waitFor("Imported 1 entry into MariBank.")
+        assertEquals("only the lunch is spending", 25_000L, monthTotal(TxPurpose.EXPENSE))
+        assertEquals("and nothing is income", 0L, monthTotal(TxPurpose.INCOME))
+        assertEquals("both wallets are as their statements say", -525_000L to 500_000L, cashBalance() to balanceOf("MariBank"))
+        assertEquals(setOf(TxPurpose.OWN_MOVE_OUT, TxPurpose.OWN_MOVE_IN, TxPurpose.EXPENSE), entries().map { it.purpose }.toSet())
+
+        // The same statement again: its line is known by its own reference, and nothing is offered twice.
+        tapButton("Choose a file")
+        waitFor("1 line read · 0 new · 1 already imported")
+        assertEquals(3, entries().size)
+    }
+
+    @Test
+    fun theOwnerCanSayItIsIncomeAfterAll() {
+        cashStatementInThenMariBankChosen()
+        waitFor("1 moved between your own wallets")
+        rule.onNode(hasText("No, it is income") and isSelectable()).performClick()
+        waitFor("Category:")
+        assertFalse(shows("moved between your own wallets"))
+        // Saying again which way the line went lays the whole file out afresh: the answer above must stand.
+        tapButton("Category: Other")
+        rule.onNode(hasText("Money in") and isSelectable()).performClick()
+        rule.waitForIdle()
+        Thread.sleep(300) // the lines are worked out again off the main thread
+        rule.waitForIdle()
+        rule.onNode(hasText("No, it is income") and isSelectable()).assertIsSelected()
+        assertFalse(shows("moved between your own wallets"))
+        tapButton("Import 1 entry")
+        waitFor("Imported 1 entry into MariBank.")
+        assertEquals("both count, as before this was looked for", 525_000L to 500_000L, monthTotal(TxPurpose.EXPENSE) to monthTotal(TxPurpose.INCOME))
+        assertEquals(setOf(TxPurpose.EXPENSE, TxPurpose.INCOME), entries().map { it.purpose }.toSet())
+    }
+
+    /** A half can be opened like any entry, and the owner can say there that it was spending after all: both halves go back. */
+    @Test
+    fun aHalfOpenedFromHomeCanBeTurnedBackIntoSpendingAndItsOtherHalfFollows() {
+        cashStatementInThenMariBankChosen()
+        waitFor("1 moved between your own wallets")
+        tapButton("Import 1 entry")
+        waitFor("Imported 1 entry into MariBank.")
+        back()
+        waitFor("Money set-up")
+        back()
+        waitFor("Your whole wallet")
+
+        // On Home the half is named for what it is, not for a category. (Recent is below the fold here.)
+        scrollTo("Moved to my other wallet")
+        assertTrue(shows("Moved to my other wallet"))
+        assertTrue(shows("Moved from my other wallet"))
+        rule.onNode(hasText("Moved to my other wallet") and hasClickAction()).performClick()
+        waitFor("Moved to another wallet of yours")
+        assertTrue(shows("It is not counted as spending or as income."))
+        rule.onNode(hasText("It was spending") and isSelectable()).performClick()
+        waitFor("its other half counts as income again")
+        tapButton("Save")
+        rule.waitUntil(10_000) { monthTotal(TxPurpose.EXPENSE) == 525_000L }
+        assertEquals("the other half, in MariBank, is income again", 500_000L, monthTotal(TxPurpose.INCOME))
+        assertEquals(setOf(TxPurpose.EXPENSE, TxPurpose.INCOME), entries().map { it.purpose }.toSet())
+        assertEquals("no balance moved at any point", -525_000L to 500_000L, cashBalance() to balanceOf("MariBank"))
     }
 }

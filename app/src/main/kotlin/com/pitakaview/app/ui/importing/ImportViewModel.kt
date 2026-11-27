@@ -14,6 +14,7 @@ import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.domain.ImportSource
+import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.domain.importing.CsvStatementReader
 import com.pitakaview.app.domain.importing.DirectionSolver
 import com.pitakaview.app.domain.importing.ImportCandidate
@@ -205,12 +206,23 @@ class ImportViewModel(
         val settled = settleFromTotals(ImportPlanner.settledByLedger(rows, open, read.source, wallet, imported, existing), read.totals)
         // Only a file that names wallets (the app's own export) needs the wallet's name: one small read then.
         val walletName = if (rows.any { it.walletName != null }) db.walletDao().get(wallet)?.name else null
-        val fresh = ImportPlanner.plan(settled, read.source, wallet, imported, existing, expenseCategories, incomeCategories, walletName)
+        // Spending and income in the owner's other wallets around the file's dates: a line of this file may
+        // be the other half of one (money moved between two of the owner's wallets). One query.
+        val ownMoves = db.transactionDao().ownMoveCandidates(
+            wallet, rows.minOf { it.date }.minusDays(ImportPlanner.OWN_MOVE_DAYS), rows.maxOf { it.date }.plusDays(ImportPlanner.OWN_MOVE_DAYS),
+            TxPurpose.EXPENSE, TxPurpose.INCOME,
+        )
+        val fresh = ImportPlanner.plan(settled, read.source, wallet, imported, existing, expenseCategories, incomeCategories, walletName, ownMoves)
         stage = ImportStage.Review(
             fileName, read,
             fresh.mapIndexed { i, line ->
                 val before = keep.getOrNull(i)
-                if (before != null && before.row == line.row && before.status == line.status) line.copy(picked = before.picked, categoryId = before.categoryId) else line
+                if (before != null && before.row == line.row && before.status == line.status) {
+                    // What the owner chose stays: the tick, the category, and whether it is their own transfer.
+                    line.copy(picked = before.picked, categoryId = before.categoryId, asOwnMove = if (before.ownMove == line.ownMove) before.asOwnMove else line.asOwnMove)
+                } else {
+                    line
+                }
             },
             flipped,
         )
@@ -243,6 +255,11 @@ class ImportViewModel(
     fun setCategory(index: Int, categoryId: Long) {
         changeLines { lines -> lines.mapIndexed { i, line -> if (i == index) line.copy(categoryId = categoryId) else line } }
         openLine = null
+    }
+
+    /** The owner says whether a line that looks like the other half of a move between their own wallets is one. */
+    fun setOwnMove(index: Int, isOne: Boolean) = changeLines { lines ->
+        lines.mapIndexed { i, line -> if (i == index && line.ownMove != null) line.copy(asOwnMove = isOne) else line }
     }
 
     /**
@@ -282,6 +299,7 @@ class ImportViewModel(
             try {
                 ledger.importBatch(
                     ImportBatchEntity(source = review.read.source, walletId = wallet, fileName = review.fileName, rowCount = review.picked, importedAt = at),
+                    pairWith = ImportPlanner.pairedEntryIds(review.candidates),
                 ) { batchId -> ImportPlanner.toTransactions(review.candidates, wallet, batchId, at) }
             } catch (e: CancellationException) {
                 throw e

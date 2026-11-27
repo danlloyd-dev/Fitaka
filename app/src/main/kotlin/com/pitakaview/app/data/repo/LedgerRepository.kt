@@ -7,6 +7,8 @@ import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.domain.LedgerRules
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.domain.importing.ImportPlanner
+import com.pitakaview.app.domain.isOwnMove
 import java.time.Instant
 import java.time.LocalDate
 
@@ -26,7 +28,49 @@ class LedgerRepository(private val db: FitakaDatabase) {
         transactions.update(tx)
     }
 
-    suspend fun delete(tx: TransactionEntity) = transactions.delete(tx)
+    /** Removes [tx]. If it was half of a move between the owner's own wallets, its other half is spending or income again. */
+    suspend fun delete(tx: TransactionEntity) {
+        if (!tx.purpose.isOwnMove) {
+            transactions.delete(tx)
+            return
+        }
+        db.withWriteTransaction {
+            transactions.delete(tx)
+            revertOtherHalfOf(tx)
+        }
+    }
+
+    /**
+     * Stores a change to [was], one half of a move between the owner's own wallets. If [tx] is no longer a
+     * half (the owner said it was spending, or income, after all), its other half goes back with it, as one step.
+     */
+    suspend fun updateHalf(was: TransactionEntity, tx: TransactionEntity) {
+        checkValid(tx)
+        db.withWriteTransaction {
+            transactions.update(tx)
+            if (!tx.purpose.isOwnMove) revertOtherHalfOf(was)
+        }
+    }
+
+    /**
+     * The other half of [half] is the nearest entry of the opposite kind for the same amount in another
+     * wallet, a day apart at most. It goes back to what it was before the two were paired: plain spending
+     * or plain income, with the category it kept. Halves of one amount in one span of days are
+     * interchangeable, so taking the nearest keeps the count of pairs right. Nothing happens when there is none.
+     */
+    private suspend fun revertOtherHalfOf(half: TransactionEntity) {
+        val wallet = half.fromWalletId ?: half.toWalletId ?: return
+        val leaving = half.purpose == TxPurpose.OWN_MOVE_IN // the other half is the money leaving
+        val other = transactions.ownMovePartner(
+            purpose = if (leaving) TxPurpose.OWN_MOVE_OUT else TxPurpose.OWN_MOVE_IN,
+            amountCentavos = half.amountCentavos,
+            day = half.occurredOn,
+            from = half.occurredOn.minusDays(ImportPlanner.OWN_MOVE_DAYS),
+            until = half.occurredOn.plusDays(ImportPlanner.OWN_MOVE_DAYS),
+            walletId = wallet,
+        ) ?: return
+        transactions.update(other.copy(purpose = if (leaving) TxPurpose.EXPENSE else TxPurpose.INCOME))
+    }
 
     /**
      * Stores several rows as one all-or-nothing step: if any row is refused, none of them are kept.
@@ -42,20 +86,40 @@ class LedgerRepository(private val db: FitakaDatabase) {
      * file is never half imported. [rows] is given the new record's id so each entry can carry it.
      * Returns that id.
      */
-    suspend fun importBatch(batch: ImportBatchEntity, rows: (batchId: Long) -> List<TransactionEntity>): Long =
+    suspend fun importBatch(batch: ImportBatchEntity, pairWith: List<Long> = emptyList(), rows: (batchId: Long) -> List<TransactionEntity>): Long =
         db.withWriteTransaction {
             val id = db.importBatchDao().insert(batch)
             rows(id).forEach { row ->
                 checkValid(row)
                 transactions.insert(row)
             }
+            // [pairWith]: entries in other wallets that lines of this file are the other half of. Each
+            // becomes the half it is (see TxPurpose.OWN_MOVE_OUT), in the same step as the file's own lines.
+            pairWith.forEach { entryId ->
+                val entry = transactions.get(entryId)
+                val half = when (entry?.purpose) {
+                    TxPurpose.EXPENSE -> TxPurpose.OWN_MOVE_OUT
+                    TxPurpose.INCOME -> TxPurpose.OWN_MOVE_IN
+                    // Changed or removed since the file was laid out for review: nothing of the file is stored.
+                    else -> throw IllegalStateException("Entry $entryId is no longer plain spending or income")
+                }
+                transactions.update(entry.copy(purpose = half))
+            }
             id
         }
 
     /** Takes an import back out: its record and every entry it added that is still there. */
     suspend fun undoImport(batchId: Long) {
-        val batch = db.importBatchDao().get(batchId) ?: return
-        db.importBatchDao().delete(batch)
+        db.withWriteTransaction {
+            val batch = db.importBatchDao().get(batchId)
+            if (batch != null) {
+                // The halves this file added go with it; their other halves, in other wallets, are spending
+                // or income again, as they were before this file was brought in.
+                val halves = transactions.ownMoveHalvesOf(batchId, TxPurpose.OWN_MOVE_OUT, TxPurpose.OWN_MOVE_IN)
+                db.importBatchDao().delete(batch)
+                halves.forEach { revertOtherHalfOf(it) }
+            }
+        }
     }
 
     /** Which of [refs] were imported before. Asked in chunks, to stay under SQLite's limit on values in one query. */

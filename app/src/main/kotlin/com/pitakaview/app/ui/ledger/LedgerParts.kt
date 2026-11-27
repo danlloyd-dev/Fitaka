@@ -41,12 +41,13 @@ import com.pitakaview.app.data.db.dao.isMove
 import com.pitakaview.app.data.db.dao.signedCentavos
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.UiStyle
+import com.pitakaview.app.domain.isOwnMove
 import com.pitakaview.app.ui.components.AmountText
-import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.FitakaCard
 import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaIconButton
 import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.home.friendlyDate
@@ -56,9 +57,9 @@ import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.AnimatedAmountText
 import com.pitakaview.app.ui.motion.FitakaMotion
-import com.pitakaview.app.ui.theme.LocalUiStyle
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.LocalUiStyle
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.label
 import com.pitakaview.app.ui.theme.section
@@ -228,7 +229,8 @@ private fun DayGroupCard(day: DayGroup, today: LocalDate, onOpenEntry: (Long) ->
 fun EntryListItem(row: RecentTransaction, subtitle: String, onClick: () -> Unit) {
     val section = row.purpose.section
     FitakaListItem(
-        title = row.categoryName ?: row.purpose.label,
+        // A half of a move between the owner's own wallets keeps a category it does not show: it is no spending.
+        title = if (row.purpose.isOwnMove) row.purpose.label else row.categoryName ?: row.purpose.label,
         subtitle = subtitle.ifEmpty { null },
         leading = {
             if (section != null) {
