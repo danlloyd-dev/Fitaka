@@ -101,7 +101,7 @@ class BackupManagerTest {
 
     /**
      * A backup the app made while it was called PitakaView: the file in src/test/resources/backups was
-     * written by the code at commit 2bc161d (2026-11-26) from the same made-up data as [seed]. The owner's
+     * written by the code at commit c116ab9 (2026-11-26) from the same made-up data as [seed]. The owner's
      * own backups are such files, so Fitaka must go on reading them, with every balance as it was.
      */
     @Test

@@ -104,7 +104,7 @@ class BackupFlowTest : FlowTestBase() {
 
     /**
      * The same through the app's own screens: a backup the app made while it was called PitakaView (commit
-     * 2bc161d; made-up data: two wallets, one expense, one transfer), under the name that build gave its
+     * c116ab9; made-up data: two wallets, one expense, one transfer), under the name that build gave its
      * backups, picked in Settings > Backup and restored.
      */
     @Test
