@@ -46,24 +46,25 @@ import com.pitakaview.app.domain.MoveProblem
 import com.pitakaview.app.domain.MoveTarget
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.TxPurpose
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.DateChoice
-import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
 
 /** The words on the screen for each kind of section entry. */
 object MoveText {
@@ -123,6 +124,7 @@ class MoveEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     /** What the entry belongs to; null until loaded. */
     var target by mutableStateOf<MoveTarget?>(null)
@@ -228,17 +230,18 @@ class MoveEditorViewModel(
         val form = MoveForm(amount.text.toString(), walletId, date, note.text.toString())
         problems = MoveFormLogic.problems(form, to.purpose, mostCentavos)
         if (problems.isNotEmpty()) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val tx = MoveFormLogic.toTransaction(form, to, existing, now())
             try {
                 if (existing == null) ledger.add(tx) else ledger.update(tx)
             } catch (e: IllegalArgumentException) {
                 // The ledger refused the row. Say so instead of closing as if it had been saved.
                 saveError = "This entry could not be saved: ${e.message}"
-                return@launch
+                return@launch false
             }
             form.walletId?.let { settings.setLastWalletId(it) }
             done = true
+            true
         }
     }
 

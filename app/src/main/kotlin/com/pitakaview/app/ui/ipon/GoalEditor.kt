@@ -36,23 +36,24 @@ import com.pitakaview.app.domain.GoalForm
 import com.pitakaview.app.domain.GoalFormLogic
 import com.pitakaview.app.domain.GoalProblem
 import com.pitakaview.app.domain.Peso
-import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.OptionalDateChoice
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.components.OptionalDateChoice
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
 
 /** Add or change a savings goal. Checks what was typed with [GoalFormLogic]. */
 class GoalEditorViewModel(
@@ -76,6 +77,7 @@ class GoalEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
     var existing by mutableStateOf<SavingsGoalEntity?>(null)
         private set
     var hasEntries by mutableStateOf(false)
@@ -113,10 +115,11 @@ class GoalEditorViewModel(
         val form = GoalForm(name.text.toString(), target.text.toString(), targetDate, walletId)
         problems = GoalFormLogic.problems(form)
         if (problems.isNotEmpty()) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val goal = GoalFormLogic.toEntity(form, existing, now())
             if (existing == null) db.savingsGoalDao().insert(goal) else db.savingsGoalDao().update(goal)
             done = true
+            true
         }
     }
 

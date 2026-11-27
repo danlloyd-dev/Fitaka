@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.pitakaview.app.domain.UiStyle
+import com.pitakaview.app.ui.lock.LocalAppLocked
 import com.pitakaview.app.ui.motion.FitakaSpring
 import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.LocalUiStyle
@@ -54,6 +55,8 @@ fun FitakaConfirmDialog(
     onDismiss: () -> Unit,
     enabled: Boolean = true,
 ) {
+    // Not while the app is locked: this is a window above the lock screen.
+    if (LocalAppLocked.current) return
     Dialog(onDismissRequest = { if (enabled) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         BlurWhatIsBehind()
         // The card arrives with a small pop, not all at once.

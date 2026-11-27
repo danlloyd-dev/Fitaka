@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.ui.home.friendlyDate
+import com.pitakaview.app.ui.lock.LocalAppLocked
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -72,6 +73,8 @@ fun OptionalDateChoice(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PickDateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismiss: () -> Unit) {
+    // Not while the app is locked: this is a window above the lock screen.
+    if (LocalAppLocked.current) return
     val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
     DatePickerDialog(
         onDismissRequest = onDismiss,

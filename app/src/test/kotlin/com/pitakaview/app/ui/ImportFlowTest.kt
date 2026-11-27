@@ -18,6 +18,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -28,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.core.app.ActivityOptionsCompat
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
@@ -158,7 +160,8 @@ class ImportFlowTest : FlowTestBase() {
         assertEquals(1_500_000L - 25_000L, cashBalance())
 
         // The import is listed, and the same file again offers only the line that was left out.
-        scrollTo("Earlier imports")
+        // The list of earlier imports comes from the database a moment after the notice: wait for it.
+        rule.waitUntil(10_000) { runCatching { scrollTo("Earlier imports") }.isSuccess }
         assertTrue(shows("2 entries · Cash"))
         scrollTo("Choose a file")
         tapButton("Choose a file")
@@ -179,6 +182,8 @@ class ImportFlowTest : FlowTestBase() {
         waitFor("Removed what november.csv had added.")
         assertEquals(0, entries().size)
         assertEquals(0L, cashBalance())
+        // And the list loses it a moment after the notice.
+        rule.waitUntil(10_000) { !shows("Earlier imports") }
         assertFalse(shows("Earlier imports"))
     }
 
@@ -538,5 +543,29 @@ class ImportFlowTest : FlowTestBase() {
         assertTrue(copied.startsWith("— Page 1 (3 lines) —"))
         assertFalse("nothing private leaves the app", "Juan" in copied || "1,250" in copied || "4,750" in copied)
         assertEquals("a PDF adds nothing", 0, entries().size)
+    }
+
+    /**
+     * Found in the review before 1.0 (2026-11-27): a second tap on Import, while the file was being stored,
+     * started a second write of the same file.
+     */
+    @Test
+    fun importTappedTwiceStoresTheFileOnce() {
+        picked = file("november.csv", statement)
+        start()
+        openImport()
+        tapButton("Choose a file")
+        waitFor("november.csv")
+        rule.onNode(hasText("Import 3 entries") and hasClickAction()).assertIsDisplayed().performTouchInput {
+            click()
+            click()
+        }
+        waitFor("Imported 3 entries into Cash.")
+        rule.waitForIdle()
+        Thread.sleep(400) // a second write, had one been started, finishes in real time
+        rule.waitForIdle()
+        assertEquals("three lines in the file, three entries stored", 3, entries().size)
+        assertTrue("and the screen still says so", shows("Imported 3 entries into Cash."))
+        assertFalse(shows("The import could not be saved"))
     }
 }

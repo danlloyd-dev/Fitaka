@@ -28,6 +28,8 @@ import com.pitakaview.app.domain.importing.TextMask
 import com.pitakaview.app.domain.importing.UnreadableReason
 import com.pitakaview.app.importing.PdfText
 import com.pitakaview.app.importing.PdfTextReader
+import com.pitakaview.app.ui.OneAtATime
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +37,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 /** A file the owner picked: what it is called and what is in it. */
 class PickedFile(val name: String, val bytes: ByteArray) {
@@ -265,12 +266,15 @@ class ImportViewModel(
         openLine = null
     }
 
+    private val importing = OneAtATime()
+
     /** Stores the ticked lines and the record of this file as one step. */
     fun importPicked() {
         val review = stage as? ImportStage.Review ?: return
         val wallet = walletId ?: return
         if (!review.canImport) return
-        viewModelScope.launch {
+        // One write at a time: a second tap while the file is being stored would store it again.
+        importing.launch(viewModelScope) {
             val at = now()
             try {
                 ledger.importBatch(
@@ -282,11 +286,13 @@ class ImportViewModel(
                 // All or nothing: the write was rolled back, so nothing of this file is in the ledger.
                 Log.e(TAG, "The import could not be saved", e)
                 notice = ImportNotice.Refused(Refusal.COULD_NOT_SAVE)
-                return@launch
+                return@launch false
             }
             notice = ImportNotice.Imported(review.picked, wallets.value.firstOrNull { it.id == wallet }?.name.orEmpty())
             stage = ImportStage.Choose
             openLine = null
+            // The review is gone, so nothing is left to tap twice; another file can be brought in.
+            false
         }
     }
 

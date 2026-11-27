@@ -16,9 +16,10 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Reported as done on purpose: a run marked failed would also fail the next morning's run that is
-            // lined up behind it, and one bad morning would end reminders for good. The error is in the log,
-            // and Settings keeps showing the time of the last check that did work.
+            // Reported as done on purpose. Tomorrow's check is lined up before today's looks for anything,
+            // so a look that breaks costs this one morning; and if the lining up itself broke, the next
+            // opening of the app lines one up again. A failed mark would add nothing to either. The error
+            // is in the log, and Settings keeps showing the time of the last check that did work.
             Log.e(TAG, "The reminder check failed", e)
         }
         return Result.success()

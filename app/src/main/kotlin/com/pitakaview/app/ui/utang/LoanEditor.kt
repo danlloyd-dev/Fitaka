@@ -41,30 +41,31 @@ import com.pitakaview.app.domain.LoanMath
 import com.pitakaview.app.domain.LoanPlan
 import com.pitakaview.app.domain.LoanProblem
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.DateChoice
-import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.OptionalDateChoice
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
-import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.FitakaToggleRow
+import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.components.OptionalDateChoice
+import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
+import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
 
 val LoanDirection.label: String
     get() = if (this == LoanDirection.I_OWE) "I borrowed" else "I lent"
@@ -117,6 +118,7 @@ class LoanEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     /** The loan being changed, with whether it is settled and whether anything is logged for it. */
     var existing by mutableStateOf<LoanEntity?>(null)
@@ -192,7 +194,7 @@ class LoanEditorViewModel(
         // A new loan must say where the money went, so a wallet is never left wrong by a default.
         moneyProblem = !isEdit && !moneyChosen
         if (problems.isNotEmpty() || moneyProblem) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val current = existing
             val loan = LoanFormLogic.toEntity(form, current, now())
             if (current == null) {
@@ -201,6 +203,7 @@ class LoanEditorViewModel(
                 db.loanDao().update(loan)
             }
             done = true
+            true
         }
     }
 

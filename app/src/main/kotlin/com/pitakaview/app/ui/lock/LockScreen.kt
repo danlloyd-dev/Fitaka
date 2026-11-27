@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,14 @@ import com.pitakaview.app.ui.theme.FitakaTheme
  * [onUnlock] shows the phone's unlock question. It is asked once by itself when the lock screen appears,
  * and again whenever the button is tapped. [onLeave] is what Back does: it puts the app away.
  */
+/**
+ * Whether the app is locked right now. A dialog is a window of its own, above the activity and so above
+ * the lock screen: one left open (a delete question, a restore question, the date picker) stayed readable
+ * and could be answered while the app was locked. Dialogs read this and are not composed while it is true;
+ * what opened them is remembered, so they are back after unlocking.
+ */
+val LocalAppLocked = compositionLocalOf { false }
+
 @Composable
 fun LockScreen(onUnlock: () -> Unit, onLeave: () -> Unit, modifier: Modifier = Modifier) {
     val c = FitakaTheme.colors

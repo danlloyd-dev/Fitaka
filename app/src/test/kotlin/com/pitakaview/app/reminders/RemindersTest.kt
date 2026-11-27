@@ -49,8 +49,8 @@ class RemindersTest {
 
     private class RecordingAlarm : ReminderAlarm {
         val asked = mutableListOf<String>()
-        override fun ensureScheduled(delay: Duration) { asked += "ensure $delay" }
-        override fun scheduleAfterThisRun(delay: Duration) { asked += "after-this-run $delay" }
+        override suspend fun ensureScheduled(delay: Duration) { asked += "ensure $delay" }
+        override suspend fun scheduleAfterThisRun(delay: Duration) { asked += "after-this-run $delay" }
         override fun cancel() { asked += "cancel" }
     }
 

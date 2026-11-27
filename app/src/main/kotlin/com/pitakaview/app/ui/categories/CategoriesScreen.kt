@@ -38,7 +38,7 @@ import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.CategoryKind
-import com.pitakaview.app.ui.components.Gloss
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.FitakaButton
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
@@ -46,6 +46,7 @@ import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
@@ -149,6 +150,7 @@ class CategoryEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     init {
         viewModelScope.launch {
@@ -173,12 +175,14 @@ class CategoryEditorViewModel(
             nameProblem = "Give the category a name"
             return
         }
-        viewModelScope.launch {
+        // Through the guard: two taps would both pass the check below before either had stored anything,
+        // and the second insert, refused by the database, would stop the app.
+        saving.launch(viewModelScope) {
             val all = db.categoryDao().observeAll(kind).first()
             // The database also refuses a duplicate (unique kind + name); checking first lets us say why.
             if (all.any { it.name.equals(trimmed, ignoreCase = true) && it.id != current?.id }) {
                 nameProblem = "You already have this category"
-                return@launch
+                return@launch false
             }
             val row = current
             if (row == null) {
@@ -187,6 +191,7 @@ class CategoryEditorViewModel(
                 db.categoryDao().update(row.copy(name = trimmed, iconKey = iconKey))
             }
             done = true
+            true
         }
     }
 

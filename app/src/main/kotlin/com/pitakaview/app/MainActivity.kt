@@ -29,6 +29,7 @@ import com.pitakaview.app.lock.LockSupport
 import com.pitakaview.app.lock.UnlockResult
 import com.pitakaview.app.reminders.ReminderIntents
 import com.pitakaview.app.reminders.ReminderOpen
+import com.pitakaview.app.ui.lock.LocalAppLocked
 import com.pitakaview.app.ui.lock.LockScreen
 import com.pitakaview.app.ui.navigation.FitakaRoot
 import com.pitakaview.app.ui.onboarding.OnboardingLogic
@@ -118,7 +119,7 @@ class MainActivity : ComponentActivity() {
                     enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 }
                 val scope = rememberCoroutineScope()
-                CompositionLocalProvider(LocalAppContainer provides container) {
+                CompositionLocalProvider(LocalAppContainer provides container, LocalAppLocked provides isLocked) {
                     FitakaTheme(current.theme, current.darkMode, current.font, current.style, current.size) {
                         Box(Modifier.fillMaxSize()) {
                             // The app stays as it was under the lock screen (an unsaved form is still there

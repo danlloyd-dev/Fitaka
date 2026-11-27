@@ -20,14 +20,15 @@ import com.pitakaview.app.domain.EntryForm
 import com.pitakaview.app.domain.EntryFormLogic
 import com.pitakaview.app.domain.EntryKind
 import com.pitakaview.app.domain.EntryProblem
+import com.pitakaview.app.ui.OneAtATime
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
 
 /**
  * Quick entry: holds what is being typed, checks it with [EntryFormLogic], and saves through the
@@ -73,6 +74,7 @@ class EntryEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     private var existing: TransactionEntity? = null
 
@@ -196,17 +198,18 @@ class EntryEditorViewModel(
         )
         problems = EntryFormLogic.problems(form)
         if (problems.isNotEmpty()) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val tx = EntryFormLogic.toTransaction(form, existing, now())
             try {
                 if (existing == null) ledger.add(tx) else ledger.update(tx)
             } catch (e: IllegalArgumentException) {
                 // The ledger refused the row. Say so instead of closing as if it had been saved.
                 saveError = "This entry could not be saved: ${e.message}"
-                return@launch
+                return@launch false
             }
             (tx.fromWalletId ?: tx.toWalletId)?.let { settings.setLastWalletId(it) }
             done = true
+            true
         }
     }
 

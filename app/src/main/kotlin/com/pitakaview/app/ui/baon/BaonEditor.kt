@@ -40,28 +40,29 @@ import com.pitakaview.app.domain.BaonFormLogic
 import com.pitakaview.app.domain.BaonPeriod
 import com.pitakaview.app.domain.BaonProblem
 import com.pitakaview.app.domain.Peso
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.DateChoice
-import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.Instant
+import java.time.LocalDate
+import java.time.format.TextStyle as DateTextStyle
+import java.util.Locale
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.TextStyle as DateTextStyle
-import java.util.Locale
 
 val BaonDirection.label: String
     get() = if (this == BaonDirection.RECEIVE) "I receive it" else "I give it"
@@ -107,6 +108,7 @@ class BaonEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
     var existing by mutableStateOf<BaonEntity?>(null)
         private set
     var hasEntries by mutableStateOf(false)
@@ -154,10 +156,11 @@ class BaonEditorViewModel(
         val form = BaonForm(direction, name.text.toString(), amount.text.toString(), period, startDate, walletId)
         problems = BaonFormLogic.problems(form)
         if (problems.isNotEmpty()) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val baon = BaonFormLogic.toEntity(form, existing, now())
             if (existing == null) db.baonDao().insert(baon) else db.baonDao().update(baon)
             done = true
+            true
         }
     }
 

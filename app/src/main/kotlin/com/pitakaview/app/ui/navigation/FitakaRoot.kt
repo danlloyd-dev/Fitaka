@@ -123,6 +123,21 @@ fun NavKey.tabIndex(): Int? = when (this) {
 }
 
 /** Home stays at the root; picking a tab replaces whatever sits above it. */
+/** Opens [screen] on top, unless it is on top already: a second tap on the same button must not open it twice. */
+fun NavBackStack<NavKey>.open(screen: NavKey) {
+    if (lastOrNull() != screen) add(screen)
+}
+
+/**
+ * Closes [screen] and only it: nothing happens unless it is the screen on top, and the first screen is
+ * never closed. Every screen used to close "whatever is on top", so a second tap on Back while a screen
+ * was on its way out closed the one under it too, and from Home that emptied the stack, which stops the
+ * app (found in the review before 1.0 and proven by a test, 2026-11-27).
+ */
+fun NavBackStack<NavKey>.close(screen: NavKey) {
+    if (size > 1 && last() == screen) removeAt(lastIndex)
+}
+
 fun NavBackStack<NavKey>.goToTab(index: Int) {
     val key: NavKey = if (index == 0) HomeKey else SectionKey(Section.entries[index - 1])
     if (lastOrNull() == key) return
@@ -184,7 +199,7 @@ fun FitakaRoot(
                 backStack.goToTab(1 + Section.UTANG.ordinal)
                 // A reminder can outlive its loan. The loan screen goes back by itself when its loan is
                 // gone, which leaves the owner on the list of loans.
-                backStack.add(LoanKey(request.rowId))
+                backStack.open(LoanKey(request.rowId))
             }
         }
         onReminderOpened()
@@ -197,7 +212,8 @@ fun FitakaRoot(
         Box(Modifier.fillMaxSize().background(c.background)) {
             NavDisplay(
                 backStack = backStack,
-                onBack = { backStack.removeLastOrNull() },
+                // The phone's own Back. Never the first screen: an empty stack stops the app.
+                onBack = { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator(),
@@ -209,126 +225,126 @@ fun FitakaRoot(
                     entry<HomeKey>(metadata = tabMetadata) {
                         HomeRoute(
                             onOpenSection = { backStack.goToTab(1 + it.ordinal) },
-                            onAddTransaction = { backStack.add(EntryEditorKey()) },
-                            onOpenSettings = { backStack.add(SettingsKey) },
-                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
-                            onOpenWallets = { backStack.add(WalletsKey) },
-                            onOpenBackup = { backStack.add(BackupKey) },
-                            onSearch = { backStack.add(SearchKey) },
-                            onOpenSummary = { backStack.add(SummaryKey) },
+                            onAddTransaction = { backStack.open(EntryEditorKey()) },
+                            onOpenSettings = { backStack.open(SettingsKey) },
+                            onOpenEntry = { backStack.open(EntryEditorKey(transactionId = it)) },
+                            onOpenWallets = { backStack.open(WalletsKey) },
+                            onOpenBackup = { backStack.open(BackupKey) },
+                            onSearch = { backStack.open(SearchKey) },
+                            onOpenSummary = { backStack.open(SummaryKey) },
                         )
                     }
-                    entry<SummaryKey> {
-                        SummaryRoute(onBack = { backStack.removeLastOrNull() })
+                    entry<SummaryKey> { key ->
+                        SummaryRoute(onBack = { backStack.close(key) })
                     }
-                    entry<SearchKey> {
+                    entry<SearchKey> { key ->
                         SearchRoute(
-                            onBack = { backStack.removeLastOrNull() },
-                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                            onBack = { backStack.close(key) },
+                            onOpenEntry = { backStack.open(EntryEditorKey(transactionId = it)) },
                         )
                     }
                     entry<PayScheduleEditorKey> { key ->
-                        PayScheduleEditorRoute(key.scheduleId, onDone = { backStack.removeLastOrNull() })
+                        PayScheduleEditorRoute(key.scheduleId, onDone = { backStack.close(key) })
                     }
                     entry<LoanKey> { key ->
                         LoanDetailRoute(
                             key.loanId,
-                            onBack = { backStack.removeLastOrNull() },
-                            onEdit = { backStack.add(LoanEditorKey(key.loanId)) },
-                            onAddPayment = { backStack.add(MoveEditorKey(TxPurpose.LOAN_PAYMENT, key.loanId)) },
-                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                            onBack = { backStack.close(key) },
+                            onEdit = { backStack.open(LoanEditorKey(key.loanId)) },
+                            onAddPayment = { backStack.open(MoveEditorKey(TxPurpose.LOAN_PAYMENT, key.loanId)) },
+                            onOpenEntry = { backStack.open(EntryEditorKey(transactionId = it)) },
                         )
                     }
                     entry<LoanEditorKey> { key ->
-                        LoanEditorRoute(key.loanId, onDone = { backStack.removeLastOrNull() })
+                        LoanEditorRoute(key.loanId, onDone = { backStack.close(key) })
                     }
                     entry<GoalKey> { key ->
                         GoalDetailRoute(
                             key.goalId,
-                            onBack = { backStack.removeLastOrNull() },
-                            onEdit = { backStack.add(GoalEditorKey(key.goalId)) },
-                            onAdd = { backStack.add(MoveEditorKey(TxPurpose.SAVINGS_DEPOSIT, key.goalId)) },
-                            onTakeOut = { backStack.add(MoveEditorKey(TxPurpose.SAVINGS_WITHDRAWAL, key.goalId)) },
-                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                            onBack = { backStack.close(key) },
+                            onEdit = { backStack.open(GoalEditorKey(key.goalId)) },
+                            onAdd = { backStack.open(MoveEditorKey(TxPurpose.SAVINGS_DEPOSIT, key.goalId)) },
+                            onTakeOut = { backStack.open(MoveEditorKey(TxPurpose.SAVINGS_WITHDRAWAL, key.goalId)) },
+                            onOpenEntry = { backStack.open(EntryEditorKey(transactionId = it)) },
                         )
                     }
                     entry<GoalEditorKey> { key ->
-                        GoalEditorRoute(key.goalId, onDone = { backStack.removeLastOrNull() })
+                        GoalEditorRoute(key.goalId, onDone = { backStack.close(key) })
                     }
                     entry<BaonKey> { key ->
                         BaonDetailRoute(
                             key.baonId,
-                            onBack = { backStack.removeLastOrNull() },
-                            onEdit = { backStack.add(BaonEditorKey(key.baonId)) },
-                            onReceived = { backStack.add(MoveEditorKey(TxPurpose.BAON_RECEIVED, key.baonId)) },
-                            onSpend = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = key.baonId)) },
-                            onGive = { backStack.add(MoveEditorKey(TxPurpose.BAON_GIVEN, key.baonId)) },
-                            onOpenEntry = { backStack.add(EntryEditorKey(transactionId = it)) },
+                            onBack = { backStack.close(key) },
+                            onEdit = { backStack.open(BaonEditorKey(key.baonId)) },
+                            onReceived = { backStack.open(MoveEditorKey(TxPurpose.BAON_RECEIVED, key.baonId)) },
+                            onSpend = { backStack.open(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = key.baonId)) },
+                            onGive = { backStack.open(MoveEditorKey(TxPurpose.BAON_GIVEN, key.baonId)) },
+                            onOpenEntry = { backStack.open(EntryEditorKey(transactionId = it)) },
                         )
                     }
                     entry<BaonEditorKey> { key ->
-                        BaonEditorRoute(key.baonId, onDone = { backStack.removeLastOrNull() })
+                        BaonEditorRoute(key.baonId, onDone = { backStack.close(key) })
                     }
                     entry<MoveEditorKey> { key ->
-                        MoveEditorRoute(transactionId = null, purpose = key.purpose, linkId = key.linkId, onDone = { backStack.removeLastOrNull() })
+                        MoveEditorRoute(transactionId = null, purpose = key.purpose, linkId = key.linkId, onDone = { backStack.close(key) })
                     }
-                    entry<BackupKey> {
-                        BackupRoute(onBack = { backStack.removeLastOrNull() })
+                    entry<BackupKey> { key ->
+                        BackupRoute(onBack = { backStack.close(key) })
                     }
-                    entry<ImportKey> {
-                        ImportRoute(onBack = { backStack.removeLastOrNull() })
+                    entry<ImportKey> { key ->
+                        ImportRoute(onBack = { backStack.close(key) })
                     }
                     entry<SectionKey>(metadata = tabMetadata) { key ->
-                        val openEntry: (Long) -> Unit = { backStack.add(EntryEditorKey(transactionId = it)) }
+                        val openEntry: (Long) -> Unit = { backStack.open(EntryEditorKey(transactionId = it)) }
                         when (key.section) {
                             Section.GASTOS -> GastosRoute(
-                                onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE)) },
+                                onAdd = { backStack.open(EntryEditorKey(startKind = EntryKind.EXPENSE)) },
                                 onOpenEntry = openEntry,
-                                onSearch = { backStack.add(SearchKey) },
-                                onOpenSettings = { backStack.add(SettingsKey) },
+                                onSearch = { backStack.open(SearchKey) },
+                                onOpenSettings = { backStack.open(SettingsKey) },
                             )
                             Section.KITA -> KitaRoute(
-                                onAdd = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME)) },
+                                onAdd = { backStack.open(EntryEditorKey(startKind = EntryKind.INCOME)) },
                                 onOpenEntry = openEntry,
-                                onSearch = { backStack.add(SearchKey) },
-                                onOpenSettings = { backStack.add(SettingsKey) },
-                                onAddPayday = { backStack.add(PayScheduleEditorKey()) },
-                                onOpenPayday = { backStack.add(PayScheduleEditorKey(it)) },
-                                onReceived = { backStack.add(EntryEditorKey(startKind = EntryKind.INCOME, payScheduleId = it)) },
+                                onSearch = { backStack.open(SearchKey) },
+                                onOpenSettings = { backStack.open(SettingsKey) },
+                                onAddPayday = { backStack.open(PayScheduleEditorKey()) },
+                                onOpenPayday = { backStack.open(PayScheduleEditorKey(it)) },
+                                onReceived = { backStack.open(EntryEditorKey(startKind = EntryKind.INCOME, payScheduleId = it)) },
                             )
                             Section.UTANG -> UtangRoute(
-                                onAdd = { backStack.add(LoanEditorKey()) },
-                                onOpen = { backStack.add(LoanKey(it)) },
-                                onSearch = { backStack.add(SearchKey) },
-                                onOpenSettings = { backStack.add(SettingsKey) },
+                                onAdd = { backStack.open(LoanEditorKey()) },
+                                onOpen = { backStack.open(LoanKey(it)) },
+                                onSearch = { backStack.open(SearchKey) },
+                                onOpenSettings = { backStack.open(SettingsKey) },
                             )
                             Section.IPON -> IponRoute(
-                                onAdd = { backStack.add(GoalEditorKey()) },
-                                onOpen = { backStack.add(GoalKey(it)) },
-                                onSearch = { backStack.add(SearchKey) },
-                                onOpenSettings = { backStack.add(SettingsKey) },
+                                onAdd = { backStack.open(GoalEditorKey()) },
+                                onOpen = { backStack.open(GoalKey(it)) },
+                                onSearch = { backStack.open(SearchKey) },
+                                onOpenSettings = { backStack.open(SettingsKey) },
                             )
                             Section.BAON -> BaonRoute(
-                                onAdd = { backStack.add(BaonEditorKey()) },
-                                onOpen = { backStack.add(BaonKey(it)) },
-                                onReceived = { backStack.add(MoveEditorKey(TxPurpose.BAON_RECEIVED, it)) },
-                                onSpend = { backStack.add(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = it)) },
-                                onGive = { backStack.add(MoveEditorKey(TxPurpose.BAON_GIVEN, it)) },
-                                onSearch = { backStack.add(SearchKey) },
-                                onOpenSettings = { backStack.add(SettingsKey) },
+                                onAdd = { backStack.open(BaonEditorKey()) },
+                                onOpen = { backStack.open(BaonKey(it)) },
+                                onReceived = { backStack.open(MoveEditorKey(TxPurpose.BAON_RECEIVED, it)) },
+                                onSpend = { backStack.open(EntryEditorKey(startKind = EntryKind.EXPENSE, baonId = it)) },
+                                onGive = { backStack.open(MoveEditorKey(TxPurpose.BAON_GIVEN, it)) },
+                                onSearch = { backStack.open(SearchKey) },
+                                onOpenSettings = { backStack.open(SettingsKey) },
                             )
                         }
                     }
-                    entry<SettingsKey> {
+                    entry<SettingsKey> { key ->
                         val reminders = rememberReminderSettings()
                         val lock = rememberLockSettings()
                         SettingsScreen(
                             appearance, onThemeChange, onDarkModeChange,
-                            onBack = { backStack.removeLastOrNull() },
-                            onOpenWallets = { backStack.add(WalletsKey) },
-                            onOpenCategories = { backStack.add(CategoriesKey) },
-                            onOpenBackup = { backStack.add(BackupKey) },
-                            onOpenImport = { backStack.add(ImportKey) },
+                            onBack = { backStack.close(key) },
+                            onOpenWallets = { backStack.open(WalletsKey) },
+                            onOpenCategories = { backStack.open(CategoriesKey) },
+                            onOpenBackup = { backStack.open(BackupKey) },
+                            onOpenImport = { backStack.open(ImportKey) },
                             reminders = reminders.ui,
                             onRemindersChange = reminders.onChange,
                             onOpenPhoneSettings = reminders.onOpenPhoneSettings,
@@ -342,29 +358,29 @@ fun FitakaRoot(
                     entry<EntryEditorKey> { key ->
                         EntryEditorRoute(
                             key.transactionId, key.startKind, key.payScheduleId, key.baonId,
-                            onDone = { backStack.removeLastOrNull() },
-                            onOpenWallets = { backStack.add(WalletsKey) },
+                            onDone = { backStack.close(key) },
+                            onOpenWallets = { backStack.open(WalletsKey) },
                         )
                     }
-                    entry<WalletsKey> {
+                    entry<WalletsKey> { key ->
                         WalletsRoute(
-                            onBack = { backStack.removeLastOrNull() },
-                            onAdd = { backStack.add(WalletEditorKey()) },
-                            onOpen = { backStack.add(WalletEditorKey(it)) },
+                            onBack = { backStack.close(key) },
+                            onAdd = { backStack.open(WalletEditorKey()) },
+                            onOpen = { backStack.open(WalletEditorKey(it)) },
                         )
                     }
                     entry<WalletEditorKey> { key ->
-                        WalletEditorRoute(key.walletId, onDone = { backStack.removeLastOrNull() })
+                        WalletEditorRoute(key.walletId, onDone = { backStack.close(key) })
                     }
-                    entry<CategoriesKey> {
+                    entry<CategoriesKey> { key ->
                         CategoriesRoute(
-                            onBack = { backStack.removeLastOrNull() },
-                            onAdd = { backStack.add(CategoryEditorKey(kind = it)) },
-                            onOpen = { backStack.add(CategoryEditorKey(it.id, it.kind)) },
+                            onBack = { backStack.close(key) },
+                            onAdd = { backStack.open(CategoryEditorKey(kind = it)) },
+                            onOpen = { backStack.open(CategoryEditorKey(it.id, it.kind)) },
                         )
                     }
                     entry<CategoryEditorKey> { key ->
-                        CategoryEditorRoute(key.categoryId, key.kind, onDone = { backStack.removeLastOrNull() })
+                        CategoryEditorRoute(key.categoryId, key.kind, onDone = { backStack.close(key) })
                     }
                 },
             )

@@ -42,9 +42,8 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WalletProvider
 import com.pitakaview.app.domain.WalletRules
 import com.pitakaview.app.domain.WalletType
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.AmountText
-import com.pitakaview.app.ui.components.Gloss
-import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.FitakaButton
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaCard
@@ -53,6 +52,8 @@ import com.pitakaview.app.ui.components.FitakaDivider
 import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.Gloss
+import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
@@ -60,12 +61,12 @@ import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.FitakaDimens
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.Instant
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 /** Quick picks when adding a wallet. The provider is what file imports will match on later. */
 enum class WalletPreset(val label: String, val type: WalletType, val provider: WalletProvider, val suggestedName: String) {
@@ -158,6 +159,7 @@ class WalletEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     init {
         viewModelScope.launch {
@@ -185,7 +187,7 @@ class WalletEditorViewModel(
         nameProblem = trimmedName.isEmpty()
         balanceProblem = typedBalance.isNotEmpty() && amount == null
         if (nameProblem || balanceProblem) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val row = current
             if (row == null) {
                 db.walletDao().insert(
@@ -209,6 +211,7 @@ class WalletEditorViewModel(
                 )
             }
             done = true
+            true
         }
     }
 

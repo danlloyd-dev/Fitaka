@@ -44,31 +44,32 @@ import com.pitakaview.app.domain.PayScheduleFormLogic
 import com.pitakaview.app.domain.PayScheduleProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WeekendRule
-import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.OneAtATime
 import com.pitakaview.app.ui.components.FitakaButton
-import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
-import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.FitakaToggleRow
+import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.theme.FitakaTheme
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDate
+import java.time.format.TextStyle as DateTextStyle
+import java.util.Locale
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.TextStyle as DateTextStyle
-import java.util.Locale
 
 private val DayPattern = Regex("""^\d{0,2}$""")
 
@@ -121,6 +122,7 @@ class PayScheduleEditorViewModel(
         private set
     var done by mutableStateOf(false)
         private set
+    private val saving = OneAtATime()
 
     private var existing: PayScheduleEntity? = null
 
@@ -192,10 +194,11 @@ class PayScheduleEditorViewModel(
         val form = form()
         problems = PayScheduleFormLogic.problems(form)
         if (problems.isNotEmpty()) return
-        viewModelScope.launch {
+        saving.launch(viewModelScope) {
             val row = PayScheduleFormLogic.toEntity(form, existing, now())
             if (existing == null) db.payScheduleDao().insert(row) else db.payScheduleDao().update(row)
             done = true
+            true
         }
     }
 
