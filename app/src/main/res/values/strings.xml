@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The launcher's label. The same word as APP_NAME in AppName.kt, which every screen uses; AppNameTest
+         keeps the two the same. Every other word in the app is written where it is shown. -->
+    <string name="app_name">Fitaka</string>
+</resources>

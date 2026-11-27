@@ -61,7 +61,7 @@ private fun style(family: FontFamily, size: Int, lineHeight: Int, weight: FontWe
 )
 
 /** The app's type sizes in one font. */
-fun pitakaTypography(family: FontFamily) = Typography(
+fun fitakaTypography(family: FontFamily) = Typography(
     displayLarge = style(family, 52, 60, FontWeight.Bold),
     displayMedium = style(family, 42, 50, FontWeight.Bold),
     displaySmall = style(family, 34, 42, FontWeight.Bold),
@@ -79,7 +79,7 @@ fun pitakaTypography(family: FontFamily) = Typography(
     labelSmall = style(family, 12, 16, FontWeight.SemiBold),
 )
 
-val PitakaTypography = pitakaTypography(ShantellSans)
+val FitakaTypography = fitakaTypography(ShantellSans)
 
 /**
  * Button labels. 19sp bold is WCAG "large text" (≥ 14pt bold), where AA needs 3:1 — this is what

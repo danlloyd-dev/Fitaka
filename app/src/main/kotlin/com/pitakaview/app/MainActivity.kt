@@ -30,10 +30,10 @@ import com.pitakaview.app.lock.UnlockResult
 import com.pitakaview.app.reminders.ReminderIntents
 import com.pitakaview.app.reminders.ReminderOpen
 import com.pitakaview.app.ui.lock.LockScreen
-import com.pitakaview.app.ui.navigation.PitakaRoot
+import com.pitakaview.app.ui.navigation.FitakaRoot
 import com.pitakaview.app.ui.onboarding.OnboardingLogic
 import com.pitakaview.app.ui.onboarding.OnboardingRoute
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.resolve
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val container = (application as PitakaApp).container
+        val container = (application as FitakaApp).container
         val settings = container.settings
         val appLock = container.appLock
         // Only on a fresh start: after a rotation the same intent is still attached, and the owner has
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 CompositionLocalProvider(LocalAppContainer provides container) {
-                    PitakaTheme(current.theme, current.darkMode, current.font, current.style, current.size) {
+                    FitakaTheme(current.theme, current.darkMode, current.font, current.style, current.size) {
                         Box(Modifier.fillMaxSize()) {
                             // The app stays as it was under the lock screen (an unsaved form is still there
                             // after unlocking) but is hidden from screen readers while locked.
@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
                                 if (showWelcome) {
                                     OnboardingRoute(onDone = { welcome = false })
                                 } else {
-                                    PitakaRoot(
+                                    FitakaRoot(
                                         appearance = current,
                                         onThemeChange = { scope.launch { settings.setTheme(it) } },
                                         onDarkModeChange = { scope.launch { settings.setDarkMode(it) } },
@@ -155,14 +155,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun askToUnlock() {
-        val container = (application as PitakaApp).container
+        val container = (application as FitakaApp).container
         // The phone's own screen lock was removed since: there is nothing left to ask for, and keeping the
         // app shut would lock the owner out of their own data.
         if (container.unlocker.support() != LockSupport.READY) {
             container.appLock.onUnlocked()
             return
         }
-        container.unlocker.ask(this, "Unlock PitakaView") { result ->
+        container.unlocker.ask(this, "Unlock $APP_NAME") { result ->
             if (result == UnlockResult.UNLOCKED) container.appLock.onUnlocked()
         }
     }

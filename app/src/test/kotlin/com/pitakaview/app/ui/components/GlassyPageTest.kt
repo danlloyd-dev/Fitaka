@@ -14,8 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.ui.theme.PitakaTheme
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.fitakaColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -45,11 +45,11 @@ class GlassyPageTest {
     fun theColourRunsOnUnderTheTopBarAndOnlyGlassyHasIt() {
         var style by mutableStateOf(UiStyle.GLASSY)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
-                PitakaScreen(title = "Home") { item { Text("One line") } }
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
+                FitakaScreen(title = "Home") { item { Text("One line") } }
             }
         }
-        val page = pitakaColors(ThemeId.MANGO, dark = false).background
+        val page = fitakaColors(ThemeId.MANGO, dark = false).background
         for (chosen in UiStyle.entries) {
             style = chosen
             rule.waitForIdle()

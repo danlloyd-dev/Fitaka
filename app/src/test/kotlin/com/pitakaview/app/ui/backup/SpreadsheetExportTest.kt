@@ -4,8 +4,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.pitakaview.app.data.backup.BackupManager
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
@@ -53,14 +53,14 @@ class SpreadsheetExportTest {
 
     private val at = Instant.parse("2026-11-26T03:00:00Z")
     private val storeJob = Job()
-    private lateinit var db: PitakaDatabase
+    private lateinit var db: FitakaDatabase
     private lateinit var vm: BackupViewModel
 
     @Before
     fun open() = runBlocking {
         Dispatchers.setMain(Dispatchers.Unconfined)
         val live = File(tmp.root, "live.db")
-        db = Room.databaseBuilder<PitakaDatabase>(name = live.absolutePath, factory = { PitakaDatabase_Impl() })
+        db = Room.databaseBuilder<FitakaDatabase>(name = live.absolutePath, factory = { FitakaDatabase_Impl() })
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

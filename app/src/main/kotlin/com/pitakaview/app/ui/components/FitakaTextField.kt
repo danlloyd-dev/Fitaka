@@ -31,8 +31,8 @@ import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
 /**
@@ -41,7 +41,7 @@ import com.pitakaview.app.ui.theme.Section
  * text in ink, so the state never relies on colour alone.
  */
 @Composable
-fun PitakaTextField(
+fun FitakaTextField(
     state: TextFieldState,
     label: String,
     modifier: Modifier = Modifier,
@@ -54,11 +54,11 @@ fun PitakaTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val shadow = PitakaDimens.shadow
+    val shadow = FitakaDimens.shadow
     val lift by animateDpAsState(if (focused) shadow else 0.dp, label = "lift")
     val outline = if (isError) c.fill(Section.GASTOS) else c.ink
 
@@ -90,10 +90,10 @@ fun PitakaTextField(
                 Row(
                     modifier = Modifier
                         .sketchBox(
-                            shape = RoundedCornerShape(PitakaDimens.corner),
+                            shape = RoundedCornerShape(FitakaDimens.corner),
                             fill = c.card,
                             border = outline,
-                            borderWidth = if (focused || isError) 3.dp else PitakaDimens.border,
+                            borderWidth = if (focused || isError) 3.dp else FitakaDimens.border,
                             shadow = c.shadow,
                             shadowOffset = lift,
                             glass = true,

@@ -63,7 +63,7 @@ import com.pitakaview.app.ui.home.HomeState
 import com.pitakaview.app.ui.home.UpcomingItem
 import com.pitakaview.app.ui.settings.ReminderSettingsUi
 import com.pitakaview.app.ui.settings.SettingsScreen
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -108,7 +108,7 @@ class ScreensScreenshotTest {
 
     private fun home(theme: ThemeId, mode: DarkModePref, state: HomeState, name: String) =
         captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
-            PitakaTheme(theme, mode) { HomeContent(state, today, "Magandang hapon!", {}, {}, {}) }
+            FitakaTheme(theme, mode) { HomeContent(state, today, "Magandang hapon!", {}, {}, {}) }
         }
 
     @Test fun homeMangoLight() = home(ThemeId.MANGO, DarkModePref.LIGHT, sample, "home_mango_light")
@@ -122,7 +122,7 @@ class ScreensScreenshotTest {
 
     private fun entry(theme: ThemeId, mode: DarkModePref, ui: EntryEditorUi, amount: String, name: String) =
         captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
-            PitakaTheme(theme, mode) {
+            FitakaTheme(theme, mode) {
                 EntryEditorContent(
                     ui, TextFieldState(amount), TextFieldState(),
                     onKind = {}, onCategory = {}, onFromWallet = {}, onToWallet = {}, onDate = {},
@@ -154,12 +154,12 @@ class ScreensScreenshotTest {
 
     @Test
     fun walletsCalamansiLight() = captureRoboImage("build/outputs/roborazzi/screen_wallets_calamansi_light.png") {
-        PitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) { WalletsContent(sample.wallets, onBack = {}, onAdd = {}, onOpen = {}) }
+        FitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) { WalletsContent(sample.wallets, onBack = {}, onAdd = {}, onOpen = {}) }
     }
 
     private fun backup(theme: ThemeId, mode: DarkModePref, name: String, lastBackupOn: LocalDate?, notice: BackupNotice?, pending: BackupInfo?) =
         captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
-            PitakaTheme(theme, mode) {
+            FitakaTheme(theme, mode) {
                 BackupContent(
                     lastBackupOn = lastBackupOn, today = today, notice = notice, pending = pending, busy = false,
                     onBackUp = {}, onPickBackup = {}, onConfirmRestore = {}, onCancelRestore = {}, onBack = {},
@@ -191,21 +191,21 @@ class ScreensScreenshotTest {
 
     @Test
     fun gastosMangoLight() = captureRoboImage("build/outputs/roborazzi/screen_gastos_mango_light.png") {
-        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
             GastosContent(MonthLedgerBuilder.build(november, true, spending), today, {}, {}, {}, {}, {}, {})
         }
     }
 
     @Test
     fun gastosEmptyOtherMonthKapeDark() = captureRoboImage("build/outputs/roborazzi/screen_gastos_empty_kape_dark.png") {
-        PitakaTheme(ThemeId.KAPE, DarkModePref.DARK) {
+        FitakaTheme(ThemeId.KAPE, DarkModePref.DARK) {
             GastosContent(MonthLedgerBuilder.build(YearMonth.of(2026, 10), false, emptyList()), today, {}, {}, {}, {}, {}, {})
         }
     }
 
     @Test
     fun kitaWithPaydaysDagatDark() = captureRoboImage("build/outputs/roborazzi/screen_kita_dagat_dark.png") {
-        PitakaTheme(ThemeId.DAGAT, DarkModePref.DARK) {
+        FitakaTheme(ThemeId.DAGAT, DarkModePref.DARK) {
             KitaContent(
                 ledger = MonthLedgerBuilder.build(november, true, income),
                 paydays = listOf(
@@ -221,7 +221,7 @@ class ScreensScreenshotTest {
 
     @Test
     fun paydayEditorCalamansiLight() = captureRoboImage("build/outputs/roborazzi/screen_payday_editor_calamansi_light.png") {
-        PitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.CALAMANSI, DarkModePref.LIGHT) {
             PayScheduleEditorContent(
                 ui = PayScheduleEditorUi(
                     isEdit = true, frequency = PayFrequency.SEMI_MONTHLY, dayOfWeek = DayOfWeek.FRIDAY, weekendRule = WeekendRule.KEEP,
@@ -238,7 +238,7 @@ class ScreensScreenshotTest {
 
     @Test
     fun searchResultsUbeLight() = captureRoboImage("build/outputs/roborazzi/screen_search_ube_light.png") {
-        PitakaTheme(ThemeId.UBE, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.UBE, DarkModePref.LIGHT) {
             val found = spending.filter { it.categoryName == "Food" }
             SearchContent(TextFieldState("food"), SearchUi(asked = true, count = found.size, days = MonthLedgerBuilder.groupByDay(found)), today, {}, {})
         }
@@ -247,7 +247,7 @@ class ScreensScreenshotTest {
     /** Home in the styles that change most what a screen looks like: the glass needs the page's colour behind it. */
     private fun homeStyled(theme: ThemeId, mode: DarkModePref, style: UiStyle, name: String) =
         captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
-            PitakaTheme(theme, mode, style = style) { HomeContent(sample, today, "Magandang hapon!", {}, {}, {}) }
+            FitakaTheme(theme, mode, style = style) { HomeContent(sample, today, "Magandang hapon!", {}, {}, {}) }
         }
 
     @Test fun homeGlassyMangoLight() = homeStyled(ThemeId.MANGO, DarkModePref.LIGHT, UiStyle.GLASSY, "home_glassy_mango_light")
@@ -257,7 +257,7 @@ class ScreensScreenshotTest {
     // ---------- Utang, Ipon, Baon ----------
 
     private fun shot(name: String, theme: ThemeId, mode: DarkModePref, content: @Composable () -> Unit) =
-        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { PitakaTheme(theme, mode) { content() } }
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { FitakaTheme(theme, mode) { content() } }
 
     private val loans = listOf(
         LoanWithPaid(
@@ -352,14 +352,14 @@ class ScreensScreenshotTest {
 
     @Test
     fun settingsDagatLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_dagat_light.png") {
-        PitakaTheme(ThemeId.DAGAT, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.DAGAT, DarkModePref.LIGHT) {
             SettingsScreen(AppearanceSettings(ThemeId.DAGAT, DarkModePref.LIGHT), {}, {}, onBack = {})
         }
     }
 
     @Test
     fun settingsRemindersOnUbeDark() = captureRoboImage("build/outputs/roborazzi/screen_settings_reminders_on_ube_dark.png") {
-        PitakaTheme(ThemeId.UBE, DarkModePref.DARK) {
+        FitakaTheme(ThemeId.UBE, DarkModePref.DARK) {
             SettingsScreen(
                 AppearanceSettings(ThemeId.UBE, DarkModePref.DARK), {}, {}, onBack = {},
                 reminders = ReminderSettingsUi(on = true, lastCheck = "Last checked today at 8:02 AM, in the background.", phoneTip = true),
@@ -369,7 +369,7 @@ class ScreensScreenshotTest {
 
     @Test
     fun settingsRemindersBlockedMangoLight() = captureRoboImage("build/outputs/roborazzi/screen_settings_reminders_blocked_mango_light.png") {
-        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
             SettingsScreen(AppearanceSettings(ThemeId.MANGO, DarkModePref.LIGHT), {}, {}, onBack = {}, reminders = ReminderSettingsUi(blocked = true))
         }
     }

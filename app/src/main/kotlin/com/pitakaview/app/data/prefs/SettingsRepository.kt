@@ -144,11 +144,18 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         internal val REMINDER_CHECK_BACKGROUND = booleanPreferencesKey("reminder_check_in_background")
         internal val REMINDERS_SHOWN = stringSetPreferencesKey("reminders_shown")
 
+        /**
+         * The file every choice in Settings is kept in (files/datastore/settings.preferences_pb). It has been
+         * on the owner's phone since the app was called PitakaView: under another name the theme, the
+         * reminders and the app lock would all start again from nothing. StoredNamesTest holds it.
+         */
+        internal const val SETTINGS_FILE = "settings"
+
         /** One instance per app (DataStore forbids two on the same file). */
         fun create(context: Context) = SettingsRepository(
             PreferenceDataStoreFactory.create(
                 corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-                produceFile = { context.preferencesDataStoreFile("settings") },
+                produceFile = { context.preferencesDataStoreFile(SETTINGS_FILE) },
             ),
         )
     }

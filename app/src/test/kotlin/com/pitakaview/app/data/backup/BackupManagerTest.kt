@@ -2,9 +2,9 @@ package com.pitakaview.app.data.backup
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.pitakaview.app.data.db.PITAKA_DB_VERSION
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FITAKA_DB_VERSION
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
@@ -37,17 +37,17 @@ class BackupManagerTest {
     private val day = LocalDate.of(2026, 11, 26)
     private val seeded = mapOf("Cash" to 45_000L, "GCash" to 30_000L)
 
-    private fun open(file: File): PitakaDatabase =
-        Room.databaseBuilder<PitakaDatabase>(name = file.absolutePath, factory = { PitakaDatabase_Impl() })
+    private fun open(file: File): FitakaDatabase =
+        Room.databaseBuilder<FitakaDatabase>(name = file.absolutePath, factory = { FitakaDatabase_Impl() })
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()
 
-    private suspend fun balances(db: PitakaDatabase) =
+    private suspend fun balances(db: FitakaDatabase) =
         db.walletDao().observeAllWithBalance().first().associate { it.wallet.name to it.balanceCentavos }
 
     /** Two wallets, a ₱250 expense and a ₱300 transfer. Returns (cash, food) ids. */
-    private suspend fun seed(db: PitakaDatabase): Pair<Long, Long> {
+    private suspend fun seed(db: FitakaDatabase): Pair<Long, Long> {
         val cash = db.walletDao().insert(WalletEntity(name = "Cash", type = WalletType.CASH, openingBalanceCentavos = 100_000, createdAt = now))
         val gcash = db.walletDao().insert(WalletEntity(name = "GCash", type = WalletType.E_WALLET, createdAt = now))
         val food = db.categoryDao().insert(CategoryEntity(name = "Food", kind = CategoryKind.EXPENSE, iconKey = "food"))
@@ -81,7 +81,7 @@ class BackupManagerTest {
         val candidate = File(work, "candidate.db")
         assertTrue(backupFile.inputStream().use { manager.stage(it, candidate) })
         assertEquals(
-            BackupCheck.Ok(BackupInfo(schemaVersion = PITAKA_DB_VERSION, entries = 2, wallets = 2, lastEntryOn = day)),
+            BackupCheck.Ok(BackupInfo(schemaVersion = FITAKA_DB_VERSION, entries = 2, wallets = 2, lastEntryOn = day)),
             manager.inspect(candidate),
         )
 
@@ -98,6 +98,33 @@ class BackupManagerTest {
 
     @Test
     fun theOlderSqlitePathRestoresTheSameWay() = backUpChangeRestore(copyWholeFile = true)
+
+    /**
+     * A backup the app made while it was called PitakaView: the file in src/test/resources/backups was
+     * written by the code at commit 2bc161d (2026-11-26) from the same made-up data as [seed]. The owner's
+     * own backups are such files, so Fitaka must go on reading them, with every balance as it was.
+     */
+    @Test
+    fun aBackupMadeWhenTheAppWasCalledPitakaViewRestoresWithItsBalances() = runBlocking {
+        val live = File(tmp.root, "live.db")
+        val work = tmp.newFolder()
+        var db = open(live)
+        // What the phone holds now is something else entirely.
+        db.walletDao().insert(WalletEntity(name = "Something else", type = WalletType.CASH, openingBalanceCentavos = 1, createdAt = now))
+        val manager = BackupManager(db, live, BundledSQLiteDriver(), work)
+
+        val old = File("src/test/resources/backups/made-by-pitakaview-0.1.0.backup")
+        assertTrue("the old backup file is among the test files", old.length() > 0)
+        val candidate = File(work, "candidate.db")
+        assertTrue(old.inputStream().use { manager.stage(it, candidate) })
+        assertEquals(BackupCheck.Ok(BackupInfo(schemaVersion = 1, entries = 2, wallets = 2, lastEntryOn = day)), manager.inspect(candidate))
+
+        manager.replaceDatabaseWith(candidate)
+        db = open(live) // what the restarted app does
+        assertEquals("the old backup's balances, to the centavo", seeded, balances(db))
+        assertEquals(2, db.transactionDao().observeRecent(10).first().size)
+        db.close()
+    }
 
     @Test
     fun filesThatAreNotUsableBackupsAreRefused() = runBlocking {
@@ -125,12 +152,12 @@ class BackupManagerTest {
         assertEquals(
             "the right version number but not our tables",
             BackupCheck.NotABackup,
-            manager.inspect(sqlite("fake.db", "CREATE TABLE notes (body TEXT)", "PRAGMA user_version = $PITAKA_DB_VERSION")),
+            manager.inspect(sqlite("fake.db", "CREATE TABLE notes (body TEXT)", "PRAGMA user_version = $FITAKA_DB_VERSION")),
         )
         assertEquals(
             "a backup from a newer app",
             BackupCheck.TooNew,
-            manager.inspect(sqlite("future.db", "CREATE TABLE transactions (id INTEGER)", "PRAGMA user_version = ${PITAKA_DB_VERSION + 1}")),
+            manager.inspect(sqlite("future.db", "CREATE TABLE transactions (id INTEGER)", "PRAGMA user_version = ${FITAKA_DB_VERSION + 1}")),
         )
 
         // None of that touched the live data.

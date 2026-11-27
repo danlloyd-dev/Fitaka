@@ -19,7 +19,7 @@ import com.pitakaview.app.ui.importing.ImportContent
 import com.pitakaview.app.ui.importing.ImportNotice
 import com.pitakaview.app.ui.importing.ImportStage
 import com.pitakaview.app.ui.importing.ImportText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,7 +79,7 @@ class ImportScreenshotTest {
     }
 
     private fun shot(name: String, theme: ThemeId, mode: DarkModePref, content: @Composable () -> Unit) =
-        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { PitakaTheme(theme, mode) { content() } }
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { FitakaTheme(theme, mode) { content() } }
 
     @Test
     fun choosing() = shot("import_choose_mango_light", ThemeId.MANGO, DarkModePref.LIGHT) {

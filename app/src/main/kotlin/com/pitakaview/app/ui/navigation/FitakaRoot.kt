@@ -52,7 +52,7 @@ import com.pitakaview.app.ui.categories.CategoriesRoute
 import com.pitakaview.app.ui.categories.CategoryEditorRoute
 import com.pitakaview.app.ui.components.LocalBottomBarPadding
 import com.pitakaview.app.ui.components.LocalHazeState
-import com.pitakaview.app.ui.components.PitakaBottomBar
+import com.pitakaview.app.ui.components.FitakaBottomBar
 import com.pitakaview.app.ui.entry.EntryEditorRoute
 import com.pitakaview.app.ui.gastos.GastosRoute
 import com.pitakaview.app.ui.home.HomeRoute
@@ -62,7 +62,7 @@ import com.pitakaview.app.ui.ipon.GoalEditorRoute
 import com.pitakaview.app.ui.ipon.IponRoute
 import com.pitakaview.app.ui.kita.KitaRoute
 import com.pitakaview.app.ui.kita.PayScheduleEditorRoute
-import com.pitakaview.app.ui.motion.PitakaMotion
+import com.pitakaview.app.ui.motion.FitakaMotion
 import com.pitakaview.app.ui.search.SearchRoute
 import com.pitakaview.app.ui.sections.MoveEditorRoute
 import com.pitakaview.app.ui.settings.SettingsScreen
@@ -70,7 +70,7 @@ import com.pitakaview.app.ui.settings.rememberLockSettings
 import com.pitakaview.app.ui.settings.rememberReminderSettings
 import com.pitakaview.app.ui.summary.SummaryRoute
 import com.pitakaview.app.ui.theme.FullSize
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.utang.LoanDetailRoute
 import com.pitakaview.app.ui.utang.LoanEditorRoute
@@ -131,28 +131,28 @@ fun NavBackStack<NavKey>.goToTab(index: Int) {
 
 // Pushed screens slide in from the right over a slightly shifted, fading page; popping reverses it.
 private val push: ContentTransform =
-    (slideInHorizontally(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)) { it / 3 } +
-        fadeIn(tween(PitakaMotion.MEDIUM))) togetherWith
-        (slideOutHorizontally(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)) { -it / 10 } +
-            fadeOut(tween(PitakaMotion.SHORT)))
+    (slideInHorizontally(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)) { it / 3 } +
+        fadeIn(tween(FitakaMotion.MEDIUM))) togetherWith
+        (slideOutHorizontally(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)) { -it / 10 } +
+            fadeOut(tween(FitakaMotion.SHORT)))
 
 private val pop: ContentTransform =
-    (slideInHorizontally(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)) { -it / 10 } +
-        fadeIn(tween(PitakaMotion.MEDIUM))) togetherWith
-        (slideOutHorizontally(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Exit)) { it / 3 } +
-            fadeOut(tween(PitakaMotion.SHORT)))
+    (slideInHorizontally(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)) { -it / 10 } +
+        fadeIn(tween(FitakaMotion.MEDIUM))) togetherWith
+        (slideOutHorizontally(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Exit)) { it / 3 } +
+            fadeOut(tween(FitakaMotion.SHORT)))
 
 // Tabs are peers, so they fade through instead of sliding.
 private val fadeThrough: ContentTransform =
-    fadeIn(tween(PitakaMotion.MEDIUM - 60, delayMillis = 60, easing = PitakaMotion.Emphasized)) togetherWith
-        fadeOut(tween(PitakaMotion.SHORT - 50))
+    fadeIn(tween(FitakaMotion.MEDIUM - 60, delayMillis = 60, easing = FitakaMotion.Emphasized)) togetherWith
+        fadeOut(tween(FitakaMotion.SHORT - 50))
 
 private val tabMetadata = NavDisplay.transitionSpec { fadeThrough } +
     NavDisplay.popTransitionSpec { fadeThrough } +
     NavDisplay.predictivePopTransitionSpec { _ -> fadeThrough }
 
 @Composable
-fun PitakaRoot(
+fun FitakaRoot(
     appearance: AppearanceSettings,
     onThemeChange: (ThemeId) -> Unit,
     onDarkModeChange: (DarkModePref) -> Unit,
@@ -163,7 +163,7 @@ fun PitakaRoot(
     reminderToOpen: ReminderOpen? = null,
     onReminderOpened: () -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val backStack = rememberNavBackStack(HomeKey)
     val haze = rememberHazeState()
     val density = LocalDensity.current
@@ -363,14 +363,14 @@ fun PitakaRoot(
             AnimatedVisibility(
                 visible = currentTab != null,
                 modifier = Modifier.align(Alignment.BottomCenter),
-                enter = slideInVertically(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)) { it } +
-                    fadeIn(tween(PitakaMotion.MEDIUM)),
-                exit = slideOutVertically(tween(PitakaMotion.SHORT, easing = PitakaMotion.Exit)) { it } +
-                    fadeOut(tween(PitakaMotion.SHORT)),
+                enter = slideInVertically(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)) { it } +
+                    fadeIn(tween(FitakaMotion.MEDIUM)),
+                exit = slideOutVertically(tween(FitakaMotion.SHORT, easing = FitakaMotion.Exit)) { it } +
+                    fadeOut(tween(FitakaMotion.SHORT)),
             ) {
                 // The size setting leaves the bar alone: it is drawn at the phone's own size.
                 FullSize {
-                    PitakaBottomBar(
+                    FitakaBottomBar(
                         items = MainTabs,
                         selectedIndex = currentTab ?: lastTab,
                         onSelect = { backStack.goToTab(it) },

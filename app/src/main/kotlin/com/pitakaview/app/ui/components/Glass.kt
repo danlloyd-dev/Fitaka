@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.theme.LocalUiStyle
-import com.pitakaview.app.ui.theme.PitakaColors
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaColors
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -49,7 +49,7 @@ fun Modifier.glassSource(): Modifier {
 @Composable
 fun Modifier.glassBackground(color: Color): Modifier {
     val haze = LocalHazeState.current ?: return this.background(color)
-    val alpha = if (PitakaTheme.colors.isDark) GLASS_TINT_DARK else GLASS_TINT_LIGHT
+    val alpha = if (FitakaTheme.colors.isDark) GLASS_TINT_DARK else GLASS_TINT_LIGHT
     return this.hazeBlur(
         input = HazeInput.Backdrop(haze),
         style = HazeBlurStyle {
@@ -74,7 +74,7 @@ const val GLASS_PAGE_COLOUR = 0.30f
  */
 fun Modifier.glassyPage(skipTop: Dp = 0.dp): Modifier = composed {
     if (LocalUiStyle.current != UiStyle.GLASSY) return@composed this
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     drawWithCache {
         val patches = colourPatches(c, size.width)
         onDrawBehind { clipRect(top = skipTop.toPx()) { patches.forEach { it() } } }
@@ -84,7 +84,7 @@ fun Modifier.glassyPage(skipTop: Dp = 0.dp): Modifier = composed {
 /** The same patches on the top bar of a [glassyPage], over the bar's tint, so the colour runs on under it. */
 fun Modifier.glassyBar(onGlassyPage: Boolean): Modifier = composed {
     if (!onGlassyPage || LocalUiStyle.current != UiStyle.GLASSY) return@composed this
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     drawWithCache {
         val patches = colourPatches(c, size.width)
         onDrawBehind { clipRect { patches.forEach { it() } } }
@@ -95,7 +95,7 @@ fun Modifier.glassyBar(onGlassyPage: Boolean): Modifier = composed {
  * The patches, made once per width. They are placed by the width alone, measured from the top left of the
  * page, so the page and the bar at its top draw the very same ones whatever their own heights.
  */
-private fun colourPatches(c: PitakaColors, width: Float): List<DrawScope.() -> Unit> {
+private fun colourPatches(c: FitakaColors, width: Float): List<DrawScope.() -> Unit> {
     val reach = width * 0.75f
     fun patch(color: Color, across: Float, down: Float): DrawScope.() -> Unit {
         val at = Offset(width * across, width * down)

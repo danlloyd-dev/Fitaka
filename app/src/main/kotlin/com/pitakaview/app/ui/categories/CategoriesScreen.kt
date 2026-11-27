@@ -34,26 +34,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.CategoryKind
 import com.pitakaview.app.ui.components.Gloss
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.CategoryIcons
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.sizeFor
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -71,7 +71,7 @@ val CategoryKind.sectionLabel: String
 
 // ---------- list ----------
 
-class CategoriesViewModel(db: PitakaDatabase) : ViewModel() {
+class CategoriesViewModel(db: FitakaDatabase) : ViewModel() {
     val expense: StateFlow<List<CategoryEntity>> = db.categoryDao().observeAll(CategoryKind.EXPENSE)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val income: StateFlow<List<CategoryEntity>> = db.categoryDao().observeAll(CategoryKind.INCOME)
@@ -95,14 +95,14 @@ fun CategoriesContent(
     onAdd: (CategoryKind) -> Unit,
     onOpen: (CategoryEntity) -> Unit,
 ) {
-    PitakaScreen(title = "Categories", subtitle = "For Gastos and Kita", onBack = onBack) {
+    FitakaScreen(title = "Categories", subtitle = "For Gastos and Kita", onBack = onBack) {
         for ((kind, rows) in listOf(CategoryKind.EXPENSE to expense, CategoryKind.INCOME to income)) {
             item(key = "title-$kind") { SectionHeader("${kind.sectionLabel} categories") }
             if (rows.isNotEmpty()) {
                 item(key = "list-$kind") { CategoryList(rows, onOpen) }
             }
             item(key = "add-$kind") {
-                PitakaButton("Add ${kind.sectionLabel} category", onClick = { onAdd(kind) }, modifier = Modifier.fillMaxWidth(), icon = PitakaIcons.Add)
+                FitakaButton("Add ${kind.sectionLabel} category", onClick = { onAdd(kind) }, modifier = Modifier.fillMaxWidth(), icon = FitakaIcons.Add)
             }
         }
     }
@@ -110,16 +110,16 @@ fun CategoriesContent(
 
 @Composable
 private fun CategoryList(rows: List<CategoryEntity>, onOpen: (CategoryEntity) -> Unit) {
-    val c = PitakaTheme.colors
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+    val c = FitakaTheme.colors
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
         rows.forEachIndexed { i, category ->
             key(category.id) {
-                if (i > 0) PitakaDivider()
-                PitakaListItem(
+                if (i > 0) FitakaDivider()
+                FitakaListItem(
                     title = category.name,
                     subtitle = if (category.isArchived) "Hidden" else null,
                     leading = { SectionBadge(category.kind.section, CategoryIcons.forKey(category.iconKey)) },
-                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    trailing = { Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = { onOpen(category) },
                 )
             }
@@ -130,7 +130,7 @@ private fun CategoryList(rows: List<CategoryEntity>, onOpen: (CategoryEntity) ->
 // ---------- add / edit ----------
 
 class CategoryEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     categoryId: Long?,
     val kind: CategoryKind,
 ) : ViewModel() {
@@ -205,7 +205,7 @@ fun CategoryEditorRoute(categoryId: Long?, kind: CategoryKind, onDone: () -> Uni
     val vm = viewModel { CategoryEditorViewModel(container.database, categoryId, kind) }
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     CategoryEditorContent(
@@ -218,7 +218,7 @@ fun CategoryEditorRoute(categoryId: Long?, kind: CategoryKind, onDone: () -> Uni
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun IconPicker(picked: String, onPick: (String) -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val gap = Arrangement.spacedBy(8.dp)
     val shape = RoundedCornerShape(12.dp)
     FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = gap, verticalArrangement = gap) {
@@ -227,7 +227,7 @@ private fun IconPicker(picked: String, onPick: (String) -> Unit) {
             Box(
                 Modifier
                     .size(48.dp)
-                    .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Badge else null)
+                    .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = FitakaDimens.borderThin, gloss = if (selected) Gloss.Badge else null)
                     .clip(shape)
                     .selectable(selected = selected, role = Role.RadioButton, onClick = { onPick(icon.key) }),
                 contentAlignment = Alignment.Center,
@@ -251,16 +251,16 @@ fun CategoryEditorContent(
     onToggleHidden: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
-    PitakaScreen(
+    val c = FitakaTheme.colors
+    FitakaScreen(
         title = if (isEdit) "Edit category" else "Add ${kind.sectionLabel} category",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         item(key = "name") {
-            PitakaTextField(
+            FitakaTextField(
                 state = name, label = "Name", placeholder = if (kind == CategoryKind.EXPENSE) "e.g. Coffee" else "e.g. Bonus",
                 isError = nameProblem != null, supportingText = nameProblem,
             )
@@ -270,7 +270,7 @@ fun CategoryEditorContent(
         if (isEdit && current != null) {
             item(key = "hide") {
                 Column {
-                    PitakaButton(
+                    FitakaButton(
                         if (current.isArchived) "Show category again" else "Hide category",
                         onClick = onToggleHidden,
                         modifier = Modifier.fillMaxWidth(),

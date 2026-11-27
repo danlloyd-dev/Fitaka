@@ -56,8 +56,8 @@ import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.ledger.monthName
 import com.pitakaview.app.ui.ledger.monthTitle
 import com.pitakaview.app.ui.theme.LocalUiStyle
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import java.time.format.TextStyle as DateTextStyle
 import java.util.Locale
@@ -85,7 +85,7 @@ private fun glossyColumn(color: Color): Brush {
  */
 @Composable
 fun MonthBarsChart(bars: List<MonthBar>, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     // Pesos, not centavos, so the axis reads in the units people think in.
     val model = remember(bars) {
@@ -225,9 +225,9 @@ fun ChartLegend(modifier: Modifier = Modifier) {
 
 @Composable
 private fun LegendItem(section: Section, text: String) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(14.dp).sketchBox(RoundedCornerShape(4.dp), fill = c.fill(section), border = c.ink, borderWidth = PitakaDimens.borderThin))
+        Box(Modifier.size(14.dp).sketchBox(RoundedCornerShape(4.dp), fill = c.fill(section), border = c.ink, borderWidth = FitakaDimens.borderThin))
         Text(text, style = MaterialTheme.typography.labelMedium, color = c.ink)
     }
 }

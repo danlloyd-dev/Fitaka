@@ -25,7 +25,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.theme.LocalUiStyle
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /** How dark the screen behind a question goes, and how far it is blurred where the phone can blur. */
 internal const val QUESTION_DIM = 0.35f
@@ -40,7 +40,7 @@ private val QuestionBlur = 18.dp
  * [lines] are separate short paragraphs under the title.
  */
 @Composable
-fun PitakaConfirmDialog(
+fun FitakaConfirmDialog(
     title: String,
     lines: List<String>,
     confirmLabel: String,
@@ -68,13 +68,13 @@ internal fun ConfirmCard(
     onDismiss: () -> Unit,
     enabled: Boolean = true,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     // Never see-through: in the Glassy style a card shows what is behind it, and behind a question is a
     // dimmed screen of anything at all. The words of a question that cannot be undone must be plain to read.
     val style = LocalUiStyle.current
     CompositionLocalProvider(LocalUiStyle provides if (style == UiStyle.GLASSY) UiStyle.PLAIN else style) {
-        PitakaCard(Modifier.fillMaxWidth()) {
+        FitakaCard(Modifier.fillMaxWidth()) {
             Text(title, style = type.titleMedium, color = c.ink, modifier = Modifier.semantics { heading() })
             Spacer(Modifier.height(4.dp))
             lines.forEach { Text(it, style = type.bodyMedium, color = c.ink) }
@@ -82,8 +82,8 @@ internal fun ConfirmCard(
             // One above the other, each the card's full width: side by side, "Yes, delete" was cut short
             // on a phone-sized screen, and the wider fonts and "Yes, restore" need more room still.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PitakaButton(confirmLabel, onClick = onConfirm, modifier = Modifier.fillMaxWidth(), enabled = enabled)
-                PitakaButton(dismissLabel, onClick = onDismiss, modifier = Modifier.fillMaxWidth(), enabled = enabled)
+                FitakaButton(confirmLabel, onClick = onConfirm, modifier = Modifier.fillMaxWidth(), enabled = enabled)
+                FitakaButton(dismissLabel, onClick = onDismiss, modifier = Modifier.fillMaxWidth(), enabled = enabled)
             }
         }
     }

@@ -10,7 +10,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
-import com.pitakaview.app.PitakaApp
+import com.pitakaview.app.FitakaApp
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.domain.LoanDirection
 import com.pitakaview.app.domain.Reminder
@@ -35,7 +35,7 @@ import java.time.LocalDateTime
  */
 @RunWith(RobolectricTestRunner::class)
 class ReminderWorkTest {
-    private val app: PitakaApp get() = ApplicationProvider.getApplicationContext()
+    private val app: FitakaApp get() = ApplicationProvider.getApplicationContext()
     private val container get() = app.container
     private val phone get() = shadowOf(app.getSystemService(NotificationManager::class.java))
 

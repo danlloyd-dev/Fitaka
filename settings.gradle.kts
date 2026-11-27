@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "PitakaView"
+rootProject.name = "Fitaka"
 include(":app")

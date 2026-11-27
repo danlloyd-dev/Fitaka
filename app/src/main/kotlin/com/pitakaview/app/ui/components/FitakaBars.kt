@@ -56,9 +56,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.R
 import com.pitakaview.app.ui.icons.sizeFor
-import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
 /**
@@ -66,7 +66,7 @@ import com.pitakaview.app.ui.theme.Section
  * actions. [showDivider] draws an ink rule once content has scrolled beneath.
  */
 @Composable
-fun PitakaTopBar(
+fun FitakaTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
@@ -80,9 +80,9 @@ fun PitakaTopBar(
     onGlassyPage: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    val divider by animateFloatAsState(if (showDivider) 1f else 0f, tween(PitakaMotion.SHORT), label = "divider")
+    val divider by animateFloatAsState(if (showDivider) 1f else 0f, tween(FitakaMotion.SHORT), label = "divider")
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -90,7 +90,7 @@ fun PitakaTopBar(
             .glassyBar(onGlassyPage)
             .drawBehind {
                 if (divider > 0f) {
-                    val w = PitakaDimens.borderThin.toPx()
+                    val w = FitakaDimens.borderThin.toPx()
                     drawLine(c.ink.copy(alpha = divider), Offset(0f, size.height - w / 2), Offset(size.width, size.height - w / 2), w)
                 }
             }
@@ -101,9 +101,9 @@ fun PitakaTopBar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (navigationIcon != null && onNavigationClick != null) {
-            PitakaIconButton(navigationIcon, navigationLabel, onNavigationClick)
+            FitakaIconButton(navigationIcon, navigationLabel, onNavigationClick)
         } else if (showLogo) {
-            PitakaLogo()
+            FitakaLogo()
         }
         Column(Modifier.weight(1f)) {
             // Marked as a heading, so a screen reader can jump from title to title.
@@ -119,7 +119,7 @@ fun PitakaTopBar(
 }
 
 /** What tests find the logo by: it is a picture beside the app's name, so it has no words of its own. */
-internal const val LOGO_TAG = "PitakaLogo"
+internal const val LOGO_TAG = "FitakaLogo"
 
 /** The paper colour of the logo's own picture, so the tile around it has no seam. */
 private val LogoPaper = Color(0xFFF9F1DE)
@@ -130,15 +130,15 @@ private val LogoPaper = Color(0xFFF9F1DE)
  * to the middle two thirds of its picture.
  */
 @Composable
-fun PitakaLogo(modifier: Modifier = Modifier, size: Dp = 44.dp) {
-    val c = PitakaTheme.colors
+fun FitakaLogo(modifier: Modifier = Modifier, size: Dp = 44.dp) {
+    val c = FitakaTheme.colors
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier
             .testTag(LOGO_TAG)
             .padding(end = 3.dp, bottom = 3.dp)
             .size(size)
-            .sketchBox(shape, fill = LogoPaper, border = c.ink, borderWidth = PitakaDimens.borderThin, shadow = c.shadow, shadowOffset = 3.dp)
+            .sketchBox(shape, fill = LogoPaper, border = c.ink, borderWidth = FitakaDimens.borderThin, shadow = c.shadow, shadowOffset = 3.dp)
             .clip(shape),
     ) {
         Image(
@@ -177,15 +177,15 @@ private val DabShape = GenericShape { size, _ ->
  * text label, and the chosen one is bold, so selection never relies on colour.
  */
 @Composable
-fun PitakaBottomBar(
+fun FitakaBottomBar(
     items: List<BottomBarItem>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    val shadow = PitakaDimens.shadow
+    val shadow = FitakaDimens.shadow
     Box(
         modifier
             .fillMaxWidth()
@@ -206,11 +206,11 @@ fun PitakaBottomBar(
                 val selected = index == selectedIndex
                 val shown by animateFloatAsState(
                     targetValue = if (selected) 1f else 0f,
-                    animationSpec = tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized),
+                    animationSpec = tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized),
                     label = "tile",
                 )
                 val onTile = if (item.section != null) c.onSectionFill else c.onPrimary
-                val iconTint by animateColorAsState(if (selected) onTile else c.ink, tween(PitakaMotion.MEDIUM), label = "icon")
+                val iconTint by animateColorAsState(if (selected) onTile else c.ink, tween(FitakaMotion.MEDIUM), label = "icon")
                 Column(
                     modifier = Modifier
                         .weight(1f)

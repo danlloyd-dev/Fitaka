@@ -23,20 +23,20 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /** One outlined control split into equal parts; the selected part is filled with ink. */
 @Composable
-fun PitakaSegmented(
+fun FitakaSegmented(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val c = PitakaTheme.colors
-    val shape = RoundedCornerShape(PitakaDimens.corner)
-    val shadow = PitakaDimens.shadow
+    val c = FitakaTheme.colors
+    val shape = RoundedCornerShape(FitakaDimens.corner)
+    val shadow = FitakaDimens.shadow
     Row(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)
@@ -68,7 +68,7 @@ fun PitakaSegmented(
  * with ink, so the choice shows by light/dark, never by hue alone.
  */
 @Composable
-fun PitakaChip(
+fun FitakaChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -76,12 +76,12 @@ fun PitakaChip(
     /** The words are drawn in this font, not the app's: the font choices in Settings each show themselves. */
     fontFamily: FontFamily? = null,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val shape = RoundedCornerShape(50)
     Box(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null, glass = !selected)
+            .sketchBox(shape, fill = if (selected) c.ink else c.card, border = c.ink, borderWidth = FitakaDimens.borderThin, gloss = if (selected) Gloss.Chip else null, glass = !selected)
             .clip(shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -108,7 +108,7 @@ fun EmptyState(
     modifier: Modifier = Modifier,
     mascot: (@Composable () -> Unit)? = null,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (mascot != null) {
             mascot()
@@ -126,6 +126,6 @@ fun ProblemText(text: String, modifier: Modifier = Modifier) {
         "! $text",
         modifier = modifier.padding(start = 4.dp, top = 4.dp),
         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-        color = PitakaTheme.colors.ink,
+        color = FitakaTheme.colors.ink,
     )
 }

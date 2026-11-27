@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
  * Most are hand-drawn ([HandDrawn], from Streamline Freehand). The small arrows and the tick stay plain
  * round strokes: they are controls, and read best as simple lines.
  */
-object PitakaIcons {
+object FitakaIcons {
     val Home: ImageVector get() = HandDrawn.Home
 
     /** Kita: a bag of money. */
@@ -49,11 +49,11 @@ object PitakaIcons {
 /** The icon that stands for each section. */
 val com.pitakaview.app.ui.theme.Section.icon: ImageVector
     get() = when (this) {
-        com.pitakaview.app.ui.theme.Section.KITA -> PitakaIcons.Kita
-        com.pitakaview.app.ui.theme.Section.BAON -> PitakaIcons.Baon
-        com.pitakaview.app.ui.theme.Section.IPON -> PitakaIcons.Ipon
-        com.pitakaview.app.ui.theme.Section.GASTOS -> PitakaIcons.Gastos
-        com.pitakaview.app.ui.theme.Section.UTANG -> PitakaIcons.Utang
+        com.pitakaview.app.ui.theme.Section.KITA -> FitakaIcons.Kita
+        com.pitakaview.app.ui.theme.Section.BAON -> FitakaIcons.Baon
+        com.pitakaview.app.ui.theme.Section.IPON -> FitakaIcons.Ipon
+        com.pitakaview.app.ui.theme.Section.GASTOS -> FitakaIcons.Gastos
+        com.pitakaview.app.ui.theme.Section.UTANG -> FitakaIcons.Utang
     }
 
 /** The line of the app's own stroke icons. */

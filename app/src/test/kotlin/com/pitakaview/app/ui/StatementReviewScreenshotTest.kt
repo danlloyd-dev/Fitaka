@@ -13,7 +13,7 @@ import com.pitakaview.app.domain.importing.StatementRead
 import com.pitakaview.app.ui.importing.ImportContent
 import com.pitakaview.app.ui.importing.ImportStage
 import com.pitakaview.app.ui.importing.ImportText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -71,7 +71,7 @@ class StatementReviewScreenshotTest {
 
     @Test
     fun aStatementWithTwoLinesLeftOpen() = captureRoboImage("build/outputs/roborazzi/screen_import_statement_open_lines_mango_light.png") {
-        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
             ImportContent(
                 stage = review, notice = null, wallets = wallets, walletId = 3, batches = emptyList(),
                 categories = { if (it) income else expense }, openLine = 0,

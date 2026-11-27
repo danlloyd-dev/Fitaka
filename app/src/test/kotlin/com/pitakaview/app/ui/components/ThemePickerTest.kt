@@ -22,8 +22,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,8 +56,8 @@ class ThemePickerTest {
     fun theChosenThemePopsUpAndCarriesNoTick() {
         var chosen by mutableStateOf(ThemeId.MANGO)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
-                Box(Modifier.background(PitakaTheme.colors.background).padding(16.dp)) { ThemePicker(chosen, { chosen = it }) }
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+                Box(Modifier.background(FitakaTheme.colors.background).padding(16.dp)) { ThemePicker(chosen, { chosen = it }) }
             }
         }
         fun check() {
@@ -76,7 +76,7 @@ class ThemePickerTest {
                 }
                 // Where the badge was: 14 in from the swatch's right edge, 14 down from its top.
                 val box = swatch(chosen).fetchSemanticsNode().boundsInRoot
-                val x = (box.right - (PitakaDimens.shadow + 14.dp).toPx()).roundToInt()
+                val x = (box.right - (FitakaDimens.shadow + 14.dp).toPx()).roundToInt()
                 val y = (box.top + 14.dp.toPx()).roundToInt()
                 val around = (-3..3).any { dx -> (-3..3).any { dy -> pixels.inkAt(x + dx, y + dy) } }
                 assertTrue("${chosen.label}: there is still ink where the tick badge was", !around)
@@ -99,8 +99,8 @@ class ThemePickerTest {
     @Test
     fun aChosenThemeFarAlongTheRowIsInViewFromTheStart() {
         rule.setContent {
-            PitakaTheme(ThemeId.ROSAS, DarkModePref.LIGHT) {
-                Box(Modifier.background(PitakaTheme.colors.background).padding(16.dp)) { ThemePicker(ThemeId.ROSAS, {}) }
+            FitakaTheme(ThemeId.ROSAS, DarkModePref.LIGHT) {
+                Box(Modifier.background(FitakaTheme.colors.background).padding(16.dp)) { ThemePicker(ThemeId.ROSAS, {}) }
             }
         }
         rule.waitForIdle()

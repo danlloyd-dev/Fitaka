@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,8 +63,8 @@ class ChartTapTest {
     @Test
     fun tappingAMonthWritesItsAmountsUnderTheChartAndTappingAgainClearsThem() {
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
-                Box(Modifier.fillMaxWidth().background(PitakaTheme.colors.card).padding(16.dp)) { MonthBarsChart(bars) }
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+                Box(Modifier.fillMaxWidth().background(FitakaTheme.colors.card).padding(16.dp)) { MonthBarsChart(bars) }
             }
         }
         assertTrue(shows(TAP_HINT))

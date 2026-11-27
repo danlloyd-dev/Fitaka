@@ -29,28 +29,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pitakaview.app.APP_NAME
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.EntryListItem
 import com.pitakaview.app.ui.ledger.homeSubtitle
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.motion.AnimatedAmountText
-import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -120,13 +121,13 @@ fun HomeContent(
     onRestoreNoticeSeen: () -> Unit = {},
 ) {
     val month = today.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-    PitakaScreen(
-        title = "PitakaView",
+    FitakaScreen(
+        title = APP_NAME,
         subtitle = greeting,
         showLogo = true,
         actions = {
-            PitakaIconButton(PitakaIcons.Search, "Search", onSearch)
-            PitakaIconButton(PitakaIcons.Settings, "Settings", onOpenSettings)
+            FitakaIconButton(FitakaIcons.Search, "Search", onSearch)
+            FitakaIconButton(FitakaIcons.Settings, "Settings", onOpenSettings)
         },
     ) {
         // First on the page: the app has just restarted, and the owner needs to know why and what is true now.
@@ -135,12 +136,12 @@ fun HomeContent(
         }
         item(key = "hero") { WholeWalletCard(state, onOpenWallets) }
         item(key = "add") {
-            PitakaButton(
+            FitakaButton(
                 "Add transaction",
                 onClick = onAddTransaction,
                 modifier = Modifier.fillMaxWidth(),
-                style = PitakaButtonStyle.Primary,
-                icon = PitakaIcons.Add,
+                style = FitakaButtonStyle.Primary,
+                icon = FitakaIcons.Add,
             )
         }
         // High on the page: a reminder below the fold is not seen.
@@ -181,16 +182,16 @@ object RestoreFailedText {
 
 @Composable
 private fun RestoreFailedCard(onOpenBackup: () -> Unit, onSeen: () -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
         Text("! ${RestoreFailedText.TITLE}", style = type.titleSmall, color = c.ink)
         Text(RestoreFailedText.BODY, style = type.bodyMedium, color = c.ink)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PitakaButton("OK", onClick = onSeen, modifier = Modifier.weight(1f))
+            FitakaButton("OK", onClick = onSeen, modifier = Modifier.weight(1f))
             // Twice the width: at equal halves its two words were cut short on a phone.
-            PitakaButton("Open Backup", onClick = { onSeen(); onOpenBackup() }, modifier = Modifier.weight(2f))
+            FitakaButton("Open Backup", onClick = { onSeen(); onOpenBackup() }, modifier = Modifier.weight(2f))
         }
     }
 }
@@ -198,24 +199,24 @@ private fun RestoreFailedCard(onOpenBackup: () -> Unit, onSeen: () -> Unit) {
 /** Opens the month's summary and chart. Underlined, with a chevron, so it reads as something to tap. */
 @Composable
 private fun SummaryLink(onClick: () -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Row(
         Modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick).padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Summary", style = MaterialTheme.typography.labelLarge, color = c.ink, textDecoration = TextDecoration.Underline)
-        Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.ink, modifier = Modifier.size(18.dp))
+        Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.ink, modifier = Modifier.size(18.dp))
     }
 }
 
 @Composable
 private fun WholeWalletCard(state: HomeState, onOpenWallets: () -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth(), onClick = onOpenWallets) {
+    FitakaCard(Modifier.fillMaxWidth(), onClick = onOpenWallets) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Your whole wallet", style = type.labelLarge, color = c.inkMuted, modifier = Modifier.weight(1f))
-            Icon(PitakaIcons.ChevronRight, contentDescription = "Manage wallets", tint = c.inkMuted, modifier = Modifier.size(20.dp))
+            Icon(FitakaIcons.ChevronRight, contentDescription = "Manage wallets", tint = c.inkMuted, modifier = Modifier.size(20.dp))
         }
         AnimatedAmountText(state.totalCentavos, style = type.displaySmall)
         Spacer(Modifier.height(10.dp))
@@ -223,7 +224,7 @@ private fun WholeWalletCard(state: HomeState, onOpenWallets: () -> Unit) {
         // same, and nothing is squeezed into a row of boxes that scrolls sideways.
         state.wallets.forEach { w ->
             key(w.wallet.id) {
-                PitakaDivider()
+                FitakaDivider()
                 Row(Modifier.fillMaxWidth().heightIn(min = 38.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(w.wallet.name, style = type.labelLarge, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Spacer(Modifier.width(12.dp))
@@ -242,9 +243,9 @@ private fun SectionTile(
     onOpen: (Section) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(modifier, section = section, onClick = { onOpen(section) }, contentPadding = PaddingValues(14.dp)) {
+    FitakaCard(modifier, section = section, onClick = { onOpen(section) }, contentPadding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionBadge(section, section.icon, size = 32.dp)
             Text(section.label, style = type.titleSmall, color = c.ink)
@@ -257,9 +258,9 @@ private fun SectionTile(
 
 @Composable
 private fun UtangTile(state: HomeState, onOpen: (Section) -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth(), section = Section.UTANG, onClick = { onOpen(Section.UTANG) }, contentPadding = PaddingValues(14.dp)) {
+    FitakaCard(Modifier.fillMaxWidth(), section = Section.UTANG, onClick = { onOpen(Section.UTANG) }, contentPadding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionBadge(Section.UTANG, Section.UTANG.icon, size = 32.dp)
             Text(Section.UTANG.label, style = type.titleSmall, color = c.ink)
@@ -280,9 +281,9 @@ private fun UtangTile(state: HomeState, onOpen: (Section) -> Unit) {
 
 @Composable
 private fun BackupNudgeCard(nudge: BackupNudge, onOpenBackup: () -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth(), onClick = onOpenBackup, contentPadding = PaddingValues(14.dp)) {
+    FitakaCard(Modifier.fillMaxWidth(), onClick = onOpenBackup, contentPadding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Back up your data", style = type.titleSmall, color = c.ink)
@@ -295,24 +296,24 @@ private fun BackupNudgeCard(nudge: BackupNudge, onOpenBackup: () -> Unit) {
                     style = type.bodySmall, color = c.inkMuted,
                 )
             }
-            Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp))
+            Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
 private fun UpcomingCard(items: List<UpcomingItem>, today: LocalDate) {
-    val c = PitakaTheme.colors
-    PitakaCard(
-        Modifier.fillMaxWidth().animateContentSize(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)),
+    val c = FitakaTheme.colors
+    FitakaCard(
+        Modifier.fillMaxWidth().animateContentSize(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (items.isEmpty()) 16.dp else 4.dp),
     ) {
         if (items.isEmpty()) {
             Text("Nothing due in the next 2 weeks.", style = MaterialTheme.typography.bodyMedium, color = c.inkMuted)
         }
         items.forEachIndexed { i, item ->
-            if (i > 0) PitakaDivider()
-            PitakaListItem(
+            if (i > 0) FitakaDivider()
+            FitakaListItem(
                 title = item.title,
                 subtitle = "${item.detail} · ${friendlyDate(item.date, today)}",
                 leading = { SectionBadge(item.section, item.section.icon) },
@@ -324,9 +325,9 @@ private fun UpcomingCard(items: List<UpcomingItem>, today: LocalDate) {
 
 @Composable
 private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEntry: (Long) -> Unit) {
-    val c = PitakaTheme.colors
-    PitakaCard(
-        Modifier.fillMaxWidth().animateContentSize(tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized)),
+    val c = FitakaTheme.colors
+    FitakaCard(
+        Modifier.fillMaxWidth().animateContentSize(tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized)),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (rows.isEmpty()) 16.dp else 4.dp),
     ) {
         if (rows.isEmpty()) {
@@ -334,7 +335,7 @@ private fun RecentCard(rows: List<RecentTransaction>, today: LocalDate, onOpenEn
         }
         rows.forEachIndexed { i, row ->
             key(row.id) {
-                if (i > 0) PitakaDivider()
+                if (i > 0) FitakaDivider()
                 EntryListItem(row, subtitle = row.homeSubtitle(today), onClick = { onOpenEntry(row.id) })
             }
         }

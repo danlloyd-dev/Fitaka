@@ -23,7 +23,7 @@ import com.pitakaview.app.domain.FontChoice
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.UiSize
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.ui.components.PitakaButton
+import com.pitakaview.app.ui.components.FitakaButton
 import com.pitakaview.app.ui.components.SizePicker
 import com.pitakaview.app.ui.components.StylePicker
 import org.junit.Assert.assertEquals
@@ -52,9 +52,9 @@ class ThemeChoicesTest {
         var font by mutableStateOf(FontChoice.SHANTELL)
         var seen: Typography? = null
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
                 seen = MaterialTheme.typography
-                PitakaButton("Save", onClick = {})
+                FitakaButton("Save", onClick = {})
             }
         }
         for (choice in FontChoice.entries) {
@@ -84,7 +84,7 @@ class ThemeChoicesTest {
         rule.setContent {
             val phone = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(phone.density, fontScale = 1.3f)) {
-                PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
+                FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
                     Column(Modifier.padding(16.dp)) {
                         SizePicker(UiSize.LARGE, {})
                         StylePicker(UiStyle.GLOSSY, {})
@@ -109,9 +109,9 @@ class ThemeChoicesTest {
     @Test
     fun onlyTheGlassyStyleDarkensSecondaryText() {
         var style by mutableStateOf(UiStyle.GLOSSY)
-        var seen: PitakaColors? = null
-        rule.setContent { PitakaTheme(ThemeId.UBE, DarkModePref.LIGHT, style = style) { seen = PitakaTheme.colors } }
-        val usual = pitakaColors(ThemeId.UBE, dark = false)
+        var seen: FitakaColors? = null
+        rule.setContent { FitakaTheme(ThemeId.UBE, DarkModePref.LIGHT, style = style) { seen = FitakaTheme.colors } }
+        val usual = fitakaColors(ThemeId.UBE, dark = false)
         assertNotEquals("the glass colours are not the usual ones", usual.inkMuted, usual.forGlass().inkMuted)
         for (chosen in UiStyle.entries) {
             style = chosen

@@ -14,13 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import com.pitakaview.app.domain.Peso
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /**
  * One set of motion values for the whole app, so every transition feels related.
  * Compose scales these by the phone's animator duration setting ("Remove animations" = instant).
  */
-object PitakaMotion {
+object FitakaMotion {
     const val SHORT = 150
     const val MEDIUM = 300
     const val LONG = 450
@@ -51,10 +51,10 @@ fun AnimatedAmountText(
             from = from + ((to - from) * progress.value).toLong()
             to = centavos
             progress.snapTo(0f)
-            progress.animateTo(1f, tween(PitakaMotion.LONG + 150, easing = PitakaMotion.Emphasized))
+            progress.animateTo(1f, tween(FitakaMotion.LONG + 150, easing = FitakaMotion.Emphasized))
         }
     }
     val shown = if (progress.value >= 1f) to else from + ((to - from) * progress.value).toLong()
     val text = if (signed && shown > 0) "+${Peso.format(shown)}" else Peso.format(shown)
-    Text(text, modifier = modifier, style = style, color = PitakaTheme.colors.ink, maxLines = 1)
+    Text(text, modifier = modifier, style = style, color = FitakaTheme.colors.ink, maxLines = 1)
 }

@@ -13,20 +13,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.GoalProgress
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
@@ -34,7 +34,7 @@ import com.pitakaview.app.ui.sections.ItemDetailContent
 import com.pitakaview.app.ui.sections.ItemDetailUi
 import com.pitakaview.app.ui.sections.SectionItemCard
 import com.pitakaview.app.ui.sections.SectionTotalsCard
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
 import java.time.LocalDate
@@ -115,7 +115,7 @@ object IponUiBuilder {
     }
 }
 
-class IponViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
+class IponViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
     val ui: StateFlow<IponUi> = combine(db.savingsGoalDao().observeAllProgress(), today) { goals, day -> IponUiBuilder.build(goals, day) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IponUi())
 }
@@ -131,18 +131,18 @@ fun IponRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
 @Composable
 fun IponContent(ui: IponUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
     val section = Section.IPON
-    PitakaScreen(
+    FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { PitakaIconButton(PitakaIcons.Search, "Search", onSearch) },
+        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
     ) {
         item(key = "totals") { SectionTotalsCard(section, listOf("Saved" to ui.savedCentavos)) }
         item(key = "add") {
-            PitakaButton("Add a goal", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
+            FitakaButton("Add a goal", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
         }
         if (ui.loaded && ui.goals.isEmpty() && ui.hidden.isEmpty()) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No savings goals", "Add one, with or without a target, and put money toward it.", mascot = SleepyAlkansya) }
+                FitakaCard(Modifier.fillMaxWidth()) { EmptyState("No savings goals", "Add one, with or without a target, and put money toward it.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("Goals" to ui.goals, "Hidden" to ui.hidden)) {
@@ -165,7 +165,7 @@ sealed interface GoalDetailState {
     data class Shown(val ui: ItemDetailUi, val canTakeOut: Boolean) : GoalDetailState
 }
 
-class GoalDetailViewModel(db: PitakaDatabase, goalId: Long, today: StateFlow<LocalDate>) : ViewModel() {
+class GoalDetailViewModel(db: FitakaDatabase, goalId: Long, today: StateFlow<LocalDate>) : ViewModel() {
     /** Null while loading; [GoalDetailState.Gone] once the goal no longer exists. */
     val state: StateFlow<GoalDetailState?> = combine(
         db.savingsGoalDao().observeProgressOf(goalId),
@@ -188,7 +188,7 @@ fun GoalDetailRoute(goalId: Long, onBack: () -> Unit, onEdit: () -> Unit, onAdd:
     val state by vm.state.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     when (val shown = state) {
-        null -> Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        null -> Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         GoalDetailState.Gone -> LaunchedEffect(Unit) { onBack() }
         is GoalDetailState.Shown -> ItemDetailContent(
             ui = shown.ui,

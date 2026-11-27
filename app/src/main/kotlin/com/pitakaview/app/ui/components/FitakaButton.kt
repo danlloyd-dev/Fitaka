@@ -32,10 +32,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.theme.ButtonLabelStyle
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 
-enum class PitakaButtonStyle {
+enum class FitakaButtonStyle {
     /** The one main action on a screen (e.g. "Add transaction"). */
     Primary,
 
@@ -45,24 +45,24 @@ enum class PitakaButtonStyle {
 
 /**
  * A chunky outlined button with a solid offset shadow. Pressing pushes it down into its shadow.
- * Defaults to [PitakaButtonStyle.Secondary]: primary colour is opt-in, for the main action only.
+ * Defaults to [FitakaButtonStyle.Secondary]: primary colour is opt-in, for the main action only.
  */
 @Composable
-fun PitakaButton(
+fun FitakaButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    style: PitakaButtonStyle = PitakaButtonStyle.Secondary,
+    style: FitakaButtonStyle = FitakaButtonStyle.Secondary,
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val shadow = PitakaDimens.shadow
+    val shadow = FitakaDimens.shadow
     val push by animateDpAsState(if (pressed && enabled) shadow else 0.dp, tween(durationMillis = 70), label = "push")
-    val fill = if (style == PitakaButtonStyle.Primary) c.primary else c.card
-    val content = if (style == PitakaButtonStyle.Primary) c.onPrimary else c.ink
+    val fill = if (style == FitakaButtonStyle.Primary) c.primary else c.card
+    val content = if (style == FitakaButtonStyle.Primary) c.onPrimary else c.ink
 
     Box(
         modifier = modifier
@@ -70,13 +70,13 @@ fun PitakaButton(
             .offset(x = push, y = push)
             .alpha(if (enabled) 1f else 0.45f)
             .sketchBox(
-                shape = RoundedCornerShape(PitakaDimens.corner),
+                shape = RoundedCornerShape(FitakaDimens.corner),
                 fill = fill,
                 border = c.ink,
                 shadow = c.shadow,
                 shadowOffset = if (enabled) shadow - push else 0.dp,
                 gloss = Gloss.Button,
-                glass = style != PitakaButtonStyle.Primary,
+                glass = style != FitakaButtonStyle.Primary,
             )
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .defaultMinSize(minHeight = 56.dp)
@@ -95,14 +95,14 @@ fun PitakaButton(
  * share of the primary colour, not the card colour: gloss on white would show nothing.
  */
 @Composable
-fun PitakaIconButton(
+fun FitakaIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 44.dp,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val shadow = 3.dp
@@ -112,7 +112,7 @@ fun PitakaIconButton(
             .padding(end = shadow, bottom = shadow)
             .offset(x = push, y = push)
             .size(size)
-            .sketchBox(CircleShape, c.iconButton, c.ink, PitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton, glass = true)
+            .sketchBox(CircleShape, c.iconButton, c.ink, FitakaDimens.borderThin, c.shadow, shadow - push, gloss = Gloss.RoundButton, glass = true)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,

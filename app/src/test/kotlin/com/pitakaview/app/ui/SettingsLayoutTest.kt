@@ -13,7 +13,7 @@ import com.pitakaview.app.ui.settings.LockSettingsText
 import com.pitakaview.app.ui.settings.LockSettingsUi
 import com.pitakaview.app.ui.settings.ReminderSettingsUi
 import com.pitakaview.app.ui.settings.SettingsScreen
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +37,7 @@ class SettingsLayoutTest {
     @Test
     fun theRemindersSwitchAndTheLockSwitchAreNotNextToEachOther() {
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
                 SettingsScreen(
                     AppearanceSettings(), {}, {}, onBack = {},
                     reminders = ReminderSettingsUi(on = true),

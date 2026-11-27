@@ -31,7 +31,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.prefs.SettingsRepository
@@ -48,14 +48,14 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
-import com.pitakaview.app.ui.icons.PitakaIcons
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -97,7 +97,7 @@ object MoveText {
  * [purpose] and the id it belongs to ([linkId]); an existing one is found by [transactionId] and brings both.
  */
 class MoveEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val ledger: LedgerRepository,
     private val settings: SettingsRepository,
     today: LocalDate,
@@ -278,7 +278,7 @@ fun MoveEditorRoute(transactionId: Long?, purpose: TxPurpose?, linkId: Long?, on
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     val target = vm.target
     if (!vm.loaded || target == null) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     MoveEditorContent(
@@ -305,14 +305,14 @@ fun MoveEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmDelete) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Delete this entry?",
             lines = listOf("It is removed from your totals. This cannot be undone."),
             confirmLabel = "Yes, delete",
@@ -322,20 +322,20 @@ fun MoveEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = ui.title,
         subtitle = ui.subtitle,
         onBack = onBack,
         pinnedAction = {
             Column {
                 if (ui.saveError != null) ProblemText(ui.saveError)
-                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+                FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
             }
         },
     ) {
         item(key = "amount") {
             val tooMuch = MoveProblem.MORE_THAN_SAVED in ui.problems
-            PitakaTextField(
+            FitakaTextField(
                 state = amount, label = "Amount", modifier = Modifier.focusRequester(amountFocus), placeholder = "0.00", prefix = Peso.SIGN,
                 isError = MoveProblem.AMOUNT in ui.problems || tooMuch,
                 supportingText = when {
@@ -357,10 +357,10 @@ fun MoveEditorContent(
             )
         }
         item(key = "date") { DateChoice(ui.date, ui.today, onDate) }
-        item(key = "note") { PitakaTextField(state = note, label = "Note", placeholder = "Optional") }
+        item(key = "note") { FitakaTextField(state = note, label = "Note", placeholder = "Optional") }
         if (ui.isEdit) {
             item(key = "delete") {
-                PitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                FitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
             }
         }
     }

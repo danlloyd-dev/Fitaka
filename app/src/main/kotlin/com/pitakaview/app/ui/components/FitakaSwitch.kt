@@ -24,9 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 private val TrackWidth = 52.dp
 private val TrackHeight = 30.dp
@@ -36,21 +36,21 @@ private val KnobInset = 6.dp
 /**
  * The on/off knob by itself, drawn like the rest of the app: an ink outline with a round knob that
  * slides. On is a filled track with the knob on the right, so it reads without relying on colour.
- * It is only the picture; [PitakaToggleRow] is the thing to tap.
+ * It is only the picture; [FitakaToggleRow] is the thing to tap.
  */
 @Composable
-fun PitakaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+fun FitakaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
+    val c = FitakaTheme.colors
     val knobAt by animateDpAsState(
         targetValue = if (checked) TrackWidth - Knob - KnobInset else KnobInset,
-        animationSpec = tween(PitakaMotion.SHORT, easing = PitakaMotion.Emphasized),
+        animationSpec = tween(FitakaMotion.SHORT, easing = FitakaMotion.Emphasized),
         label = "knob",
     )
     Box(
         modifier = modifier
             .size(TrackWidth, TrackHeight)
             .sketchBox(
-                RoundedCornerShape(50), fill = if (checked) c.ink else c.card, border = c.ink, borderWidth = PitakaDimens.borderThin,
+                RoundedCornerShape(50), fill = if (checked) c.ink else c.card, border = c.ink, borderWidth = FitakaDimens.borderThin,
                 gloss = if (checked) Gloss.Switch else null,
             ),
         contentAlignment = Alignment.CenterStart,
@@ -64,7 +64,7 @@ fun PitakaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
  * row is the tap target and is announced as one switch.
  */
 @Composable
-fun PitakaToggleRow(
+fun FitakaToggleRow(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -72,7 +72,7 @@ fun PitakaToggleRow(
     subtitle: String? = null,
     enabled: Boolean = true,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     Row(
         modifier = modifier
@@ -87,6 +87,6 @@ fun PitakaToggleRow(
             if (subtitle != null) Text(subtitle, style = type.bodyMedium, color = c.inkMuted)
         }
         Spacer(Modifier.width(12.dp))
-        PitakaSwitch(checked)
+        FitakaSwitch(checked)
     }
 }

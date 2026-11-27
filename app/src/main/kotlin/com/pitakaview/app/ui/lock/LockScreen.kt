@@ -22,11 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
+import com.pitakaview.app.APP_NAME
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
 import com.pitakaview.app.ui.mascot.Alkansya
 import com.pitakaview.app.ui.mascot.AlkansyaMood
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /**
  * Covers the whole app while it is locked. It is drawn over the app (which stays as it was underneath,
@@ -37,7 +38,7 @@ import com.pitakaview.app.ui.theme.PitakaTheme
  */
 @Composable
 fun LockScreen(onUnlock: () -> Unit, onLeave: () -> Unit, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val focus = LocalFocusManager.current
     LaunchedEffect(Unit) {
@@ -60,13 +61,13 @@ fun LockScreen(onUnlock: () -> Unit, onLeave: () -> Unit, modifier: Modifier = M
     ) {
         Alkansya(mood = AlkansyaMood.SLEEPY, width = 160.dp)
         Spacer(Modifier.height(24.dp))
-        Text("PitakaView is locked", style = type.headlineSmall, color = c.ink, textAlign = TextAlign.Center)
+        Text("$APP_NAME is locked", style = type.headlineSmall, color = c.ink, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(
             "Use your fingerprint, face or phone PIN to open it.",
             style = type.bodyLarge, color = c.inkMuted, textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
-        PitakaButton("Unlock", onClick = onUnlock, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary)
+        FitakaButton("Unlock", onClick = onUnlock, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary)
     }
 }

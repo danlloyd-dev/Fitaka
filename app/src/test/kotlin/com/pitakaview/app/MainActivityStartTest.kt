@@ -52,7 +52,7 @@ class MainActivityStartTest {
     @get:Rule
     val rule = createEmptyComposeRule()
 
-    private val app: PitakaApp get() = ApplicationProvider.getApplicationContext()
+    private val app: FitakaApp get() = ApplicationProvider.getApplicationContext()
     private val container get() = app.container
 
     private fun shows(text: String) = rule.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
@@ -75,7 +75,7 @@ class MainActivityStartTest {
     fun aFreshInstallIsWelcomedAndTheMoneyTypedInBecomesTheWallets() {
         seeded()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitFor("Your whole wallet, one view.")
+            waitFor("It keeps track of your money in five places.")
             assertTrue(shows("Step 1 of 3"))
             assertTrue("the five sections are introduced", shows("Everything you spend."))
             tap("Start")
@@ -190,8 +190,8 @@ class MainActivityStartTest {
         val phone = FakeUnlocker(answer = UnlockResult.NOT_UNLOCKED)
         lockedAppWith(phone)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitFor("PitakaView is locked")
-            assertEquals("the phone is asked once by itself", listOf("Unlock PitakaView"), phone.asked)
+            waitFor("Fitaka is locked")
+            assertEquals("the phone is asked once by itself", listOf("Unlock Fitaka"), phone.asked)
             assertFalse("nothing of the app can be read", shows("Your whole wallet"))
             assertFalse(shows("Cash"))
             scenario.onActivity {
@@ -201,13 +201,13 @@ class MainActivityStartTest {
             // The owner cancelled; the button asks again. Still no.
             tap("Unlock")
             assertEquals(2, phone.asked.size)
-            assertTrue(shows("PitakaView is locked"))
+            assertTrue(shows("Fitaka is locked"))
             assertFalse(shows("Your whole wallet"))
 
             phone.answer = UnlockResult.UNLOCKED
             tap("Unlock")
             waitFor("Your whole wallet")
-            assertFalse(shows("PitakaView is locked"))
+            assertFalse(shows("Fitaka is locked"))
         }
     }
 
@@ -236,7 +236,7 @@ class MainActivityStartTest {
             scenario.moveToState(Lifecycle.State.CREATED)
             ShadowSystemClock.advanceBy(Duration.ofMillis(AppLockRules.AWAY_MS + 1_000))
             scenario.moveToState(Lifecycle.State.RESUMED)
-            waitFor("PitakaView is locked")
+            waitFor("Fitaka is locked")
             assertEquals(2, phone.asked.size)
             assertFalse(shows("Your whole wallet"))
         }
@@ -257,7 +257,7 @@ class MainActivityStartTest {
             scenario.moveToState(Lifecycle.State.CREATED)
             ShadowSystemClock.advanceBy(Duration.ofMillis(AppLockRules.AWAY_MS + 1_000))
             scenario.moveToState(Lifecycle.State.RESUMED)
-            waitFor("PitakaView is locked")
+            waitFor("Fitaka is locked")
 
             // A tap exactly where the Wallets row is underneath, and the Back button.
             rule.onRoot().performTouchInput { click(walletsRow) }

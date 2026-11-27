@@ -10,7 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-class PitakaApp : Application(), Configuration.Provider {
+class FitakaApp : Application(), Configuration.Provider {
     /** App-wide dependencies, built by hand instead of a DI framework to keep the app light. */
     lateinit var container: AppContainer
         private set

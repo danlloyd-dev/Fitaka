@@ -2,7 +2,7 @@ package com.pitakaview.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.BaonActivityRow
 import com.pitakaview.app.data.db.dao.GoalProgress
 import com.pitakaview.app.data.db.dao.LoanWithPaid
@@ -34,7 +34,7 @@ import java.time.temporal.TemporalAdjusters
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    db: PitakaDatabase,
+    db: FitakaDatabase,
     today: StateFlow<LocalDate>,
     lastBackupAt: Flow<Instant?>,
     private val zone: ZoneId = ZoneId.systemDefault(),

@@ -5,8 +5,8 @@ import android.content.Intent
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.pitakaview.app.data.backup.BackupManager
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.createPitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.createFitakaDatabase
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.data.repo.LedgerRepository
 import com.pitakaview.app.domain.DayClock
@@ -26,11 +26,11 @@ import java.time.LocalDateTime
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
-    val database: PitakaDatabase by lazy { createPitakaDatabase(appContext) }
+    val database: FitakaDatabase by lazy { createFitakaDatabase(appContext) }
     val ledger: LedgerRepository by lazy { LedgerRepository(database) }
     val settings: SettingsRepository by lazy { SettingsRepository.create(appContext) }
     val backup: BackupManager by lazy {
-        BackupManager(database, appContext.getDatabasePath(PitakaDatabase.FILE_NAME), AndroidSQLiteDriver(), appContext.cacheDir)
+        BackupManager(database, appContext.getDatabasePath(FitakaDatabase.FILE_NAME), AndroidSQLiteDriver(), appContext.cacheDir)
     }
 
     /** The one source of "today" for every screen. */

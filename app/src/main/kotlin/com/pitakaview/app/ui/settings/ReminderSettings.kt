@@ -27,13 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pitakaview.app.APP_NAME
 import com.pitakaview.app.data.prefs.ReminderCheck
 import com.pitakaview.app.di.LocalAppContainer
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaToggleRow
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.ProblemText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -60,9 +61,9 @@ object ReminderSettingsText {
     private val DAY = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH)
 
     const val SUBTITLE = "Paydays and payments due, from 8 in the morning"
-    const val BLOCKED = "This phone is not letting PitakaView show notifications. Allow them in the phone's settings."
+    const val BLOCKED = "This phone is not letting $APP_NAME show notifications. Allow them in the phone's settings."
     const val PHONE_TIP =
-        "If reminders do not arrive: in the phone's settings for PitakaView, turn on Autostart and set Battery saver to No restrictions."
+        "If reminders do not arrive: in the phone's settings for $APP_NAME, turn on Autostart and set Battery saver to No restrictions."
 
     /** "Last checked today at 8:02 AM, in the background." Says how, because that tells whether the phone lets the app run by itself. */
     fun lastCheck(check: ReminderCheck, today: LocalDate, zone: ZoneId): String {
@@ -82,10 +83,10 @@ object ReminderSettingsText {
 
 @Composable
 fun RemindersCard(ui: ReminderSettingsUi, onChange: (Boolean) -> Unit, onOpenPhoneSettings: () -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-        PitakaToggleRow(title = "Remind me", subtitle = ReminderSettingsText.SUBTITLE, checked = ui.on, onCheckedChange = onChange)
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+        FitakaToggleRow(title = "Remind me", subtitle = ReminderSettingsText.SUBTITLE, checked = ui.on, onCheckedChange = onChange)
         if (ui.blocked) ProblemText(ReminderSettingsText.BLOCKED)
         if (ui.on && ui.lastCheck != null) Text(ui.lastCheck, style = type.bodySmall, color = c.inkMuted)
         val tip = ui.on && ui.phoneTip
@@ -95,7 +96,7 @@ fun RemindersCard(ui: ReminderSettingsUi, onChange: (Boolean) -> Unit, onOpenPho
         }
         if (ui.blocked || tip) {
             Spacer(Modifier.height(12.dp))
-            PitakaButton("Open phone settings", onClick = onOpenPhoneSettings, modifier = Modifier.fillMaxWidth())
+            FitakaButton("Open phone settings", onClick = onOpenPhoneSettings, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
         }
     }

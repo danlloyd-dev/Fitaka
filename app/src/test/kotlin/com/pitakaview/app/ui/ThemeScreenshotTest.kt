@@ -19,15 +19,15 @@ import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.components.AmountText
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaListItem
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionTag
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,7 +53,7 @@ class ThemeScreenshotTest {
             for (dark in listOf(false, true)) {
                 val name = "${theme.name.lowercase()}_${if (dark) "dark" else "light"}"
                 captureRoboImage("build/outputs/roborazzi/gallery_$name.png") {
-                    PitakaTheme(theme, mode(dark)) {
+                    FitakaTheme(theme, mode(dark)) {
                         ComponentGallery(AppearanceSettings(theme, mode(dark)), onThemeChange = {}, onDarkModeChange = {}, scrollable = false)
                     }
                 }
@@ -69,7 +69,7 @@ class ThemeScreenshotTest {
             Row {
                 for (theme in ThemeId.entries) {
                     for (dark in listOf(false, true)) {
-                        PitakaTheme(theme, mode(dark)) { MiniPreview("${theme.label} ${if (dark) "dark" else "light"}") }
+                        FitakaTheme(theme, mode(dark)) { MiniPreview("${theme.label} ${if (dark) "dark" else "light"}") }
                     }
                 }
             }
@@ -79,16 +79,16 @@ class ThemeScreenshotTest {
 
 @Composable
 private fun MiniPreview(title: String) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Column(
         Modifier.width(160.dp).fillMaxHeight().background(c.background).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(title, style = MaterialTheme.typography.titleSmall, color = c.ink)
-        PitakaButton("Add", onClick = {}, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
-        PitakaButton("View", onClick = {}, modifier = Modifier.fillMaxWidth())
-        PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
-            PitakaListItem("Food", subtitle = "Gastos", leading = { SectionBadge(Section.GASTOS, Section.GASTOS.icon, size = 32.dp) })
+        FitakaButton("Add", onClick = {}, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
+        FitakaButton("View", onClick = {}, modifier = Modifier.fillMaxWidth())
+        FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
+            FitakaListItem("Food", subtitle = "Gastos", leading = { SectionBadge(Section.GASTOS, Section.GASTOS.icon, size = 32.dp) })
             AmountText(-12_500, signed = true)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

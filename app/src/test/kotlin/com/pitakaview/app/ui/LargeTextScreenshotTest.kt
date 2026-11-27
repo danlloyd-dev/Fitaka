@@ -16,7 +16,7 @@ import com.pitakaview.app.ui.onboarding.OnboardingWallets
 import com.pitakaview.app.ui.settings.LockSettingsUi
 import com.pitakaview.app.ui.settings.ReminderSettingsUi
 import com.pitakaview.app.ui.settings.SettingsScreen
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,7 +34,7 @@ class LargeTextScreenshotTest {
     private fun shot(name: String, content: @Composable () -> Unit) = captureRoboImage("build/outputs/roborazzi/large_text_$name.png") {
         val density = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) { content() }
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) { content() }
         }
     }
 

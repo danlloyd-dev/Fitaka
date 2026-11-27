@@ -51,7 +51,7 @@ class UiScaleTest {
     fun everythingShrinksWithTheSizeExceptWhatStepsOutOfIt() {
         var size by mutableStateOf(UiSize.LARGE)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, size = size) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, size = size) {
                 Column {
                     Box(Modifier.size(100.dp).testTag("a part"))
                     Text("Sahod", Modifier.testTag("words"), style = MaterialTheme.typography.titleMedium)

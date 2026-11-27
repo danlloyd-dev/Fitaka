@@ -30,22 +30,22 @@ import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.DarkModePicker
-import com.pitakaview.app.ui.components.PitakaBottomBar
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaTextField
-import com.pitakaview.app.ui.components.PitakaTopBar
+import com.pitakaview.app.ui.components.FitakaBottomBar
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.FitakaTopBar
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionTag
 import com.pitakaview.app.ui.components.ThemePicker
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.navigation.MainTabs
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
 /** Test fixture: every component on one screen, drawn by ThemeScreenshotTest in each theme and mode. */
@@ -57,7 +57,7 @@ fun ComponentGallery(
     modifier: Modifier = Modifier,
     scrollable: Boolean = true,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val amount = rememberTextFieldState("1,250.00")
@@ -65,10 +65,10 @@ fun ComponentGallery(
     val badAmount = rememberTextFieldState("0")
 
     Column(modifier.fillMaxSize().background(c.background)) {
-        PitakaTopBar(
-            title = "PitakaView",
-            subtitle = "Your whole wallet, one view.",
-            actions = { PitakaIconButton(PitakaIcons.Settings, "Settings", onClick = {}) },
+        FitakaTopBar(
+            title = "Fitaka",
+            subtitle = "Magandang hapon!",
+            actions = { FitakaIconButton(FitakaIcons.Settings, "Settings", onClick = {}) },
         )
         Column(
             modifier = Modifier
@@ -82,20 +82,20 @@ fun ComponentGallery(
             DarkModePicker(appearance.darkMode, onDarkModeChange)
 
             GroupLabel("Buttons")
-            PitakaButton(
+            FitakaButton(
                 "Add transaction",
                 onClick = {},
                 modifier = Modifier.fillMaxWidth(),
-                style = PitakaButtonStyle.Primary,
-                icon = PitakaIcons.Add,
+                style = FitakaButtonStyle.Primary,
+                icon = FitakaIcons.Add,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PitakaButton("View all", onClick = {}, modifier = Modifier.weight(1f))
-                PitakaButton("Disabled", onClick = {}, modifier = Modifier.weight(1f), enabled = false)
+                FitakaButton("View all", onClick = {}, modifier = Modifier.weight(1f))
+                FitakaButton("Disabled", onClick = {}, modifier = Modifier.weight(1f), enabled = false)
             }
 
             GroupLabel("Cards")
-            PitakaCard(Modifier.fillMaxWidth()) {
+            FitakaCard(Modifier.fillMaxWidth()) {
                 Text("Natitira this month", style = type.labelLarge, color = c.inkMuted)
                 AmountText(1_234_550, style = type.displaySmall)
                 Text("after ₱8,765.50 gastos", style = type.bodyMedium, color = c.inkMuted)
@@ -106,14 +106,14 @@ fun ComponentGallery(
             }
 
             GroupLabel("Text fields")
-            PitakaTextField(
+            FitakaTextField(
                 state = amount,
                 label = "Amount",
                 prefix = "₱",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
-            PitakaTextField(state = note, label = "Note", placeholder = "e.g. Jollibee with the barkada")
-            PitakaTextField(
+            FitakaTextField(state = note, label = "Note", placeholder = "e.g. Jollibee with the barkada")
+            FitakaTextField(
                 state = badAmount,
                 label = "Amount",
                 prefix = "₱",
@@ -122,22 +122,22 @@ fun ComponentGallery(
             )
 
             GroupLabel("List")
-            PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
-                PitakaListItem(
+            FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+                FitakaListItem(
                     "Food",
                     subtitle = "Gastos · GCash · Today",
                     leading = { SectionBadge(Section.GASTOS, Section.GASTOS.icon) },
                     trailing = { AmountText(-12_500, signed = true) },
                 )
-                PitakaDivider()
-                PitakaListItem(
+                FitakaDivider()
+                FitakaListItem(
                     "Salary",
                     subtitle = "Kita · MariBank · Nov 15",
                     leading = { SectionBadge(Section.KITA, Section.KITA.icon) },
                     trailing = { AmountText(2_000_000, signed = true) },
                 )
-                PitakaDivider()
-                PitakaListItem(
+                FitakaDivider()
+                FitakaListItem(
                     "Kuya Jun",
                     subtitle = "Utang · owes you · due Dec 15",
                     leading = { SectionBadge(Section.UTANG, Section.UTANG.icon) },
@@ -151,21 +151,21 @@ fun ComponentGallery(
             }
             Spacer(Modifier.height(8.dp))
         }
-        PitakaBottomBar(items = MainTabs, selectedIndex = tab, onSelect = { tab = it })
+        FitakaBottomBar(items = MainTabs, selectedIndex = tab, onSelect = { tab = it })
     }
 }
 
 @Composable
 private fun SectionCard(section: Section, centavos: Long, modifier: Modifier = Modifier) {
-    PitakaCard(modifier, section = section) {
+    FitakaCard(modifier, section = section) {
         SectionBadge(section, section.icon, size = 36.dp)
         Spacer(Modifier.height(8.dp))
-        Text(section.label, style = MaterialTheme.typography.titleSmall, color = PitakaTheme.colors.ink)
+        Text(section.label, style = MaterialTheme.typography.titleSmall, color = FitakaTheme.colors.ink)
         AmountText(centavos)
     }
 }
 
 @Composable
 private fun GroupLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = PitakaTheme.colors.ink, modifier = Modifier.padding(top = 4.dp))
+    Text(text, style = MaterialTheme.typography.titleMedium, color = FitakaTheme.colors.ink, modifier = Modifier.padding(top = 4.dp))
 }

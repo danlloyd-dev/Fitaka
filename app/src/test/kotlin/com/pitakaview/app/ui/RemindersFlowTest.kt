@@ -149,7 +149,7 @@ class RemindersFlowTest : FlowTestBase() {
         waitFor("Last checked today at 9:00 AM, with the app open.")
         assertEquals(listOf("Payment due today"), notificationTitles())
         assertEquals("one daily check is waiting", 1, waitingChecks().size)
-        assertFalse(shows("not letting PitakaView"))
+        assertFalse(shows("not letting Fitaka"))
 
         // Off again: the waiting check is taken away.
         switch("Remind me").performClick()
@@ -175,7 +175,7 @@ class RemindersFlowTest : FlowTestBase() {
         openSettings()
 
         switch("Remind me").performClick()
-        waitFor("This phone is not letting PitakaView show notifications")
+        waitFor("This phone is not letting Fitaka show notifications")
         assertEquals(1, timesAsked)
         // Nothing should happen next; a wrong "switch on anyway" gets the time it would need to show itself.
         repeat(20) {

@@ -13,7 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.LoanWithPaid
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.entity.LoanEntity
@@ -22,13 +22,13 @@ import com.pitakaview.app.domain.LoanDirection
 import com.pitakaview.app.domain.LoanMath
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
@@ -37,7 +37,7 @@ import com.pitakaview.app.ui.sections.ItemDetailUi
 import com.pitakaview.app.ui.sections.SectionItemCard
 import com.pitakaview.app.ui.sections.SectionTotalsCard
 import com.pitakaview.app.ui.sections.dateInText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
 import java.time.LocalDate
@@ -128,7 +128,7 @@ object UtangUiBuilder {
     }
 }
 
-class UtangViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
+class UtangViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
     val ui: StateFlow<UtangUi> = combine(db.loanDao().observeAllWithPaid(), today) { loans, day -> UtangUiBuilder.build(loans, day) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UtangUi())
 }
@@ -144,18 +144,18 @@ fun UtangRoute(onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) 
 @Composable
 fun UtangContent(ui: UtangUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearch: () -> Unit) {
     val section = Section.UTANG
-    PitakaScreen(
+    FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { PitakaIconButton(PitakaIcons.Search, "Search", onSearch) },
+        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
     ) {
         item(key = "totals") { SectionTotalsCard(section, listOf("You owe" to ui.iOweCentavos, "Owed to you" to ui.owedToMeCentavos)) }
         item(key = "add") {
-            PitakaButton("Add a loan", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
+            FitakaButton("Add a loan", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
         }
         if (ui.loaded && ui.isEmpty) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No loans", "Add money you borrowed or lent, and its payments are tracked here.", mascot = SleepyAlkansya) }
+                FitakaCard(Modifier.fillMaxWidth()) { EmptyState("No loans", "Add money you borrowed or lent, and its payments are tracked here.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("You owe" to ui.iOwe, "Owed to you" to ui.owedToMe, "Settled" to ui.settled)) {
@@ -173,7 +173,7 @@ fun UtangContent(ui: UtangUi, onAdd: () -> Unit, onOpen: (Long) -> Unit, onSearc
 
 // ---------- one loan ----------
 
-class LoanDetailViewModel(db: PitakaDatabase, loanId: Long, today: StateFlow<LocalDate>) : ViewModel() {
+class LoanDetailViewModel(db: FitakaDatabase, loanId: Long, today: StateFlow<LocalDate>) : ViewModel() {
     /** Null while loading; [Gone] once the loan no longer exists. */
     val state: StateFlow<LoanDetailState?> = combine(
         db.loanDao().observeWithPaid(loanId),
@@ -200,7 +200,7 @@ fun LoanDetailRoute(loanId: Long, onBack: () -> Unit, onEdit: () -> Unit, onAddP
     val state by vm.state.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     when (val shown = state) {
-        null -> Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        null -> Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         LoanDetailState.Gone -> LaunchedEffect(Unit) { onBack() }
         is LoanDetailState.Shown -> ItemDetailContent(
             ui = shown.ui,

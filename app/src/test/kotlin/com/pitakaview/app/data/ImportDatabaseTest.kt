@@ -2,8 +2,8 @@ package com.pitakaview.app.data
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.ImportBatchEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
@@ -30,7 +30,7 @@ import java.time.LocalDate
 
 /** An import against real SQL: stored whole or not at all, recognised the next time, and taken back out in one step. */
 class ImportDatabaseTest {
-    private lateinit var db: PitakaDatabase
+    private lateinit var db: FitakaDatabase
     private lateinit var ledger: LedgerRepository
     private val now = Instant.parse("2026-11-26T04:00:00Z")
     private val nov3 = LocalDate.of(2026, 11, 3)
@@ -41,7 +41,7 @@ class ImportDatabaseTest {
 
     @Before
     fun open() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder { PitakaDatabase_Impl() }
+        db = Room.inMemoryDatabaseBuilder { FitakaDatabase_Impl() }
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

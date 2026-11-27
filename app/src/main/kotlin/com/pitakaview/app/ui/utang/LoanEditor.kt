@@ -29,7 +29,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.repo.LedgerRepository
@@ -44,19 +44,19 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
-import com.pitakaview.app.ui.components.PitakaToggleRow
+import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -78,7 +78,7 @@ val LoanPlan.label: String
 
 /** Add or change a loan. Checks what was typed with [LoanFormLogic]. */
 class LoanEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val ledger: LedgerRepository,
     today: LocalDate,
     loanId: Long?,
@@ -254,7 +254,7 @@ fun LoanEditorRoute(loanId: Long?, onDone: () -> Unit) {
     val remindersOn by container.settings.remindersOn.collectAsStateWithLifecycle(initialValue = true)
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     LoanEditorContent(
@@ -292,7 +292,7 @@ fun LoanEditorContent(
     onBack: () -> Unit,
     onRemind: (Boolean) -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val chips = Arrangement.spacedBy(8.dp)
@@ -301,7 +301,7 @@ fun LoanEditorContent(
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmDelete) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Delete this loan?",
             lines = listOf("Nothing is logged for it, so no totals change. This cannot be undone."),
             confirmLabel = "Yes, delete",
@@ -311,30 +311,30 @@ fun LoanEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = if (ui.isEdit) "Edit loan" else "Add a loan",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         // Which way the money went cannot change later: the payments already logged depend on it.
         if (!ui.isEdit) {
             item(key = "direction") {
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    LoanDirection.entries.forEach { PitakaChip(it.label, selected = it == ui.direction, onClick = { onDirection(it) }) }
+                    LoanDirection.entries.forEach { FitakaChip(it.label, selected = it == ui.direction, onClick = { onDirection(it) }) }
                 }
             }
         }
         item(key = "who") {
-            PitakaTextField(
+            FitakaTextField(
                 state = who, label = if (borrowed) "From whom" else "To whom", placeholder = "e.g. Tita Baby",
                 isError = LoanProblem.WHO in ui.problems,
                 supportingText = if (LoanProblem.WHO in ui.problems) "Say who the loan is with" else null,
             )
         }
         item(key = "amount") {
-            PitakaTextField(
+            FitakaTextField(
                 state = amount, label = if (borrowed) "How much you borrowed" else "How much you lent", placeholder = "0.00", prefix = Peso.SIGN,
                 isError = LoanProblem.AMOUNT in ui.problems,
                 supportingText = if (LoanProblem.AMOUNT in ui.problems) "Enter an amount above ₱0.00" else null,
@@ -342,7 +342,7 @@ fun LoanEditorContent(
             )
         }
         item(key = "total") {
-            PitakaTextField(
+            FitakaTextField(
                 state = total, label = "Total to pay back, with interest", placeholder = "Same as the amount", prefix = Peso.SIGN,
                 isError = LoanProblem.TOTAL in ui.problems,
                 supportingText = if (LoanProblem.TOTAL in ui.problems) "The total cannot be less than the amount" else "Leave empty if there is no interest.",
@@ -368,13 +368,13 @@ fun LoanEditorContent(
                 SectionHeader("How it is paid back")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    LoanPlan.entries.forEach { PitakaChip(it.label, selected = it == ui.plan, onClick = { onPlan(it) }) }
+                    LoanPlan.entries.forEach { FitakaChip(it.label, selected = it == ui.plan, onClick = { onPlan(it) }) }
                 }
             }
         }
         if (ui.plan == LoanPlan.MONTHLY) {
             item(key = "installment") {
-                PitakaTextField(
+                FitakaTextField(
                     state = installment, label = "How much each month", placeholder = "0.00", prefix = Peso.SIGN,
                     isError = LoanProblem.INSTALLMENT in ui.problems,
                     supportingText = if (LoanProblem.INSTALLMENT in ui.problems) "Enter the monthly amount" else null,
@@ -394,7 +394,7 @@ fun LoanEditorContent(
             }
             // Only a loan with a date has anything to be reminded of.
             item(key = "remind") {
-                PitakaToggleRow(
+                FitakaToggleRow(
                     title = "Remind me when it is due",
                     checked = ui.remind,
                     onCheckedChange = onRemind,
@@ -402,13 +402,13 @@ fun LoanEditorContent(
                 )
             }
         }
-        item(key = "note") { PitakaTextField(state = note, label = "Note", placeholder = "Optional") }
+        item(key = "note") { FitakaTextField(state = note, label = "Note", placeholder = "Optional") }
 
         if (ui.isEdit) {
             // Paid in full needs no marking; the button is for a loan forgiven or written off.
             if (!ui.paidInFull) {
                 item(key = "settle") {
-                    PitakaButton(
+                    FitakaButton(
                         if (ui.markedSettled) "Open this loan again" else "Mark as settled",
                         onClick = onToggleSettled, modifier = Modifier.fillMaxWidth(),
                     )
@@ -416,7 +416,7 @@ fun LoanEditorContent(
             }
             if (ui.canDelete) {
                 item(key = "delete") {
-                    PitakaButton("Delete loan", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                    FitakaButton("Delete loan", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }

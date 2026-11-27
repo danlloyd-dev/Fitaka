@@ -12,7 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.PayReceipt
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.di.LocalAppContainer
@@ -21,16 +21,16 @@ import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.domain.WaitingPayday
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.ledger.CategoryBreakdownCard
 import com.pitakaview.app.ui.ledger.MonthLedger
@@ -84,7 +84,7 @@ object PaydayRows {
 
 /** The Kita tab: one month of income, and the paydays being waited for. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class KitaViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>, zone: ZoneId = ZoneId.systemDefault()) : ViewModel() {
+class KitaViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>, zone: ZoneId = ZoneId.systemDefault()) : ViewModel() {
     val month = MonthOffset()
 
     val ledger: StateFlow<MonthLedger> = monthLedgerFlow(db.transactionDao(), TxPurpose.INCOME, today, month.flow)
@@ -135,15 +135,15 @@ fun KitaContent(
     onReceived: (Long) -> Unit,
 ) {
     val section = Section.KITA
-    PitakaScreen(
+    FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { PitakaIconButton(PitakaIcons.Search, "Search", onSearch) },
+        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
     ) {
         item(key = "month") { MonthSwitcher(ledger.month, ledger.isThisMonth, onPreviousMonth, onNextMonth, onThisMonth) }
         item(key = "total") { MonthTotalCard(section, "Income in ${monthName(ledger.month)}", ledger) }
         item(key = "add") {
-            PitakaButton("Add income", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
+            FitakaButton("Add income", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
         }
 
         item(key = "paydays-title") { SectionHeader("Paydays") }
@@ -151,12 +151,12 @@ fun KitaContent(
             item(key = "paydays") { PaydaysCard(paydays, today, onOpenPayday, onReceived) }
         }
         item(key = "add-payday") {
-            PitakaButton("Add a payday", onClick = onAddPayday, modifier = Modifier.fillMaxWidth(), icon = PitakaIcons.Add)
+            FitakaButton("Add a payday", onClick = onAddPayday, modifier = Modifier.fillMaxWidth(), icon = FitakaIcons.Add)
         }
 
         if (ledger.loaded && ledger.days.isEmpty()) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) {
+                FitakaCard(Modifier.fillMaxWidth()) {
                     // A new entry is dated today, so the "tap to add" hint only fits the current month.
                     EmptyState(
                         "No income in ${monthName(ledger.month)}",
@@ -180,14 +180,14 @@ fun KitaContent(
 
 @Composable
 private fun PaydaysCard(rows: List<PaydayRow>, today: LocalDate, onOpenPayday: (Long) -> Unit, onReceived: (Long) -> Unit) {
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (rows.isEmpty()) 16.dp else 4.dp)) {
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = if (rows.isEmpty()) 16.dp else 4.dp)) {
         if (rows.isEmpty()) {
             EmptyState("No paydays set up", "Add your salary days to see what is coming and mark it received.")
         }
         rows.forEachIndexed { i, row ->
             key(row.scheduleId) {
-                if (i > 0) PitakaDivider()
-                PitakaListItem(
+                if (i > 0) FitakaDivider()
+                FitakaListItem(
                     title = row.name,
                     subtitle = PaydayRows.status(row.next, today),
                     leading = { SectionBadge(Section.KITA, Section.KITA.icon) },
@@ -195,11 +195,11 @@ private fun PaydaysCard(rows: List<PaydayRow>, today: LocalDate, onOpenPayday: (
                     onClick = { onOpenPayday(row.scheduleId) },
                 )
                 if (row.next?.canReceive == true) {
-                    PitakaButton(
+                    FitakaButton(
                         "Received",
                         onClick = { onReceived(row.scheduleId) },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                        icon = PitakaIcons.Check,
+                        icon = FitakaIcons.Check,
                     )
                 }
             }

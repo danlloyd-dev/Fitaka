@@ -4,7 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
-import com.pitakaview.app.PitakaApp
+import com.pitakaview.app.FitakaApp
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
@@ -39,7 +39,7 @@ import java.time.LocalDateTime
  */
 @RunWith(RobolectricTestRunner::class)
 class RemindersTest {
-    private val app: PitakaApp get() = ApplicationProvider.getApplicationContext()
+    private val app: FitakaApp get() = ApplicationProvider.getApplicationContext()
     private val container get() = app.container
     private val phone get() = shadowOf(app.getSystemService(NotificationManager::class.java))
 

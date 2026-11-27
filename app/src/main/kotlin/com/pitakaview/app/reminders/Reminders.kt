@@ -1,6 +1,6 @@
 package com.pitakaview.app.reminders
 
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.domain.PaydayTracker
 import com.pitakaview.app.domain.ReminderPlanner
@@ -20,7 +20,7 @@ import java.time.ZoneId
  * is shown once: the keys of those already shown are kept in settings.
  */
 class Reminders(
-    private val database: () -> PitakaDatabase,
+    private val database: () -> FitakaDatabase,
     private val settings: SettingsRepository,
     private val notifier: () -> ReminderNotifier,
     private val alarm: () -> ReminderAlarm,

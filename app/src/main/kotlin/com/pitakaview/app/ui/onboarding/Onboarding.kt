@@ -40,7 +40,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.room3.withWriteTransaction
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.APP_NAME
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.di.LocalAppContainer
@@ -49,21 +50,21 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.mascot.Alkansya
 import com.pitakaview.app.ui.mascot.AlkansyaMood
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.wallets.WalletPreset
 import kotlinx.coroutines.flow.first
@@ -105,7 +106,7 @@ object OnboardingLogic {
      * never to someone who already has entries. Once the answer is no it is remembered, so later
      * launches read one saved setting and ask the database nothing.
      */
-    suspend fun isNeeded(settings: SettingsRepository, db: PitakaDatabase): Boolean {
+    suspend fun isNeeded(settings: SettingsRepository, db: FitakaDatabase): Boolean {
         if (settings.onboardingDone.first()) return false
         if (db.transactionDao().count() == 0) return true
         settings.setOnboardingDone()
@@ -117,7 +118,7 @@ object OnboardingLogic {
      * balance is simply its starting balance. A wallet that is already there (an app set up by hand
      * before the welcome existed) is given the amount instead of being added a second time.
      */
-    suspend fun apply(db: PitakaDatabase, plan: OnboardingPlan, now: Instant) {
+    suspend fun apply(db: FitakaDatabase, plan: OnboardingPlan, now: Instant) {
         db.withWriteTransaction {
             val dao = db.walletDao()
             val existing = dao.all()
@@ -147,7 +148,7 @@ object OnboardingLogic {
 
 /** The welcome's state. Kept in a ViewModel so a rotation keeps the step and what was typed. */
 class OnboardingViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val settings: SettingsRepository,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -232,7 +233,7 @@ fun OnboardingRoute(onDone: () -> Unit) {
     val vm = viewModel { OnboardingViewModel(container.database, container.settings) }
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     OnboardingContent(
@@ -269,11 +270,11 @@ fun OnboardingContent(
     onFinish: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val money = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     val last = page == OnboardingLogic.PAGES - 1
-    PitakaScreen(
+    FitakaScreen(
         title = when (page) {
             0 -> "Welcome"
             1 -> "Your money now"
@@ -293,7 +294,7 @@ fun OnboardingContent(
             }
         },
         pinnedAction = {
-            PitakaButton(
+            FitakaButton(
                 text = when (page) {
                     0 -> "Start"
                     1 -> "Next"
@@ -301,8 +302,8 @@ fun OnboardingContent(
                 },
                 onClick = if (last) onFinish else onNext,
                 modifier = Modifier.fillMaxWidth(),
-                style = PitakaButtonStyle.Primary,
-                icon = if (last) PitakaIcons.Check else null,
+                style = FitakaButtonStyle.Primary,
+                icon = if (last) FitakaIcons.Check else null,
             )
         },
     ) {
@@ -312,19 +313,19 @@ fun OnboardingContent(
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Alkansya(mood = AlkansyaMood.HELLO, width = 168.dp)
                         Spacer(Modifier.height(12.dp))
-                        Text("Your whole wallet, one view.", style = type.headlineSmall, color = c.ink, textAlign = TextAlign.Center)
+                        Text(APP_NAME, style = type.headlineSmall, color = c.ink, textAlign = TextAlign.Center)
                         Text(
-                            "PitakaView keeps track of your money in five places.",
+                            "It keeps track of your money in five places.",
                             style = type.bodyLarge, color = c.inkMuted, textAlign = TextAlign.Center,
                         )
                     }
                 }
                 item(key = "sections") {
-                    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+                    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
                         Section.entries.forEach { section ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    Modifier.size(40.dp).sketchBox(RoundedCornerShape(PitakaDimens.cornerSmall), c.fill(section), c.ink, borderWidth = PitakaDimens.borderThin, gloss = Gloss.Badge),
+                                    Modifier.size(40.dp).sketchBox(RoundedCornerShape(FitakaDimens.cornerSmall), c.fill(section), c.ink, borderWidth = FitakaDimens.borderThin, gloss = Gloss.Badge),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(section.icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(section.icon.sizeFor(22.dp)))
@@ -350,7 +351,7 @@ fun OnboardingContent(
                     )
                 }
                 item(key = "cash") {
-                    PitakaTextField(
+                    FitakaTextField(
                         state = cash, label = "Cash on hand", placeholder = "0.00", prefix = Peso.SIGN,
                         isError = WalletPreset.CASH in problems,
                         supportingText = if (WalletPreset.CASH in problems) "Enter an amount, or leave it empty" else null,
@@ -362,13 +363,13 @@ fun OnboardingContent(
                         SectionHeader("Do you also keep money in")
                         Spacer(Modifier.height(8.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OnboardingWallets.forEach { PitakaChip(it.label, selected = it in picked, onClick = { onToggle(it) }) }
+                            OnboardingWallets.forEach { FitakaChip(it.label, selected = it in picked, onClick = { onToggle(it) }) }
                         }
                     }
                 }
                 OnboardingWallets.filter { it in picked }.forEach { preset ->
                     item(key = "amount-${preset.name}") {
-                        PitakaTextField(
+                        FitakaTextField(
                             state = amounts.getValue(preset), label = "In ${preset.label} now", placeholder = "0.00", prefix = Peso.SIGN,
                             isError = preset in problems,
                             supportingText = if (preset in problems) "Enter an amount, or leave it empty" else null,
@@ -392,7 +393,7 @@ fun OnboardingContent(
                     }
                 }
                 item(key = "tips") {
-                    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+                    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
                         Tips.forEachIndexed { i, tip ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                                 Text("${i + 1}.", style = type.titleSmall, color = c.ink, modifier = Modifier.width(24.dp))

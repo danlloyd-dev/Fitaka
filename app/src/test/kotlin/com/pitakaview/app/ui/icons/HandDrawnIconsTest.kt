@@ -42,14 +42,14 @@ class HandDrawnIconsTest {
     @Test
     fun theSectionsAndTheMainActionsAreHandDrawn() {
         for (section in Section.entries) assertTrue("${section.name}'s icon", section.icon.isHandDrawn)
-        for (icon in listOf(PitakaIcons.Home, PitakaIcons.Wallet, PitakaIcons.Settings, PitakaIcons.Add, PitakaIcons.Search)) assertTrue(icon.name, icon.isHandDrawn)
+        for (icon in listOf(FitakaIcons.Home, FitakaIcons.Wallet, FitakaIcons.Settings, FitakaIcons.Add, FitakaIcons.Search)) assertTrue(icon.name, icon.isHandDrawn)
         assertEquals("no two sections share a drawing", Section.entries.size, Section.entries.map { it.icon }.distinct().size)
     }
 
     /** The small arrows and the tick are controls: they stay plain strokes at the app's full line. */
     @Test
     fun theArrowsAndTheTickStayPlainStrokes() {
-        for (icon in listOf(PitakaIcons.Back, PitakaIcons.Check, PitakaIcons.ChevronLeft, PitakaIcons.ChevronRight)) {
+        for (icon in listOf(FitakaIcons.Back, FitakaIcons.Check, FitakaIcons.ChevronLeft, FitakaIcons.ChevronRight)) {
             assertFalse(icon.name, icon.isHandDrawn)
             assertTrue(penLines(icon).all { it.strokeLineWidth == STROKE })
         }
@@ -68,9 +68,9 @@ class HandDrawnIconsTest {
     /** Hand-drawn icons have thinner lines, so they are shown larger; a stroke icon keeps its size. */
     @Test
     fun handDrawnIconsAreShownALittleLarger() {
-        assertEquals(26.dp, PitakaIcons.Kita.sizeFor(22.dp))
-        assertEquals(24.dp, PitakaIcons.Kita.sizeFor(22.dp, more = 2.dp))
-        assertEquals(22.dp, PitakaIcons.Back.sizeFor(22.dp))
+        assertEquals(26.dp, FitakaIcons.Kita.sizeFor(22.dp))
+        assertEquals(24.dp, FitakaIcons.Kita.sizeFor(22.dp, more = 2.dp))
+        assertEquals(22.dp, FitakaIcons.Back.sizeFor(22.dp))
         assertEquals(26.dp, CategoryIcons.forKey("food").sizeFor(26.dp))
         assertEquals(30.dp, CategoryIcons.forKey("cart").sizeFor(26.dp))
     }

@@ -13,7 +13,7 @@ import com.pitakaview.app.ui.categories.CategoriesContent
 import com.pitakaview.app.ui.categories.CategoryEditorContent
 import com.pitakaview.app.ui.home.HomeContent
 import com.pitakaview.app.ui.home.HomeState
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,13 +34,13 @@ class RoughEdgesScreenshotTest {
     /** Every starter category with the icon it wears. */
     @Test
     fun categoriesWithTheirIcons() = captureRoboImage("build/outputs/roborazzi/screen_categories_icons_mango_light.png") {
-        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) { CategoriesContent(expense, income, onBack = {}, onAdd = {}, onOpen = {}) }
+        FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) { CategoriesContent(expense, income, onBack = {}, onAdd = {}, onOpen = {}) }
     }
 
     /** The picker with every icon there is, one picked. */
     @Test
     fun theIconPicker() = captureRoboImage("build/outputs/roborazzi/screen_category_editor_icons_ube_dark.png") {
-        PitakaTheme(ThemeId.UBE, DarkModePref.DARK) {
+        FitakaTheme(ThemeId.UBE, DarkModePref.DARK) {
             CategoryEditorContent(
                 isEdit = true, kind = CategoryKind.EXPENSE, name = TextFieldState("Kape"), current = expense.first().copy(name = "Kape"),
                 nameProblem = null, iconKey = "coffee", onIcon = {}, onSave = {}, onToggleHidden = {}, onBack = {},
@@ -60,7 +60,7 @@ class RoughEdgesScreenshotTest {
                 RecentTransaction(1, TxPurpose.INCOME, 2_000_000, LocalDate.of(2026, 11, 15), null, "Salary", null, "MariBank", categoryIconKey = "salary"),
             ),
         )
-        PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+        FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
             HomeContent(state, today, "Magandang hapon!", {}, {}, {}, restoreFailed = true)
         }
     }

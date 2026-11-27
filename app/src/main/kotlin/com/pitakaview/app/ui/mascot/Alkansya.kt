@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /** How the alkansya looks: saying hello with a coin above it, pleased with a coin going in, or dozing. */
 enum class AlkansyaMood { HELLO, HAPPY, SLEEPY }
@@ -37,7 +37,7 @@ private const val GRID_HEIGHT = 170f
  */
 @Composable
 fun Alkansya(modifier: Modifier = Modifier, mood: AlkansyaMood = AlkansyaMood.HELLO, width: Dp = 120.dp) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val body = c.primary
     // The snout and cheek: the body colour lightened, the same way in light and dark themes.
     val pale = lerp(c.primary, Color.White, 0.5f)

@@ -28,7 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.SavingsGoalEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.di.LocalAppContainer
@@ -38,14 +38,14 @@ import com.pitakaview.app.domain.GoalProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -56,7 +56,7 @@ import java.time.LocalDate
 
 /** Add or change a savings goal. Checks what was typed with [GoalFormLogic]. */
 class GoalEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     goalId: Long?,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -159,7 +159,7 @@ fun GoalEditorRoute(goalId: Long?, onDone: () -> Unit) {
     val wallets by vm.wallets.collectAsStateWithLifecycle()
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     GoalEditorContent(
@@ -185,13 +185,13 @@ fun GoalEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmDelete) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Delete this goal?",
             lines = listOf("Nothing is logged for it, so no totals change. This cannot be undone."),
             confirmLabel = "Yes, delete",
@@ -201,22 +201,22 @@ fun GoalEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = if (ui.isEdit) "Edit goal" else "Add a goal",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         item(key = "name") {
-            PitakaTextField(
+            FitakaTextField(
                 state = name, label = "What you are saving for", placeholder = "e.g. Emergency fund",
                 isError = GoalProblem.NAME in ui.problems,
                 supportingText = if (GoalProblem.NAME in ui.problems) "Give the goal a name" else null,
             )
         }
         item(key = "target") {
-            PitakaTextField(
+            FitakaTextField(
                 state = target, label = "Target amount", placeholder = "No target", prefix = Peso.SIGN,
                 isError = GoalProblem.TARGET in ui.problems,
                 supportingText = if (GoalProblem.TARGET in ui.problems) "Enter an amount above ₱0.00, or leave it empty" else "Leave empty to save with no target.",
@@ -236,7 +236,7 @@ fun GoalEditorContent(
         if (ui.isEdit) {
             item(key = "hide") {
                 Column {
-                    PitakaButton(if (ui.hidden) "Show goal again" else "Hide goal", onClick = onToggleHidden, modifier = Modifier.fillMaxWidth())
+                    FitakaButton(if (ui.hidden) "Show goal again" else "Hide goal", onClick = onToggleHidden, modifier = Modifier.fillMaxWidth())
                     Text(
                         "A hidden goal keeps its entries but is left out of Home.",
                         style = type.bodySmall, color = c.inkMuted, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
@@ -245,7 +245,7 @@ fun GoalEditorContent(
             }
             if (ui.canDelete) {
                 item(key = "delete") {
-                    PitakaButton("Delete goal", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                    FitakaButton("Delete goal", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }

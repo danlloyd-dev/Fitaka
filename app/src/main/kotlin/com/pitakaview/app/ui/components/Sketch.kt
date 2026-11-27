@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.theme.LocalUiStyle
-import com.pitakaview.app.ui.theme.PitakaDimens
+import com.pitakaview.app.ui.theme.FitakaDimens
 import kotlin.math.max
 import kotlin.math.sin
 
@@ -61,7 +61,7 @@ fun Modifier.sketchBox(
     shape: Shape,
     fill: Color,
     border: Color,
-    borderWidth: Dp = PitakaDimens.border,
+    borderWidth: Dp = FitakaDimens.border,
     shadow: Color = Color.Unspecified,
     shadowOffset: Dp = 0.dp,
     gloss: Gloss? = null,
@@ -314,7 +314,7 @@ private fun CacheDrawScope.glossFor(gloss: Gloss, fill: Color, inset: Float): Dr
  * The light on a section-tinted card in the Glossy style: a thin streak along its top edge and a dot at
  * the end of it, inside the outline. Fainter in dark mode, where the tint itself is dark.
  */
-fun Modifier.tileShine(dark: Boolean, inset: Dp = PitakaDimens.border): Modifier = composed {
+fun Modifier.tileShine(dark: Boolean, inset: Dp = FitakaDimens.border): Modifier = composed {
     if (LocalUiStyle.current != UiStyle.GLOSSY) {
         this
     } else {

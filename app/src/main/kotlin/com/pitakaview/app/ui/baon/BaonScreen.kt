@@ -13,7 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.BaonActivityRow
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.data.db.entity.BaonEntity
@@ -24,13 +24,13 @@ import com.pitakaview.app.domain.BaonPeriod
 import com.pitakaview.app.domain.BaonSummary
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
 import com.pitakaview.app.ui.mascot.SleepyAlkansya
 import com.pitakaview.app.ui.sections.DetailAction
@@ -38,7 +38,7 @@ import com.pitakaview.app.ui.sections.ItemDetailContent
 import com.pitakaview.app.ui.sections.ItemDetailUi
 import com.pitakaview.app.ui.sections.SectionItemCard
 import com.pitakaview.app.ui.sections.SectionTotalsCard
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.tagline
 import java.time.LocalDate
@@ -142,7 +142,7 @@ object BaonUiBuilder {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class BaonViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
+class BaonViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
     val ui: StateFlow<BaonUi> = today.flatMapLatest { day ->
         combine(
             db.baonDao().observeAll(),
@@ -177,20 +177,20 @@ fun BaonContent(
     onSearch: () -> Unit,
 ) {
     val section = Section.BAON
-    PitakaScreen(
+    FitakaScreen(
         title = section.label,
         subtitle = section.tagline,
-        actions = { PitakaIconButton(PitakaIcons.Search, "Search", onSearch) },
+        actions = { FitakaIconButton(FitakaIcons.Search, "Search", onSearch) },
     ) {
         if (ui.leftCentavos != null) {
             item(key = "totals") { SectionTotalsCard(section, listOf("Baon left" to ui.leftCentavos)) }
         }
         item(key = "add") {
-            PitakaButton("Add a baon", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
+            FitakaButton("Add a baon", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
         }
         if (ui.loaded && ui.isEmpty) {
             item(key = "empty") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("No baon set up", "Add an allowance you receive or give, and see what is left of it.", mascot = SleepyAlkansya) }
+                FitakaCard(Modifier.fillMaxWidth()) { EmptyState("No baon set up", "Add an allowance you receive or give, and see what is left of it.", mascot = SleepyAlkansya) }
             }
         }
         for ((title, rows) in listOf("You receive" to ui.receiving, "You give" to ui.giving, "Stopped" to ui.stopped)) {
@@ -205,12 +205,12 @@ fun BaonContent(
                         title == "Stopped" -> null
                         baon.direction == BaonDirection.RECEIVE -> {
                             {
-                                PitakaButton("Received", onClick = { onReceived(baon.id) }, modifier = Modifier.weight(1f))
-                                PitakaButton("Spend", onClick = { onSpend(baon.id) }, modifier = Modifier.weight(1f))
+                                FitakaButton("Received", onClick = { onReceived(baon.id) }, modifier = Modifier.weight(1f))
+                                FitakaButton("Spend", onClick = { onSpend(baon.id) }, modifier = Modifier.weight(1f))
                             }
                         }
                         else -> {
-                            { PitakaButton("Give", onClick = { onGive(baon.id) }, modifier = Modifier.weight(1f)) }
+                            { FitakaButton("Give", onClick = { onGive(baon.id) }, modifier = Modifier.weight(1f)) }
                         }
                     },
                 )
@@ -226,7 +226,7 @@ sealed interface BaonDetailState {
     data class Shown(val ui: ItemDetailUi, val direction: BaonDirection, val active: Boolean) : BaonDetailState
 }
 
-class BaonDetailViewModel(db: PitakaDatabase, baonId: Long, today: StateFlow<LocalDate>) : ViewModel() {
+class BaonDetailViewModel(db: FitakaDatabase, baonId: Long, today: StateFlow<LocalDate>) : ViewModel() {
     /** Null while loading; [BaonDetailState.Gone] once the baon no longer exists. */
     val state: StateFlow<BaonDetailState?> = combine(
         db.baonDao().observe(baonId),
@@ -252,7 +252,7 @@ fun BaonDetailRoute(
     val state by vm.state.collectAsStateWithLifecycle()
     val today by container.dayClock.today.collectAsStateWithLifecycle()
     when (val shown = state) {
-        null -> Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        null -> Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         BaonDetailState.Gone -> LaunchedEffect(Unit) { onBack() }
         is BaonDetailState.Shown -> ItemDetailContent(
             ui = shown.ui,

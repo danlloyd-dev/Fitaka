@@ -14,15 +14,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.icon
@@ -31,7 +31,7 @@ import com.pitakaview.app.ui.ledger.MonthOffset
 import com.pitakaview.app.ui.ledger.MonthSwitcher
 import com.pitakaview.app.ui.ledger.monthName
 import com.pitakaview.app.ui.motion.AnimatedAmountText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,7 +49,7 @@ import java.time.YearMonth
  * numbers, and this month's spending by category). It follows the app's clock like the other month screens.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class SummaryViewModel(db: PitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
+class SummaryViewModel(db: FitakaDatabase, today: StateFlow<LocalDate>) : ViewModel() {
     val month = MonthOffset()
 
     val summary: StateFlow<MonthSummary> =
@@ -83,14 +83,14 @@ fun SummaryContent(
     onThisMonth: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val month = monthName(summary.month)
-    PitakaScreen(title = "Summary", subtitle = "Month by month", onBack = onBack) {
+    FitakaScreen(title = "Summary", subtitle = "Month by month", onBack = onBack) {
         item(key = "month") { MonthSwitcher(summary.month, summary.isThisMonth, onPreviousMonth, onNextMonth, onThisMonth) }
 
         item(key = "left") {
-            PitakaCard(Modifier.fillMaxWidth()) {
+            FitakaCard(Modifier.fillMaxWidth()) {
                 Text("Left over in $month", style = type.titleSmall, color = c.ink)
                 AnimatedAmountText(summary.leftCentavos, style = type.displaySmall)
                 Text("What came in, minus what went out.", style = type.bodySmall, color = c.inkMuted)
@@ -104,25 +104,25 @@ fun SummaryContent(
         }
 
         item(key = "numbers") {
-            PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+            FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
                 SummaryRow(Section.KITA, "Kita", "Income", summary.incomeCentavos)
                 if (summary.baonReceivedCentavos != 0L) {
-                    PitakaDivider()
+                    FitakaDivider()
                     SummaryRow(Section.BAON, "Baon received", "Counts as money in", summary.baonReceivedCentavos)
                 }
-                PitakaDivider()
+                FitakaDivider()
                 SummaryRow(Section.GASTOS, "Gastos", "Spending", summary.spendingCentavos)
                 if (summary.baonGivenCentavos != 0L) {
-                    PitakaDivider()
+                    FitakaDivider()
                     SummaryRow(Section.BAON, "Baon given", "Counts as money out", summary.baonGivenCentavos)
                 }
-                PitakaDivider()
+                FitakaDivider()
                 SummaryRow(Section.IPON, "Ipon", "Set aside this month", summary.setAsideCentavos)
             }
         }
 
         item(key = "chart") {
-            PitakaCard(Modifier.fillMaxWidth()) {
+            FitakaCard(Modifier.fillMaxWidth()) {
                 Text("The last 6 months", style = type.titleSmall, color = c.ink)
                 Spacer(Modifier.height(6.dp))
                 if (summary.hasChart) {
@@ -144,7 +144,7 @@ fun SummaryContent(
 
 @Composable
 private fun SummaryRow(section: Section, title: String, subtitle: String, centavos: Long) {
-    PitakaListItem(
+    FitakaListItem(
         title = title,
         subtitle = subtitle,
         leading = { SectionBadge(section, section.icon) },

@@ -33,8 +33,8 @@ import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.FontChoice
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.ui.theme.PitakaTheme
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.fitakaColors
 import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -65,11 +65,11 @@ class ConfirmDialogTest {
         var busy by mutableStateOf(false)
         val said = mutableListOf<String>()
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
                 Box(Modifier.fillMaxSize()) {
                     Text("The screen behind")
                     if (open) {
-                        PitakaConfirmDialog(
+                        FitakaConfirmDialog(
                             title = "Delete this entry?",
                             lines = listOf("It is removed from your totals. This cannot be undone."),
                             confirmLabel = "Yes, delete",
@@ -114,7 +114,7 @@ class ConfirmDialogTest {
         val answers = listOf("Yes, delete" to "Keep", "Yes, remove" to "Keep", "Yes, restore" to "Cancel")
         var font by mutableStateOf(FontChoice.SHANTELL)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, font = font) {
                 Column(Modifier.padding(horizontal = 24.dp)) {
                     for ((yes, no) in answers) ConfirmCard("Replace everything on this phone?", listOf("This cannot be undone."), yes, no, onConfirm = {}, onDismiss = {})
                 }
@@ -143,13 +143,13 @@ class ConfirmDialogTest {
         val behind = Color(0xFF2D9CDB)
         var style by mutableStateOf(UiStyle.GLASSY)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
                 Box(Modifier.fillMaxSize().background(behind).padding(24.dp)) {
                     Box(Modifier.testTag("question")) { ConfirmCard("Delete this entry?", listOf("This cannot be undone."), "Yes, delete", "Keep", onConfirm = {}, onDismiss = {}) }
                 }
             }
         }
-        val card = pitakaColors(ThemeId.MANGO, dark = false).card
+        val card = fitakaColors(ThemeId.MANGO, dark = false).card
         for (chosen in UiStyle.entries) {
             style = chosen
             rule.waitForIdle()

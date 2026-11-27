@@ -21,9 +21,9 @@ import com.pitakaview.app.ui.home.HomeState
 import com.pitakaview.app.ui.ledger.MonthLedger
 import com.pitakaview.app.ui.ledger.MonthTotalCard
 import com.pitakaview.app.ui.sections.SectionTotalsCard
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.fitakaColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -69,12 +69,12 @@ class TintedCardCaptionsTest {
         // One screen, switched from light to dark while it is up, as the owner would in Settings.
         var shown by mutableStateOf(DarkModePref.LIGHT)
         rule.setContent {
-            PitakaTheme(ThemeId.DAGAT, shown) { HomeContent(HomeState(baonLeftCentavos = 38_000), LocalDate.of(2026, 11, 26), "Magandang hapon!", {}, {}, {}) }
+            FitakaTheme(ThemeId.DAGAT, shown) { HomeContent(HomeState(baonLeftCentavos = 38_000), LocalDate.of(2026, 11, 26), "Magandang hapon!", {}, {}, {}) }
         }
         for (mode in listOf(DarkModePref.LIGHT, DarkModePref.DARK)) {
             shown = mode
             rule.waitForIdle()
-            val c = pitakaColors(ThemeId.DAGAT, dark = mode == DarkModePref.DARK)
+            val c = fitakaColors(ThemeId.DAGAT, dark = mode == DarkModePref.DARK)
             rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Owed to you"))
             for (text in listOf("Income", "Spent", "Saved", "Left", "You owe", "Owed to you")) {
                 assertEquals("\"$text\" on its tile, $mode", c.ink, caption(text))
@@ -87,9 +87,9 @@ class TintedCardCaptionsTest {
 
     @Test
     fun theCaptionsOnASectionsTotalsAndOnAMonthsTotalAreFullInk() {
-        val c = pitakaColors(ThemeId.KAPE, dark = true)
+        val c = fitakaColors(ThemeId.KAPE, dark = true)
         rule.setContent {
-            PitakaTheme(ThemeId.KAPE, DarkModePref.DARK) {
+            FitakaTheme(ThemeId.KAPE, DarkModePref.DARK) {
                 Column {
                     SectionTotalsCard(Section.BAON, listOf("Baon left" to 38_000L))
                     MonthTotalCard(Section.GASTOS, "Spent in November", MonthLedger(YearMonth.of(2026, 11), isThisMonth = true, entryCount = 5, loaded = true))

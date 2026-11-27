@@ -35,11 +35,11 @@ import com.pitakaview.app.domain.FontChoice
 import com.pitakaview.app.domain.UiSize
 import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.ThemeId
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.motion.PitakaMotion
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.motion.FitakaMotion
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.family
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.fitakaColors
 
 /** How far the chosen theme's swatch stands above the others. */
 internal val SwatchLift = 6.dp
@@ -53,7 +53,7 @@ private val SwatchGap = 10.dp
  */
 @Composable
 fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     // The raised swatch is all that says which theme is on, so the row starts with it in view: two
     // swatches back from it, which leaves the first themes where they were and brings the last ones in.
     val step = with(LocalDensity.current) { (SwatchWidth + SwatchGap).roundToPx() }
@@ -64,9 +64,9 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
     ) {
         ThemeId.entries.forEach { theme ->
             val isSelected = theme == selected
-            val swatch = pitakaColors(theme, c.isDark)
-            val shadow = PitakaDimens.shadow
-            val rise by animateDpAsState(if (isSelected) SwatchLift else 0.dp, tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized), label = "swatch")
+            val swatch = fitakaColors(theme, c.isDark)
+            val shadow = FitakaDimens.shadow
+            val rise by animateDpAsState(if (isSelected) SwatchLift else 0.dp, tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized), label = "swatch")
             Column(
                 modifier = Modifier
                     .width(SwatchWidth)
@@ -81,10 +81,10 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
                         .fillMaxWidth()
                         .height(60.dp)
                         .sketchBox(
-                            RoundedCornerShape(PitakaDimens.corner),
+                            RoundedCornerShape(FitakaDimens.corner),
                             fill = swatch.background,
                             border = c.ink,
-                            borderWidth = if (isSelected) 3.dp else PitakaDimens.borderThin,
+                            borderWidth = if (isSelected) 3.dp else FitakaDimens.borderThin,
                             shadow = c.shadow,
                             shadowOffset = shadow * (rise / SwatchLift),
                             gloss = Gloss.Swatch,
@@ -105,7 +105,7 @@ fun ThemePicker(selected: ThemeId, onSelect: (ThemeId) -> Unit, modifier: Modifi
 
 @Composable
 private fun Dot(color: Color) {
-    Box(Modifier.size(16.dp).sketchBox(CircleShape, color, PitakaTheme.colors.ink, 1.5.dp))
+    Box(Modifier.size(16.dp).sketchBox(CircleShape, color, FitakaTheme.colors.ink, 1.5.dp))
 }
 
 private val DarkModeOptions = listOf(DarkModePref.LIGHT to "Light", DarkModePref.DARK to "Dark", DarkModePref.SYSTEM to "System")
@@ -113,7 +113,7 @@ private val DarkModeOptions = listOf(DarkModePref.LIGHT to "Light", DarkModePref
 /** Light / Dark / Follow system. */
 @Composable
 fun DarkModePicker(selected: DarkModePref, onSelect: (DarkModePref) -> Unit, modifier: Modifier = Modifier) {
-    PitakaSegmented(
+    FitakaSegmented(
         options = DarkModeOptions.map { it.second },
         selectedIndex = DarkModeOptions.indexOfFirst { it.first == selected },
         onSelect = { onSelect(DarkModeOptions[it].first) },
@@ -124,7 +124,7 @@ fun DarkModePicker(selected: DarkModePref, onSelect: (DarkModePref) -> Unit, mod
 /** Small / Medium / Large: how large everything but the bottom bar is drawn. */
 @Composable
 fun SizePicker(selected: UiSize, onSelect: (UiSize) -> Unit, modifier: Modifier = Modifier) {
-    PitakaSegmented(
+    FitakaSegmented(
         options = UiSize.entries.map { it.label },
         selectedIndex = selected.ordinal,
         onSelect = { onSelect(UiSize.entries[it]) },
@@ -135,7 +135,7 @@ fun SizePicker(selected: UiSize, onSelect: (UiSize) -> Unit, modifier: Modifier 
 /** Plain / Glossy / Glassy / Sketch: how the parts are finished. */
 @Composable
 fun StylePicker(selected: UiStyle, onSelect: (UiStyle) -> Unit, modifier: Modifier = Modifier) {
-    PitakaSegmented(
+    FitakaSegmented(
         options = UiStyle.entries.map { it.label },
         selectedIndex = selected.ordinal,
         onSelect = { onSelect(UiStyle.entries[it]) },
@@ -153,7 +153,7 @@ fun FontPicker(selected: FontChoice, onSelect: (FontChoice) -> Unit, modifier: M
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FontChoice.entries.forEach { font ->
-            PitakaChip(font.label, selected = font == selected, onClick = { onSelect(font) }, fontFamily = font.family())
+            FitakaChip(font.label, selected = font == selected, onClick = { onSelect(font) }, fontFamily = font.family())
         }
     }
 }

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pitakaview.app.APP_NAME
 import com.pitakaview.app.data.db.dao.ImportBatchRow
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
@@ -60,20 +61,20 @@ import com.pitakaview.app.domain.importing.ImportCandidate
 import com.pitakaview.app.domain.importing.ImportStatus
 import com.pitakaview.app.domain.importing.StatementWallet
 import com.pitakaview.app.domain.importing.WalletFit
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
-import com.pitakaview.app.ui.components.PitakaToggleRow
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
+import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
-import com.pitakaview.app.ui.icons.PitakaIcons
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -181,7 +182,7 @@ object ImportText {
         return words to fit
     }
     const val PDF_LAYOUT_HELP =
-        "PitakaView cannot bring in entries from this PDF yet. Below is how it is laid out: every letter is shown as x " +
+        "$APP_NAME cannot bring in entries from this PDF yet. Below is how it is laid out: every letter is shown as x " +
             "and every number as 9, so it says nothing about you or your money. Sending this to the developer is what is needed to add this bank."
     const val GCASH_PASSWORD_HINT = "For a GCash file: your last name in small letters, then the last 4 digits of your number."
 }
@@ -225,7 +226,7 @@ fun ImportRoute(onBack: () -> Unit) {
         }
     }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     ImportContent(
@@ -238,7 +239,7 @@ fun ImportRoute(onBack: () -> Unit) {
         onToggle = vm::toggle, onShowChoices = vm::showChoices, onCategory = vm::setCategory, onDirection = vm::setDirection, onFlip = vm::flip,
         onImport = vm::importPicked, onCancel = vm::cancel, onUndo = vm::undo, onUnlockPdf = vm::unlockPdf,
         onCopy = { text ->
-            context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("PitakaView statement layout", text))
+            context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("$APP_NAME statement layout", text))
         },
         onBack = onBack,
     )
@@ -269,7 +270,7 @@ fun ImportContent(
     onBack: () -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val chips = Arrangement.spacedBy(8.dp)
     var undoId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -278,7 +279,7 @@ fun ImportContent(
 
     // Taking an import back out cannot be undone: asked over the whole screen, not in the footer.
     if (toUndo != null) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Take ${toUndo.fileName} back out?",
             lines = listOf("The ${ImportText.entries(toUndo.entryCount)} it added will be removed. Entries you typed yourself stay."),
             confirmLabel = "Yes, remove",
@@ -288,7 +289,7 @@ fun ImportContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = "Import",
         subtitle = "Bring in entries from a file",
         onBack = onBack,
@@ -299,10 +300,10 @@ fun ImportContent(
                         Text(ImportText.summary(stage), style = type.bodySmall, color = c.ink)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PitakaButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
-                            PitakaButton(
+                            FitakaButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
+                            FitakaButton(
                                 "Import ${ImportText.entries(stage.picked)}", onClick = onImport, modifier = Modifier.weight(2f),
-                                style = PitakaButtonStyle.Primary, enabled = stage.canImport,
+                                style = FitakaButtonStyle.Primary, enabled = stage.canImport,
                             )
                         }
                     }
@@ -313,7 +314,7 @@ fun ImportContent(
     ) {
         if (notice != null) {
             item(key = "notice") {
-                PitakaCard(Modifier.fillMaxWidth()) { Text(ImportText.notice(notice), style = type.bodyMedium, color = c.ink) }
+                FitakaCard(Modifier.fillMaxWidth()) { Text(ImportText.notice(notice), style = type.bodyMedium, color = c.ink) }
             }
         }
         item(key = "wallet") {
@@ -321,16 +322,16 @@ fun ImportContent(
                 SectionHeader("Which wallet is the file for")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    wallets.forEach { PitakaChip(it.name, selected = it.id == walletId, onClick = { onWallet(it.id) }) }
+                    wallets.forEach { FitakaChip(it.name, selected = it.id == walletId, onClick = { onWallet(it.id) }) }
                 }
             }
         }
         when (stage) {
             ImportStage.Choose -> {
                 item(key = "choose") {
-                    PitakaButton(
+                    FitakaButton(
                         "Choose a file", onClick = onChooseFile, modifier = Modifier.fillMaxWidth(),
-                        style = PitakaButtonStyle.Primary, enabled = walletId != null,
+                        style = FitakaButtonStyle.Primary, enabled = walletId != null,
                     )
                 }
                 item(key = "help") {
@@ -344,11 +345,11 @@ fun ImportContent(
                     item(key = "batches-title") { SectionHeader("Earlier imports") }
                     items(batches.size, key = { "batch-${batches[it].id}" }) { index ->
                         val batch = batches[index]
-                        PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
+                        FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
                             Text(batch.fileName, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(ImportText.batch(batch, zone), style = type.bodyMedium, color = c.inkMuted)
                             Spacer(Modifier.height(8.dp))
-                            PitakaButton("Take it back out", onClick = { undoId = batch.id }, modifier = Modifier.fillMaxWidth())
+                            FitakaButton("Take it back out", onClick = { undoId = batch.id }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -380,7 +381,7 @@ fun ImportContent(
                 }
                 if (!stage.read.directionKnown) {
                     item(key = "flip") {
-                        PitakaToggleRow(
+                        FitakaToggleRow(
                             title = "These amounts are money coming in",
                             subtitle = "The file does not say which way the money went. Off means money you spent.",
                             checked = stage.flipped,
@@ -411,7 +412,7 @@ fun ImportContent(
                     }
                 }
                 item(key = "password") {
-                    PitakaTextField(
+                    FitakaTextField(
                         state = password, label = "Password of the file",
                         isError = stage.wrongPassword,
                         supportingText = if (stage.wrongPassword) "That password did not open the file" else ImportText.GCASH_PASSWORD_HINT,
@@ -421,8 +422,8 @@ fun ImportContent(
                 }
                 item(key = "open") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
-                        PitakaButton("Open", onClick = { onUnlockPdf(password.text.toString()) }, modifier = Modifier.weight(1f), style = PitakaButtonStyle.Primary)
+                        FitakaButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
+                        FitakaButton("Open", onClick = { onUnlockPdf(password.text.toString()) }, modifier = Modifier.weight(1f), style = FitakaButtonStyle.Primary)
                     }
                 }
             }
@@ -435,12 +436,12 @@ fun ImportContent(
                 }
                 item(key = "layout-actions") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaButton("Done", onClick = onCancel, modifier = Modifier.weight(1f))
-                        PitakaButton("Copy the layout", onClick = { onCopy(stage.sample) }, modifier = Modifier.weight(2f), style = PitakaButtonStyle.Primary)
+                        FitakaButton("Done", onClick = onCancel, modifier = Modifier.weight(1f))
+                        FitakaButton("Copy the layout", onClick = { onCopy(stage.sample) }, modifier = Modifier.weight(2f), style = FitakaButtonStyle.Primary)
                     }
                 }
                 item(key = "layout") {
-                    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
+                    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
                         Text(
                             stage.sample,
                             style = type.bodySmall.copy(fontFamily = FontFamily.Monospace), color = c.ink,
@@ -468,18 +469,18 @@ private fun CandidateLine(
     onCategory: (Long) -> Unit,
     onDirection: (Boolean) -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val ticked = line.picked && line.canPick
     val chips = Arrangement.spacedBy(8.dp)
     // Which way the money went. Picking either settles a line the file left open.
     val direction: @Composable () -> Unit = {
         FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-            PitakaChip("Money out", selected = !line.row.moneyIn && line.row.sure, onClick = { onDirection(false) })
-            PitakaChip("Money in", selected = line.row.moneyIn && line.row.sure, onClick = { onDirection(true) })
+            FitakaChip("Money out", selected = !line.row.moneyIn && line.row.sure, onClick = { onDirection(false) })
+            FitakaChip("Money in", selected = line.row.moneyIn && line.row.sure, onClick = { onDirection(true) })
         }
     }
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -488,10 +489,10 @@ private fun CandidateLine(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                Modifier.size(26.dp).sketchBox(RoundedCornerShape(7.dp), if (ticked) c.ink else c.card, if (line.canPick) c.ink else c.inkMuted, borderWidth = PitakaDimens.borderThin),
+                Modifier.size(26.dp).sketchBox(RoundedCornerShape(7.dp), if (ticked) c.ink else c.card, if (line.canPick) c.ink else c.inkMuted, borderWidth = FitakaDimens.borderThin),
                 contentAlignment = Alignment.Center,
             ) {
-                if (ticked) Icon(PitakaIcons.Check, contentDescription = null, tint = c.card, modifier = Modifier.size(18.dp))
+                if (ticked) Icon(FitakaIcons.Check, contentDescription = null, tint = c.card, modifier = Modifier.size(18.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -531,7 +532,7 @@ private fun CandidateLine(
                     Spacer(Modifier.height(8.dp))
                 }
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    choices.forEach { PitakaChip(it.name, selected = it.id == line.categoryId, onClick = { onCategory(it.id) }) }
+                    choices.forEach { FitakaChip(it.name, selected = it.id == line.categoryId, onClick = { onCategory(it.id) }) }
                 }
             }
         }

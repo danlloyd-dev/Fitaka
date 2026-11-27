@@ -17,7 +17,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.core.app.ActivityOptionsCompat
 import androidx.sqlite.driver.AndroidSQLiteDriver
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -67,7 +67,7 @@ class BackupFlowTest : FlowTestBase() {
     }
 
     private fun entriesInDatabaseFile(): Long {
-        val file = rule.activity.getDatabasePath(PitakaDatabase.FILE_NAME)
+        val file = rule.activity.getDatabasePath(FitakaDatabase.FILE_NAME)
         return AndroidSQLiteDriver().open(file.absolutePath).use { connection ->
             connection.prepare("SELECT COUNT(*) FROM transactions").use { it.step(); it.getLong(0) }
         }
@@ -75,7 +75,7 @@ class BackupFlowTest : FlowTestBase() {
 
     @Test
     fun backUpThenRestoreBringsTheBackedUpDataBack() {
-        picked = File(tmp.root, "PitakaView-backup.pitaka")
+        picked = File(tmp.root, "fitaka-backup.pitaka")
         var restarted = false
         start()
         container.restartApp = { restarted = true }
@@ -102,9 +102,36 @@ class BackupFlowTest : FlowTestBase() {
         assertEquals("the database file holds the backed-up state: one entry, not two", 1L, entriesInDatabaseFile())
     }
 
+    /**
+     * The same through the app's own screens: a backup the app made while it was called PitakaView (commit
+     * 2bc161d; made-up data: two wallets, one expense, one transfer), under the name that build gave its
+     * backups, picked in Settings > Backup and restored.
+     */
+    @Test
+    fun aBackupMadeWhenTheAppWasCalledPitakaViewStillRestores() {
+        picked = File(tmp.root, "PitakaView-backup-2026-11-26.pitaka")
+        File("src/test/resources/backups/made-by-pitakaview-0.1.0.backup").copyTo(picked)
+        var restarted = false
+        start()
+        container.restartApp = { restarted = true }
+        addExpense(99_900) // what is on the phone now: one entry, not the backup's two
+
+        openBackupScreen()
+        tapButton("Restore from a backup")
+        waitFor("Replace everything on this phone?")
+        assertTrue("it says what the old file holds", shows("The backup holds 2 entries in 2 wallets"))
+
+        rule.onNode(hasText("Yes, restore") and hasClickAction()).assertIsDisplayed().performClick()
+        rule.waitUntil(10_000) {
+            rule.waitForIdle()
+            restarted
+        }
+        assertEquals("the database file now holds the old backup's two entries", 2L, entriesInDatabaseFile())
+    }
+
     @Test
     fun homeAsksForABackupUntilOneIsMade() {
-        picked = File(tmp.root, "PitakaView-backup.pitaka")
+        picked = File(tmp.root, "fitaka-backup.pitaka")
         start()
         assertFalse("an empty app is not nagged", shows("Back up your data"))
 
@@ -125,7 +152,7 @@ class BackupFlowTest : FlowTestBase() {
 
     @Test
     fun exportingASpreadsheetWritesEveryEntryAsATable() {
-        picked = File(tmp.root, "PitakaView-entries.csv")
+        picked = File(tmp.root, "fitaka-entries.csv")
         start()
         addExpense(25_000, note = "lunch, with Tita")
         openBackupScreen()
@@ -145,14 +172,14 @@ class BackupFlowTest : FlowTestBase() {
         addExpense(25_000)
         openBackupScreen()
         tapButton("Restore from a backup")
-        waitFor("is not a PitakaView backup")
+        waitFor("is not a Fitaka backup")
         assertFalse("no restore is offered", shows("Replace everything"))
         assertEquals(1, entries().size)
     }
 
     @Test
     fun cancellingARestoreKeepsEverything() {
-        picked = File(tmp.root, "PitakaView-backup.pitaka")
+        picked = File(tmp.root, "fitaka-backup.pitaka")
         var restarted = false
         start()
         container.restartApp = { restarted = true }

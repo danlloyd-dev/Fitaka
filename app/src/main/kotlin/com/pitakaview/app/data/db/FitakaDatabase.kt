@@ -25,7 +25,7 @@ import com.pitakaview.app.data.db.entity.WalletEntity
 import kotlinx.coroutines.Dispatchers
 
 /** The database layout version. A backup file made by a higher version cannot be read by this app. */
-const val PITAKA_DB_VERSION = 1
+const val FITAKA_DB_VERSION = 1
 
 /**
  * All data lives in this one on-device file. Schema versions are exported to app/schemas; every
@@ -42,11 +42,11 @@ const val PITAKA_DB_VERSION = 1
         ImportBatchEntity::class,
         TransactionEntity::class,
     ],
-    version = PITAKA_DB_VERSION,
+    version = FITAKA_DB_VERSION,
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)
-abstract class PitakaDatabase : RoomDatabase() {
+abstract class FitakaDatabase : RoomDatabase() {
     abstract fun walletDao(): WalletDao
     abstract fun categoryDao(): CategoryDao
     abstract fun payScheduleDao(): PayScheduleDao
@@ -62,8 +62,8 @@ abstract class PitakaDatabase : RoomDatabase() {
 }
 
 /** Opens the on-device database file using the phone's built-in SQLite. */
-fun createPitakaDatabase(context: Context): PitakaDatabase =
-    Room.databaseBuilder(context.applicationContext, PitakaDatabase::class.java, PitakaDatabase.FILE_NAME)
+fun createFitakaDatabase(context: Context): FitakaDatabase =
+    Room.databaseBuilder(context.applicationContext, FitakaDatabase::class.java, FitakaDatabase.FILE_NAME)
         .setDriver(AndroidSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()

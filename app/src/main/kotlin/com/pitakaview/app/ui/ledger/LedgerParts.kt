@@ -43,22 +43,22 @@ import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.Gloss
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaIconButton
-import com.pitakaview.app.ui.components.PitakaListItem
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaIconButton
+import com.pitakaview.app.ui.components.FitakaListItem
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.CategoryIcons
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.icon
 import com.pitakaview.app.ui.icons.sizeFor
 import com.pitakaview.app.ui.motion.AnimatedAmountText
-import com.pitakaview.app.ui.motion.PitakaMotion
+import com.pitakaview.app.ui.motion.FitakaMotion
 import com.pitakaview.app.ui.theme.LocalUiStyle
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import com.pitakaview.app.ui.theme.label
 import com.pitakaview.app.ui.theme.section
@@ -101,10 +101,10 @@ fun MonthSwitcher(
     onThisMonth: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        PitakaIconButton(PitakaIcons.ChevronLeft, "Previous month", onPrevious)
+        FitakaIconButton(FitakaIcons.ChevronLeft, "Previous month", onPrevious)
         Column(
             Modifier
                 .weight(1f)
@@ -122,16 +122,16 @@ fun MonthSwitcher(
                 textDecoration = if (isThisMonth) null else TextDecoration.Underline,
             )
         }
-        PitakaIconButton(PitakaIcons.ChevronRight, "Next month", onNext)
+        FitakaIconButton(FitakaIcons.ChevronRight, "Next month", onNext)
     }
 }
 
 /** The month's total on the section's tint. */
 @Composable
 fun MonthTotalCard(section: Section, caption: String, ledger: MonthLedger, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(modifier.fillMaxWidth(), section = section) {
+    FitakaCard(modifier.fillMaxWidth(), section = section) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionBadge(section, section.icon, size = 36.dp)
             Text(caption, style = type.titleSmall, color = c.ink)
@@ -145,9 +145,9 @@ fun MonthTotalCard(section: Section, caption: String, ledger: MonthLedger, modif
 /** Each category's share of the month: name, percent and amount in words, plus a bar for the eye. */
 @Composable
 fun CategoryBreakdownCard(categories: List<CategoryShare>, totalCentavos: Long, section: Section, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(modifier.fillMaxWidth()) {
+    FitakaCard(modifier.fillMaxWidth()) {
         categories.forEachIndexed { i, category ->
             key(category.name) {
                 if (i > 0) Spacer(Modifier.height(14.dp))
@@ -173,15 +173,15 @@ fun CategoryBreakdownCard(categories: List<CategoryShare>, totalCentavos: Long, 
 /** A bar filled to [fraction] in the section's colour. The words beside it carry the meaning; the bar is for the eye. */
 @Composable
 fun ShareBar(fraction: Float, section: Section) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val shape = RoundedCornerShape(50)
-    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(PitakaMotion.MEDIUM, easing = PitakaMotion.Emphasized), label = "share")
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(FitakaMotion.MEDIUM, easing = FitakaMotion.Emphasized), label = "share")
     val glossy = LocalUiStyle.current == UiStyle.GLOSSY
     Box(
         Modifier
             .fillMaxWidth()
             .height(12.dp)
-            .sketchBox(shape, fill = c.background, border = c.ink, borderWidth = PitakaDimens.borderThin)
+            .sketchBox(shape, fill = c.background, border = c.ink, borderWidth = FitakaDimens.borderThin)
             .clip(shape),
     ) {
         // The fill, with a paler band along its top half: the same gloss the buttons have.
@@ -200,17 +200,17 @@ fun LazyListScope.dayGroups(days: List<DayGroup>, today: LocalDate, onOpenEntry:
 
 @Composable
 private fun DayGroupCard(day: DayGroup, today: LocalDate, onOpenEntry: (Long) -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     Column {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(friendlyDate(day.date, today), style = type.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
             if (day.rows.size > 1) Text(Peso.format(day.totalCentavos), style = type.labelLarge, color = c.inkMuted)
         }
-        PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+        FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
             day.rows.forEachIndexed { i, row ->
                 key(row.id) {
-                    if (i > 0) PitakaDivider()
+                    if (i > 0) FitakaDivider()
                     EntryListItem(row, subtitle = row.ledgerSubtitle(), onClick = { onOpenEntry(row.id) })
                 }
             }
@@ -225,7 +225,7 @@ private fun DayGroupCard(day: DayGroup, today: LocalDate, onOpenEntry: (Long) ->
 @Composable
 fun EntryListItem(row: RecentTransaction, subtitle: String, onClick: () -> Unit) {
     val section = row.purpose.section
-    PitakaListItem(
+    FitakaListItem(
         title = row.categoryName ?: row.purpose.label,
         subtitle = subtitle.ifEmpty { null },
         leading = {
@@ -243,11 +243,11 @@ fun EntryListItem(row: RecentTransaction, subtitle: String, onClick: () -> Unit)
 
 @Composable
 fun TransferBadge() {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Box(
-        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin, gloss = Gloss.Badge),
+        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, FitakaDimens.borderThin, gloss = Gloss.Badge),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(PitakaIcons.Wallet.sizeFor(22.dp)))
+        Icon(FitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(FitakaIcons.Wallet.sizeFor(22.dp)))
     }
 }

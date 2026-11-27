@@ -34,9 +34,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.icons.PitakaIcons
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /** Height of the floating tab bar (0 when hidden), provided by the app root so lists can scroll clear of it. */
 val LocalBottomBarPadding = compositionLocalOf { 0.dp }
@@ -50,7 +50,7 @@ val LocalBottomBarPadding = compositionLocalOf { 0.dp }
  * button can ever sit hidden underneath it.
  */
 @Composable
-fun PitakaScreen(
+fun FitakaScreen(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
@@ -60,7 +60,7 @@ fun PitakaScreen(
     pinnedAction: (@Composable () -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     var topBarHeight by remember { mutableStateOf(72.dp) }
@@ -78,10 +78,10 @@ fun PitakaScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 content = content,
             )
-            PitakaTopBar(
+            FitakaTopBar(
                 title = title,
                 subtitle = subtitle,
-                navigationIcon = if (onBack != null) PitakaIcons.Back else null,
+                navigationIcon = if (onBack != null) FitakaIcons.Back else null,
                 onNavigationClick = onBack,
                 showDivider = listState.canScrollBackward,
                 showLogo = showLogo,
@@ -95,7 +95,7 @@ fun PitakaScreen(
                 Modifier
                     .fillMaxWidth()
                     .drawBehind {
-                        val w = PitakaDimens.borderThin.toPx()
+                        val w = FitakaDimens.borderThin.toPx()
                         drawLine(c.ink, Offset(0f, w / 2), Offset(size.width, w / 2), w)
                     }
                     .imePadding()
@@ -115,7 +115,7 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.titleMedium,
-        color = PitakaTheme.colors.ink,
+        color = FitakaTheme.colors.ink,
         // Marked as a heading, so a screen reader can jump from group to group.
         modifier = modifier.padding(top = 4.dp).semantics { heading() },
     )

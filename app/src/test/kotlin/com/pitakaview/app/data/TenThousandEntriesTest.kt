@@ -2,8 +2,8 @@ package com.pitakaview.app.data
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.SavingsGoalEntity
@@ -37,7 +37,7 @@ import java.time.temporal.ChronoUnit
  * job is to catch a query that stops using its index or starts reading the whole table per row.
  */
 class TenThousandEntriesTest {
-    private lateinit var db: PitakaDatabase
+    private lateinit var db: FitakaDatabase
     private lateinit var ledger: LedgerRepository
     private val now = Instant.parse("2026-11-26T04:00:00Z")
     private val today = LocalDate.of(2026, 11, 26)
@@ -61,7 +61,7 @@ class TenThousandEntriesTest {
 
     @Before
     fun fill() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder { PitakaDatabase_Impl() }
+        db = Room.inMemoryDatabaseBuilder { FitakaDatabase_Impl() }
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

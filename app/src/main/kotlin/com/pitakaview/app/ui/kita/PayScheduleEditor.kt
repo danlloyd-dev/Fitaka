@@ -31,7 +31,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
@@ -45,19 +45,19 @@ import com.pitakaview.app.domain.PayScheduleProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.domain.WeekendRule
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
-import com.pitakaview.app.ui.components.PitakaToggleRow
+import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.settings.REMINDERS_OFF_HINT
 import com.pitakaview.app.ui.home.friendlyDate
-import com.pitakaview.app.ui.icons.PitakaIcons
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -91,7 +91,7 @@ val WeekendRule.label: String
 
 /** Add or change a payday. Checks what was typed with [PayScheduleFormLogic]. */
 class PayScheduleEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     scheduleId: Long?,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -238,7 +238,7 @@ fun PayScheduleEditorRoute(scheduleId: Long?, onDone: () -> Unit) {
     val remindersOn by container.settings.remindersOn.collectAsStateWithLifecycle(initialValue = true)
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     val rule = PayScheduleFormLogic.rule(vm.form())
@@ -274,14 +274,14 @@ fun PayScheduleEditorContent(
     onBack: () -> Unit,
     onRemind: (Boolean) -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val chips = Arrangement.spacedBy(8.dp)
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmRemove) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Remove this payday?",
             lines = listOf("Income you already logged for it stays in your totals."),
             confirmLabel = "Yes, remove",
@@ -291,22 +291,22 @@ fun PayScheduleEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = if (ui.isEdit) "Edit payday" else "Add a payday",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         item(key = "name") {
-            PitakaTextField(
+            FitakaTextField(
                 state = name, label = "Name", placeholder = "e.g. Sahod",
                 isError = PayScheduleProblem.NAME in ui.problems,
                 supportingText = if (PayScheduleProblem.NAME in ui.problems) "Give this payday a name" else null,
             )
         }
         item(key = "amount") {
-            PitakaTextField(
+            FitakaTextField(
                 state = amount, label = "How much you expect", placeholder = "0.00", prefix = Peso.SIGN,
                 isError = PayScheduleProblem.AMOUNT in ui.problems,
                 supportingText = if (PayScheduleProblem.AMOUNT in ui.problems) "Enter an amount above ₱0.00" else "You can change the amount each time you receive it.",
@@ -319,7 +319,7 @@ fun PayScheduleEditorContent(
                 SectionHeader("How often")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    PayFrequency.entries.forEach { PitakaChip(it.label, selected = it == ui.frequency, onClick = { onFrequency(it) }) }
+                    PayFrequency.entries.forEach { FitakaChip(it.label, selected = it == ui.frequency, onClick = { onFrequency(it) }) }
                 }
             }
         }
@@ -343,7 +343,7 @@ fun PayScheduleEditorContent(
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
                         DayOfWeek.entries.forEach {
-                            PitakaChip(it.getDisplayName(DateTextStyle.SHORT, Locale.ENGLISH), selected = it == ui.dayOfWeek, onClick = { onDayOfWeek(it) })
+                            FitakaChip(it.getDisplayName(DateTextStyle.SHORT, Locale.ENGLISH), selected = it == ui.dayOfWeek, onClick = { onDayOfWeek(it) })
                         }
                     }
                 }
@@ -357,7 +357,7 @@ fun PayScheduleEditorContent(
                     SectionHeader("If payday falls on a weekend")
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                        WeekendRule.entries.forEach { PitakaChip(it.label, selected = it == ui.weekendRule, onClick = { onWeekendRule(it) }) }
+                        WeekendRule.entries.forEach { FitakaChip(it.label, selected = it == ui.weekendRule, onClick = { onWeekendRule(it) }) }
                     }
                 }
             }
@@ -377,7 +377,7 @@ fun PayScheduleEditorContent(
                 SectionHeader("Received in")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    ui.wallets.forEach { PitakaChip(it.name, selected = it.id == ui.walletId, onClick = { onWallet(it.id) }) }
+                    ui.wallets.forEach { FitakaChip(it.name, selected = it.id == ui.walletId, onClick = { onWallet(it.id) }) }
                 }
                 if (PayScheduleProblem.WALLET in ui.problems) ProblemText("Pick a wallet")
             }
@@ -387,14 +387,14 @@ fun PayScheduleEditorContent(
                 SectionHeader("Category")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    ui.categories.forEach { PitakaChip(it.name, selected = it.id == ui.categoryId, onClick = { onCategory(it.id) }) }
+                    ui.categories.forEach { FitakaChip(it.name, selected = it.id == ui.categoryId, onClick = { onCategory(it.id) }) }
                 }
                 if (PayScheduleProblem.CATEGORY in ui.problems) ProblemText("Pick a category")
             }
         }
 
         item(key = "remind") {
-            PitakaToggleRow(
+            FitakaToggleRow(
                 title = "Remind me on payday",
                 checked = ui.remind,
                 onCheckedChange = onRemind,
@@ -404,7 +404,7 @@ fun PayScheduleEditorContent(
 
         if (ui.isEdit) {
             item(key = "remove") {
-                PitakaButton("Remove payday", onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth())
+                FitakaButton("Remove payday", onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -414,7 +414,7 @@ private const val LAST_DAY_HINT = "31 means the last day of the month."
 
 @Composable
 private fun DayField(state: TextFieldState, label: String, isError: Boolean, hint: String?) {
-    PitakaTextField(
+    FitakaTextField(
         state = state, label = label, placeholder = "1 to 31",
         isError = isError,
         supportingText = if (isError) "Type a day from 1 to 31" else hint,

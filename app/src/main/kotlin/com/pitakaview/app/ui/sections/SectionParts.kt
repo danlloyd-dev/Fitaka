@@ -19,11 +19,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
@@ -33,7 +33,7 @@ import com.pitakaview.app.ui.ledger.DayGroup
 import com.pitakaview.app.ui.ledger.ShareBar
 import com.pitakaview.app.ui.ledger.dayGroups
 import com.pitakaview.app.ui.motion.AnimatedAmountText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 import java.time.LocalDate
 
@@ -47,9 +47,9 @@ fun dateInText(date: LocalDate, today: LocalDate): String = friendlyDate(date, t
 /** One or two captioned amounts on the section's tint, at the top of a section tab. */
 @Composable
 fun SectionTotalsCard(section: Section, totals: List<Pair<String, Long>>, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(modifier.fillMaxWidth(), section = section) {
+    FitakaCard(modifier.fillMaxWidth(), section = section) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionBadge(section, section.icon, size = 36.dp)
             Text(section.label, style = type.titleSmall, color = c.ink)
@@ -82,9 +82,9 @@ fun SectionItemCard(
     fraction: Float? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaCard(modifier.fillMaxWidth(), onClick = onClick) {
+    FitakaCard(modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             SectionBadge(section, section.icon)
             Text(title, style = type.titleSmall, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -136,11 +136,11 @@ fun ItemDetailContent(
     onOpenEntry: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaScreen(title = ui.title, subtitle = ui.subtitle, onBack = onBack) {
+    FitakaScreen(title = ui.title, subtitle = ui.subtitle, onBack = onBack) {
         item(key = "summary") {
-            PitakaCard(Modifier.fillMaxWidth(), section = ui.section) {
+            FitakaCard(Modifier.fillMaxWidth(), section = ui.section) {
                 Text(ui.amountCaption, style = type.titleSmall, color = c.ink)
                 AnimatedAmountText(ui.amountCentavos, style = type.displaySmall)
                 ui.lines.forEach { Text(it, style = type.bodyMedium, color = c.ink) }
@@ -152,17 +152,17 @@ fun ItemDetailContent(
         }
         actions.forEach { action ->
             item(key = "action-${action.label}") {
-                PitakaButton(
+                FitakaButton(
                     action.label, onClick = action.onClick, modifier = Modifier.fillMaxWidth(), enabled = action.enabled,
-                    style = if (action.primary) PitakaButtonStyle.Primary else PitakaButtonStyle.Secondary,
+                    style = if (action.primary) FitakaButtonStyle.Primary else FitakaButtonStyle.Secondary,
                 )
             }
         }
-        item(key = "edit") { PitakaButton(editLabel, onClick = onEdit, modifier = Modifier.fillMaxWidth()) }
+        item(key = "edit") { FitakaButton(editLabel, onClick = onEdit, modifier = Modifier.fillMaxWidth()) }
         item(key = "entries-title") { SectionHeader("Entries") }
         if (ui.days.isEmpty()) {
             item(key = "no-entries") {
-                PitakaCard(Modifier.fillMaxWidth()) { EmptyState("Nothing logged yet", "Entries for this show up here, newest first.") }
+                FitakaCard(Modifier.fillMaxWidth()) { EmptyState("Nothing logged yet", "Entries for this show up here, newest first.") }
             }
         }
         dayGroups(ui.days, today, onOpenEntry)
@@ -190,13 +190,13 @@ fun WalletChoice(
         SectionHeader(title)
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = gap, verticalArrangement = gap) {
-            if (noneLabel != null) PitakaChip(noneLabel, selected = noneSelected && selectedId == null, onClick = { onSelect(null) })
-            wallets.forEach { PitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
+            if (noneLabel != null) FitakaChip(noneLabel, selected = noneSelected && selectedId == null, onClick = { onSelect(null) })
+            wallets.forEach { FitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
         }
         if (problem != null) ProblemText(problem)
         if (hint != null) {
             Text(
-                hint, style = MaterialTheme.typography.bodySmall, color = PitakaTheme.colors.inkMuted,
+                hint, style = MaterialTheme.typography.bodySmall, color = FitakaTheme.colors.inkMuted,
                 modifier = Modifier.padding(start = 4.dp, top = 6.dp),
             )
         }

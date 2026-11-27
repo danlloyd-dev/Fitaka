@@ -15,7 +15,7 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
-import com.pitakaview.app.PitakaApp
+import com.pitakaview.app.FitakaApp
 import com.pitakaview.app.data.db.entity.PayScheduleEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
 import com.pitakaview.app.di.AppContainer
@@ -27,8 +27,8 @@ import com.pitakaview.app.domain.PayFrequency
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
 import com.pitakaview.app.reminders.ReminderOpen
-import com.pitakaview.app.ui.navigation.PitakaRoot
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.navigation.FitakaRoot
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -43,7 +43,7 @@ abstract class FlowTestBase {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    protected val container: AppContainer get() = (rule.activity.application as PitakaApp).container
+    protected val container: AppContainer get() = (rule.activity.application as FitakaApp).container
 
     /** What a tapped reminder asks the app to open. A test sets it the way MainActivity does from the intent. */
     protected var reminderToOpen by mutableStateOf<ReminderOpen?>(null)
@@ -57,11 +57,11 @@ abstract class FlowTestBase {
 
     @Composable
     private fun App() {
-        val appContainer = (LocalContext.current.applicationContext as PitakaApp).container
+        val appContainer = (LocalContext.current.applicationContext as FitakaApp).container
         Surroundings {
             CompositionLocalProvider(LocalAppContainer provides appContainer) {
-                PitakaTheme(appearance.theme, appearance.darkMode, appearance.font, appearance.style, appearance.size) {
-                    PitakaRoot(
+                FitakaTheme(appearance.theme, appearance.darkMode, appearance.font, appearance.style, appearance.size) {
+                    FitakaRoot(
                         appearance,
                         onThemeChange = { appearance = appearance.copy(theme = it) },
                         onDarkModeChange = { appearance = appearance.copy(darkMode = it) },

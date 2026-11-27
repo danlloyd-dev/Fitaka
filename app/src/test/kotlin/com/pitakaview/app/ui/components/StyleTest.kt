@@ -26,9 +26,9 @@ import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.UiStyle
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
+import com.pitakaview.app.ui.theme.fitakaColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,7 +56,7 @@ class StyleTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val page = Color(0xFF2D9CDB)
-    private val colors = pitakaColors(ThemeId.MANGO, dark = false)
+    private val colors = fitakaColors(ThemeId.MANGO, dark = false)
 
     private fun close(a: Color, b: Color) = abs(a.red - b.red) < 0.06f && abs(a.green - b.green) < 0.06f && abs(a.blue - b.blue) < 0.06f
 
@@ -69,10 +69,10 @@ class StyleTest {
     fun eachStyleFinishesThePartsItsOwnWay() {
         var style by mutableStateOf(UiStyle.PLAIN)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT, style = style) {
                 Column(Modifier.fillMaxSize().background(page).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    PitakaButton("Next", onClick = {}, modifier = Modifier.fillMaxWidth().testTag("primary"), style = PitakaButtonStyle.Primary)
-                    PitakaButton("View", onClick = {}, modifier = Modifier.fillMaxWidth().testTag("plain"))
+                    FitakaButton("Next", onClick = {}, modifier = Modifier.fillMaxWidth().testTag("primary"), style = FitakaButtonStyle.Primary)
+                    FitakaButton("View", onClick = {}, modifier = Modifier.fillMaxWidth().testTag("plain"))
                 }
             }
         }
@@ -115,7 +115,7 @@ class StyleTest {
                 // The shadow under the primary button, along the middle of its strip: solid everywhere but
                 // in Sketch, where it is strokes with the page between them. A tappable part's bounds end
                 // at its own edge, so the strip is the few rows just below them.
-                val y = (primary.bottom + (PitakaDimens.shadow / 2).toPx()).roundToInt()
+                val y = (primary.bottom + (FitakaDimens.shadow / 2).toPx()).roundToInt()
                 val along = ((primary.left + 30.dp.toPx()).roundToInt()..(primary.right - 30.dp.toPx()).roundToInt())
                 val inked = along.count { dark(pixels[it, y]) }.toFloat() / along.count()
                 if (chosen == UiStyle.SKETCH) {

@@ -30,7 +30,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.di.LocalAppContainer
@@ -42,16 +42,16 @@ import com.pitakaview.app.domain.BaonProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -82,7 +82,7 @@ fun restartText(period: BaonPeriod, startDate: LocalDate): String = when (period
 
 /** Add or change a baon. Checks what was typed with [BaonFormLogic]. */
 class BaonEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     today: LocalDate,
     baonId: Long?,
     private val now: () -> Instant = Instant::now,
@@ -202,7 +202,7 @@ fun BaonEditorRoute(baonId: Long?, onDone: () -> Unit) {
     val wallets by vm.wallets.collectAsStateWithLifecycle()
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     BaonEditorContent(
@@ -232,7 +232,7 @@ fun BaonEditorContent(
     onDelete: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val chips = Arrangement.spacedBy(8.dp)
@@ -240,7 +240,7 @@ fun BaonEditorContent(
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmDelete) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Delete this baon?",
             lines = listOf("Nothing is logged for it, so no totals change. This cannot be undone."),
             confirmLabel = "Yes, delete",
@@ -250,23 +250,23 @@ fun BaonEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = if (ui.isEdit) "Edit baon" else "Add a baon",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         // Received or given cannot change later: the entries already logged depend on it.
         if (!ui.isEdit) {
             item(key = "direction") {
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    BaonDirection.entries.forEach { PitakaChip(it.label, selected = it == ui.direction, onClick = { onDirection(it) }) }
+                    BaonDirection.entries.forEach { FitakaChip(it.label, selected = it == ui.direction, onClick = { onDirection(it) }) }
                 }
             }
         }
         item(key = "name") {
-            PitakaTextField(
+            FitakaTextField(
                 state = name, label = if (receive) "Name" else "Who you give it to", placeholder = if (receive) "e.g. My baon" else "e.g. Bunso",
                 isError = BaonProblem.NAME in ui.problems,
                 supportingText = if (BaonProblem.NAME in ui.problems) "Give the baon a name" else null,
@@ -277,12 +277,12 @@ fun BaonEditorContent(
                 SectionHeader("How often")
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = chips, verticalArrangement = chips) {
-                    BaonPeriod.entries.forEach { PitakaChip(it.label, selected = it == ui.period, onClick = { onPeriod(it) }) }
+                    BaonPeriod.entries.forEach { FitakaChip(it.label, selected = it == ui.period, onClick = { onPeriod(it) }) }
                 }
             }
         }
         item(key = "amount") {
-            PitakaTextField(
+            FitakaTextField(
                 state = amount, label = "How much each time", placeholder = "0.00", prefix = Peso.SIGN,
                 isError = BaonProblem.AMOUNT in ui.problems,
                 supportingText = if (BaonProblem.AMOUNT in ui.problems) "Enter an amount above ₱0.00" else null,
@@ -309,7 +309,7 @@ fun BaonEditorContent(
         if (ui.isEdit) {
             item(key = "stop") {
                 Column {
-                    PitakaButton(if (ui.stopped) "Start this baon again" else "Stop this baon", onClick = onToggleStopped, modifier = Modifier.fillMaxWidth())
+                    FitakaButton(if (ui.stopped) "Start this baon again" else "Stop this baon", onClick = onToggleStopped, modifier = Modifier.fillMaxWidth())
                     Text(
                         "A stopped baon keeps its entries but is left out of Home.",
                         style = type.bodySmall, color = c.inkMuted, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
@@ -318,7 +318,7 @@ fun BaonEditorContent(
             }
             if (ui.canDelete) {
                 item(key = "delete") {
-                    PitakaButton("Delete baon", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                    FitakaButton("Delete baon", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }

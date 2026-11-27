@@ -18,19 +18,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.RecentTransaction
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.SearchQuery
 import com.pitakaview.app.ui.components.EmptyState
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.ledger.DayGroup
 import com.pitakaview.app.ui.ledger.MonthLedgerBuilder
 import com.pitakaview.app.ui.ledger.dayGroups
 import com.pitakaview.app.ui.ledger.entriesText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +55,7 @@ data class SearchUi(
  * the previous text; one search over 10,000 entries measured about 8 ms, so no typing delay is added.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class SearchViewModel(db: PitakaDatabase) : ViewModel() {
+class SearchViewModel(db: FitakaDatabase) : ViewModel() {
     val query = TextFieldState()
 
     val results: StateFlow<SearchUi> = snapshotFlow { query.text.toString().trim() }
@@ -104,12 +104,12 @@ fun SearchRoute(onBack: () -> Unit, onOpenEntry: (Long) -> Unit) {
 
 @Composable
 fun SearchContent(query: TextFieldState, results: SearchUi, today: LocalDate, onBack: () -> Unit, onOpenEntry: (Long) -> Unit) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     val focus = remember { FocusRequester() }
-    PitakaScreen(title = "Search", subtitle = "Across all your entries", onBack = onBack) {
+    FitakaScreen(title = "Search", subtitle = "Across all your entries", onBack = onBack) {
         item(key = "query") {
-            PitakaTextField(
+            FitakaTextField(
                 state = query, label = "Find", placeholder = "A note, category, wallet or amount",
                 modifier = Modifier.focusRequester(focus),
             )
@@ -118,12 +118,12 @@ fun SearchContent(query: TextFieldState, results: SearchUi, today: LocalDate, on
         }
         when {
             !results.asked -> item(key = "hint") {
-                PitakaCard(Modifier.fillMaxWidth()) {
+                FitakaCard(Modifier.fillMaxWidth()) {
                     EmptyState("Type to search", "For example: lunch, Food, GCash, or 250.")
                 }
             }
             results.count == 0 -> item(key = "nothing") {
-                PitakaCard(Modifier.fillMaxWidth()) {
+                FitakaCard(Modifier.fillMaxWidth()) {
                     EmptyState("Nothing found", "Try another word, or an amount like 250.")
                 }
             }

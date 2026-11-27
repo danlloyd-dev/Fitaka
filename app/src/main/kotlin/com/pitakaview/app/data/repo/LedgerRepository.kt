@@ -1,7 +1,7 @@
 package com.pitakaview.app.data.repo
 
 import androidx.room3.withWriteTransaction
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.ImportBatchEntity
 import com.pitakaview.app.data.db.entity.LoanEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
@@ -11,7 +11,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /** The only write path into the ledger: every row is checked against LedgerRules before it is stored. */
-class LedgerRepository(private val db: PitakaDatabase) {
+class LedgerRepository(private val db: FitakaDatabase) {
 
     private val transactions = db.transactionDao()
 

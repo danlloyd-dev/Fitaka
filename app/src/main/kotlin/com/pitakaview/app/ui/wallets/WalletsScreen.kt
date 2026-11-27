@@ -34,7 +34,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.WalletWithBalance
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.di.LocalAppContainer
@@ -45,21 +45,21 @@ import com.pitakaview.app.domain.WalletType
 import com.pitakaview.app.ui.components.AmountText
 import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.icons.sizeFor
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -87,7 +87,7 @@ val WalletType.label: String
 
 // ---------- list ----------
 
-class WalletsViewModel(db: PitakaDatabase) : ViewModel() {
+class WalletsViewModel(db: FitakaDatabase) : ViewModel() {
     val wallets: StateFlow<List<WalletWithBalance>> = db.walletDao().observeAllWithBalance()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
@@ -102,22 +102,22 @@ fun WalletsRoute(onBack: () -> Unit, onAdd: () -> Unit, onOpen: (Long) -> Unit) 
 
 @Composable
 fun WalletsContent(wallets: List<WalletWithBalance>, onBack: () -> Unit, onAdd: () -> Unit, onOpen: (Long) -> Unit) {
-    val c = PitakaTheme.colors
-    PitakaScreen(title = "Wallets", subtitle = "Where your money sits", onBack = onBack) {
+    val c = FitakaTheme.colors
+    FitakaScreen(title = "Wallets", subtitle = "Where your money sits", onBack = onBack) {
         if (wallets.isNotEmpty()) {
             item(key = "list") {
-                PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+                FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
                     wallets.forEachIndexed { i, row ->
                         key(row.wallet.id) {
-                            if (i > 0) PitakaDivider()
-                            PitakaListItem(
+                            if (i > 0) FitakaDivider()
+                            FitakaListItem(
                                 title = row.wallet.name,
                                 subtitle = row.wallet.type.label + if (row.wallet.isArchived) " · hidden" else "",
                                 leading = {
                                     Box(
-                                        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, PitakaDimens.borderThin, gloss = Gloss.Badge),
+                                        Modifier.size(40.dp).sketchBox(RoundedCornerShape(12.dp), c.background, c.ink, FitakaDimens.borderThin, gloss = Gloss.Badge),
                                         contentAlignment = Alignment.Center,
-                                    ) { Icon(PitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(PitakaIcons.Wallet.sizeFor(22.dp))) }
+                                    ) { Icon(FitakaIcons.Wallet, contentDescription = null, tint = c.ink, modifier = Modifier.size(FitakaIcons.Wallet.sizeFor(22.dp))) }
                                 },
                                 trailing = { AmountText(row.balanceCentavos) },
                                 onClick = { onOpen(row.wallet.id) },
@@ -128,7 +128,7 @@ fun WalletsContent(wallets: List<WalletWithBalance>, onBack: () -> Unit, onAdd: 
             }
         }
         item(key = "add") {
-            PitakaButton("Add wallet", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Add)
+            FitakaButton("Add wallet", onClick = onAdd, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Add)
         }
     }
 }
@@ -136,7 +136,7 @@ fun WalletsContent(wallets: List<WalletWithBalance>, onBack: () -> Unit, onAdd: 
 // ---------- add / edit ----------
 
 class WalletEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     walletId: Long?,
     private val now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -231,7 +231,7 @@ fun WalletEditorRoute(walletId: Long?, onDone: () -> Unit) {
     val vm = viewModel { WalletEditorViewModel(container.database, walletId) }
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     WalletEditorContent(
@@ -257,12 +257,12 @@ fun WalletEditorContent(
     onToggleHidden: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val c = PitakaTheme.colors
-    PitakaScreen(
+    val c = FitakaTheme.colors
+    FitakaScreen(
         title = if (isEdit) "Edit wallet" else "Add wallet",
         onBack = onBack,
         pinnedAction = {
-            PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+            FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
         },
     ) {
         if (!isEdit) {
@@ -271,19 +271,19 @@ fun WalletEditorContent(
                     SectionHeader("What kind?")
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WalletPreset.entries.forEach { PitakaChip(it.label, selected = preset == it, onClick = { onPreset(it) }) }
+                        WalletPreset.entries.forEach { FitakaChip(it.label, selected = preset == it, onClick = { onPreset(it) }) }
                     }
                 }
             }
         }
         item(key = "name") {
-            PitakaTextField(
+            FitakaTextField(
                 state = name, label = "Name", placeholder = "e.g. GCash",
                 isError = nameProblem, supportingText = if (nameProblem) "Give the wallet a name" else null,
             )
         }
         item(key = "balance") {
-            PitakaTextField(
+            FitakaTextField(
                 state = balance,
                 label = if (isEdit) "Actual balance now" else "Starting balance",
                 placeholder = "0.00",
@@ -302,7 +302,7 @@ fun WalletEditorContent(
         if (isEdit && current != null) {
             item(key = "hide") {
                 Column {
-                    PitakaButton(
+                    FitakaButton(
                         if (current.wallet.isArchived) "Show wallet again" else "Hide wallet",
                         onClick = onToggleHidden,
                         modifier = Modifier.fillMaxWidth(),

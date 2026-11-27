@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.navigation.MainTabs
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -48,9 +48,9 @@ class BottomBarTileTest {
     fun theBarsOutlineIsNotDrawnAcrossTheChosenTabsTile() {
         var chosen by mutableIntStateOf(0)
         rule.setContent {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
-                Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background), contentAlignment = Alignment.BottomCenter) {
-                    PitakaBottomBar(MainTabs, chosen, onSelect = { chosen = it })
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+                Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background), contentAlignment = Alignment.BottomCenter) {
+                    FitakaBottomBar(MainTabs, chosen, onSelect = { chosen = it })
                 }
             }
         }

@@ -14,7 +14,7 @@ import kotlin.math.pow
  * AA: 4.5 for body text, 3.0 for large/bold text (button labels) and for graphics such as outlines and icons.
  */
 class ThemeContrastTest {
-    private val all = ThemeId.entries.flatMap { theme -> listOf(false, true).map { pitakaColors(theme, it) } }
+    private val all = ThemeId.entries.flatMap { theme -> listOf(false, true).map { fitakaColors(theme, it) } }
     private val failures = mutableListOf<String>()
 
     private fun luminance(c: Color): Double {
@@ -27,7 +27,7 @@ class ThemeContrastTest {
         return (hi + 0.05) / (lo + 0.05)
     }
 
-    private fun need(colors: PitakaColors, what: String, fg: Color, bg: Color, min: Double) {
+    private fun need(colors: FitakaColors, what: String, fg: Color, bg: Color, min: Double) {
         val r = ratio(fg, bg)
         if (r < min) failures += "${colors.theme}/${if (colors.isDark) "dark" else "light"} $what = ${"%.2f".format(r)} < $min"
     }
@@ -89,7 +89,7 @@ class ThemeContrastTest {
 
     /**
      * The tints grew stronger with the gloss (30% and 34% of the section colour). Muted ink on them falls
-     * to 3.0:1, so small text on a tinted card is full ink ([PitakaColors.captionOnTint]): every caption there keeps 4.5.
+     * to 3.0:1, so small text on a tinted card is full ink ([FitakaColors.captionOnTint]): every caption there keeps 4.5.
      */
     @Test
     fun captionsOnTintedCardsAreFullInkAndMeetAA() {

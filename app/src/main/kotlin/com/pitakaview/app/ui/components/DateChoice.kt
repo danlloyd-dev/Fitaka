@@ -35,10 +35,10 @@ fun DateChoice(date: LocalDate, today: LocalDate, onDate: (LocalDate) -> Unit, t
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = gap, verticalArrangement = gap) {
             val yesterday = today.minusDays(1)
-            PitakaChip("Today", selected = date == today, onClick = { onDate(today) })
-            PitakaChip("Yesterday", selected = date == yesterday, onClick = { onDate(yesterday) })
+            FitakaChip("Today", selected = date == today, onClick = { onDate(today) })
+            FitakaChip("Yesterday", selected = date == yesterday, onClick = { onDate(yesterday) })
             val other = date != today && date != yesterday
-            PitakaChip(if (other) friendlyDate(date, today) else "Other date", selected = other, onClick = { pick = true })
+            FitakaChip(if (other) friendlyDate(date, today) else "Other date", selected = other, onClick = { pick = true })
         }
     }
     if (pick) PickDateDialog(date, onPick = onDate, onDismiss = { pick = false })
@@ -61,14 +61,14 @@ fun OptionalDateChoice(
         SectionHeader(title)
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = gap, verticalArrangement = gap) {
-            PitakaChip(noneLabel, selected = date == null, onClick = { onDate(null) })
-            PitakaChip(date?.let { friendlyDate(it, today) } ?: pickLabel, selected = date != null, onClick = { pick = true })
+            FitakaChip(noneLabel, selected = date == null, onClick = { onDate(null) })
+            FitakaChip(date?.let { friendlyDate(it, today) } ?: pickLabel, selected = date != null, onClick = { pick = true })
         }
     }
     if (pick) PickDateDialog(date ?: today, onPick = onDate, onDismiss = { pick = false })
 }
 
-/** The stock Material date picker, themed by PitakaTheme's colours and font. */
+/** The stock Material date picker, themed by FitakaTheme's colours and font. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PickDateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismiss: () -> Unit) {

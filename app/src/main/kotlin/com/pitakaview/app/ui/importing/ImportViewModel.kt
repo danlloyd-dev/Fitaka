@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.dao.ImportBatchRow
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.ImportBatchEntity
@@ -103,7 +103,7 @@ sealed interface ImportNotice {
 enum class Refusal { TOO_BIG, EMPTY, NO_TABLE, MIXED_DATES, NOTHING_IN_IT, PDF_NEEDS_NEWER_ANDROID, PDF_UNREADABLE, COULD_NOT_SAVE }
 
 class ImportViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val ledger: LedgerRepository,
     private val pdf: PdfTextReader,
     private val now: () -> Instant = Instant::now,
@@ -337,7 +337,7 @@ class ImportViewModel(
     }
 
     companion object {
-        private const val TAG = "PitakaImport"
+        private const val TAG = "FitakaImport"
 
         /** Statements are small; anything bigger than this is not one, and is not read into memory. */
         const val MAX_BYTES = 5 * 1024 * 1024

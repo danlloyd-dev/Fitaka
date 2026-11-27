@@ -1,11 +1,11 @@
 Streamline Freehand icons
 https://streamlinehq.com
 
-The hand-drawn icons in PitakaView come from the Freehand set by Streamline (https://streamlinehq.com).
+The hand-drawn icons in Fitaka come from the Freehand set by Streamline (https://streamlinehq.com).
 They are used under the Creative Commons Attribution 4.0 International licence (CC BY 4.0):
 https://creativecommons.org/licenses/by/4.0/
 
-Changes made for PitakaView:
+Changes made for Fitaka:
 - Money bag, receipt, piggy bank and banknote: the dollar sign was taken out of each drawing and a peso
   sign was drawn in its place.
 - Coin: the peso sign's two bars were added across its letter P.

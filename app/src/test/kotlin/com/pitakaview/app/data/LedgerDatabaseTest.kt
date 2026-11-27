@@ -2,8 +2,8 @@ package com.pitakaview.app.data
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.dao.remainingCentavos
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.CategoryEntity
@@ -45,7 +45,7 @@ import java.time.LocalDate
  * driver), so balances and totals are checked end to end without an emulator.
  */
 class LedgerDatabaseTest {
-    private lateinit var db: PitakaDatabase
+    private lateinit var db: FitakaDatabase
     private lateinit var ledger: LedgerRepository
 
     private val now = Instant.parse("2026-11-25T08:00:00Z")
@@ -55,7 +55,7 @@ class LedgerDatabaseTest {
 
     @Before
     fun open() {
-        db = Room.inMemoryDatabaseBuilder { PitakaDatabase_Impl() }
+        db = Room.inMemoryDatabaseBuilder { FitakaDatabase_Impl() }
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

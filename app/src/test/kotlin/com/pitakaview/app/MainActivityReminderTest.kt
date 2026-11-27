@@ -37,7 +37,7 @@ class MainActivityReminderTest {
     @get:Rule
     val rule = createEmptyComposeRule()
 
-    private val app: PitakaApp get() = ApplicationProvider.getApplicationContext()
+    private val app: FitakaApp get() = ApplicationProvider.getApplicationContext()
 
     private fun shows(text: String) = rule.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
 

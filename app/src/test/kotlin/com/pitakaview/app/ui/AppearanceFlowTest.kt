@@ -92,7 +92,7 @@ class AppearanceFlowTest : FlowTestBase() {
         back()
         waitFor("Cash")
         val drawn = mutableListOf<TextLayoutResult>()
-        rule.onNode(hasText("PitakaView"), useUnmergedTree = true).fetchSemanticsNode().config.getOrNull(SemanticsActions.GetTextLayoutResult)!!.action!!.invoke(drawn)
+        rule.onNode(hasText("Fitaka"), useUnmergedTree = true).fetchSemanticsNode().config.getOrNull(SemanticsActions.GetTextLayoutResult)!!.action!!.invoke(drawn)
         assertEquals(FontChoice.ITIM.family(), drawn.single().layoutInput.style.fontFamily)
     }
 
@@ -100,7 +100,7 @@ class AppearanceFlowTest : FlowTestBase() {
     fun theLogoIsAtTheTopLeftOfHomeAndOnNoOtherScreen() {
         start()
         val logo = rule.onNodeWithTag(LOGO_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val name = rule.onNode(hasText("PitakaView"), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val name = rule.onNode(hasText("Fitaka"), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         with(rule.density) {
             assertTrue("the logo is at the left edge: $logo", logo.left <= 24.dp.toPx())
             assertTrue("the logo is at the top: $logo", logo.top <= 80.dp.toPx())

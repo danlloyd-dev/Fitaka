@@ -4,8 +4,8 @@ import androidx.room3.Transactor
 import androidx.room3.useWriterConnection
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
-import com.pitakaview.app.data.db.PITAKA_DB_VERSION
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FITAKA_DB_VERSION
+import com.pitakaview.app.data.db.FitakaDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -26,7 +26,7 @@ data class BackupInfo(
 sealed interface BackupCheck {
     data class Ok(val info: BackupInfo) : BackupCheck
 
-    /** Not a PitakaView backup, or a damaged file. */
+    /** Not a Fitaka backup, or a damaged file. */
     data object NotABackup : BackupCheck
 
     /** Made by a newer version of the app than this one. */
@@ -46,7 +46,7 @@ class RestoreNotStartedException(cause: Throwable) : Exception("The restore coul
  * @param copyWholeFile forces the old-SQLite path; for tests
  */
 class BackupManager(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val dbFile: File,
     private val driver: SQLiteDriver,
     private val workDir: File,
@@ -105,7 +105,7 @@ class BackupManager(
 
     /**
      * Looks inside a candidate file without touching the live database. Any file that cannot be read
-     * as a PitakaView database is [BackupCheck.NotABackup]; the reason does not matter to the owner.
+     * as a Fitaka database is [BackupCheck.NotABackup]; the reason does not matter to the owner.
      */
     fun inspect(candidate: File): BackupCheck {
         if (!candidate.hasSqliteHeader()) return BackupCheck.NotABackup
@@ -113,7 +113,7 @@ class BackupManager(
             driver.open(candidate.absolutePath).use { connection ->
                 val version = connection.long("PRAGMA user_version")?.toInt() ?: 0
                 when {
-                    version > PITAKA_DB_VERSION -> BackupCheck.TooNew
+                    version > FITAKA_DB_VERSION -> BackupCheck.TooNew
                     version < 1 -> BackupCheck.NotABackup
                     connection.text("PRAGMA quick_check") != "ok" -> BackupCheck.NotABackup
                     else -> BackupCheck.Ok(

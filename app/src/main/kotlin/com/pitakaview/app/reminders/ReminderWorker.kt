@@ -4,13 +4,13 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.pitakaview.app.PitakaApp
+import com.pitakaview.app.FitakaApp
 import kotlinx.coroutines.CancellationException
 
 /** The daily look for reminders, started by the system in the background. All the rules live in [Reminders]. */
 class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val reminders = (applicationContext as PitakaApp).container.reminders
+        val reminders = (applicationContext as FitakaApp).container.reminders
         try {
             reminders.dailyRun()
         } catch (e: CancellationException) {
@@ -25,6 +25,6 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
     }
 
     private companion object {
-        const val TAG = "PitakaReminders"
+        const val TAG = "FitakaReminders"
     }
 }

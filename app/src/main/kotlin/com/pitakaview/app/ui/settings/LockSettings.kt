@@ -16,8 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.lock.LockSupport
 import com.pitakaview.app.lock.UnlockResult
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaToggleRow
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaToggleRow
 import kotlinx.coroutines.launch
 
 /** What the App lock card in Settings shows. The default is "not on this phone", which hides the card. */
@@ -36,8 +36,8 @@ object LockSettingsText {
 
 @Composable
 fun LockCard(ui: LockSettingsUi, onChange: (Boolean) -> Unit) {
-    PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-        PitakaToggleRow(
+    FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+        FitakaToggleRow(
             title = LockSettingsText.TITLE,
             subtitle = if (ui.support == LockSupport.NO_SCREEN_LOCK) LockSettingsText.NO_SCREEN_LOCK else LockSettingsText.SUBTITLE,
             checked = ui.on,

@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pitakaview.app.APP_NAME
 import com.pitakaview.app.data.backup.BackupCheck
 import com.pitakaview.app.data.backup.BackupInfo
 import com.pitakaview.app.data.backup.BackupManager
@@ -34,16 +35,16 @@ import com.pitakaview.app.data.db.dao.TransactionDao
 import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.CsvExport
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.ledger.entriesText
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.label
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -59,7 +60,16 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-private const val TAG = "PitakaBackup"
+private const val TAG = "FitakaBackup"
+
+/**
+ * The names offered when saving. The owner chose `fitaka-backup-<date>` on 2026-11-27. The ending stays
+ * `.pitaka`, as on every backup made while the app was called PitakaView: a restore never looks at a
+ * file's name or ending, only at what is inside it, so old and new backups are picked the same way.
+ */
+internal fun backupFileName(day: LocalDate) = "fitaka-backup-$day.pitaka"
+
+internal fun sheetFileName(day: LocalDate) = "fitaka-entries-$day.csv"
 
 /** What the Backup screen tells the owner after an action. */
 enum class BackupNotice { SAVED, SAVE_FAILED, NOT_A_BACKUP, TOO_NEW, RESTORE_FAILED, EXPORTED, EXPORT_FAILED }
@@ -255,9 +265,9 @@ fun BackupRoute(onBack: () -> Unit) {
         notice = vm.notice,
         pending = vm.pending,
         busy = vm.busy,
-        onBackUp = { save.launch("PitakaView-backup-$today.pitaka") },
+        onBackUp = { save.launch(backupFileName(today)) },
         onPickBackup = { pick.launch(arrayOf("*/*")) },
-        onExport = { exportSheet.launch("PitakaView-entries-$today.csv") },
+        onExport = { exportSheet.launch(sheetFileName(today)) },
         exportedCount = vm.exportedCount,
         onConfirmRestore = vm::confirmRestore,
         onCancelRestore = vm::cancelRestore,
@@ -293,11 +303,11 @@ fun BackupContent(
     onExport: () -> Unit = {},
     exportedCount: Int = 0,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     // Replacing everything cannot be undone: asked over the whole screen, not in the footer.
     if (pending != null) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Replace everything on this phone?",
             lines = listOf(describe(pending, today), "What is on this phone now will be removed. This cannot be undone."),
             confirmLabel = "Yes, restore",
@@ -308,13 +318,13 @@ fun BackupContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = "Backup",
         subtitle = "Keep a copy of your data",
         onBack = onBack,
     ) {
         item(key = "why") {
-            PitakaCard(Modifier.fillMaxWidth()) {
+            FitakaCard(Modifier.fillMaxWidth()) {
                 Text("Your data lives only on this phone", style = type.titleSmall, color = c.ink)
                 Text(
                     "A backup is one file. Keep it somewhere safe, like Google Drive or an email to yourself. " +
@@ -330,9 +340,9 @@ fun BackupContent(
         }
         item(key = "save") {
             Column {
-                PitakaButton(
+                FitakaButton(
                     "Back up now", onClick = onBackUp, modifier = Modifier.fillMaxWidth(),
-                    style = PitakaButtonStyle.Primary, enabled = !busy && pending == null,
+                    style = FitakaButtonStyle.Primary, enabled = !busy && pending == null,
                 )
                 when (notice) {
                     BackupNotice.SAVED -> Text(
@@ -346,10 +356,10 @@ fun BackupContent(
         }
         item(key = "restore") {
             Column {
-                PitakaButton("Restore from a backup", onClick = onPickBackup, modifier = Modifier.fillMaxWidth(), enabled = !busy && pending == null)
+                FitakaButton("Restore from a backup", onClick = onPickBackup, modifier = Modifier.fillMaxWidth(), enabled = !busy && pending == null)
                 when (notice) {
-                    BackupNotice.NOT_A_BACKUP -> ProblemText("That file is not a PitakaView backup, or it is damaged. Nothing was changed.")
-                    BackupNotice.TOO_NEW -> ProblemText("That backup was made by a newer version of PitakaView. Update the app, then try again.")
+                    BackupNotice.NOT_A_BACKUP -> ProblemText("That file is not a $APP_NAME backup, or it is damaged. Nothing was changed.")
+                    BackupNotice.TOO_NEW -> ProblemText("That backup was made by a newer version of $APP_NAME. Update the app, then try again.")
                     BackupNotice.RESTORE_FAILED -> ProblemText("The restore did not finish. Your current data is still here.")
                     else -> Unit
                 }
@@ -364,7 +374,7 @@ fun BackupContent(
         item(key = "export-title") { SectionHeader("Spreadsheet") }
         item(key = "export") {
             Column {
-                PitakaButton("Export to a spreadsheet", onClick = onExport, modifier = Modifier.fillMaxWidth(), enabled = !busy && pending == null)
+                FitakaButton("Export to a spreadsheet", onClick = onExport, modifier = Modifier.fillMaxWidth(), enabled = !busy && pending == null)
                 when (notice) {
                     BackupNotice.EXPORTED -> Text(
                         "Exported ${entriesText(exportedCount)}.",

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -30,16 +30,16 @@ class MascotScreenshotTest {
         Column {
             for (theme in ThemeId.entries) {
                 for (mode in listOf(DarkModePref.LIGHT, DarkModePref.DARK)) {
-                    PitakaTheme(theme, mode) {
+                    FitakaTheme(theme, mode) {
                         Row(
-                            Modifier.background(PitakaTheme.colors.background).padding(horizontal = 12.dp, vertical = 10.dp),
+                            Modifier.background(FitakaTheme.colors.background).padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.Bottom,
                         ) {
                             AlkansyaMood.entries.forEach { Alkansya(mood = it, width = 120.dp) }
                             Column {
                                 Alkansya(mood = AlkansyaMood.HELLO, width = 56.dp)
-                                Text(theme.name.lowercase(), style = MaterialTheme.typography.bodySmall, color = PitakaTheme.colors.ink)
+                                Text(theme.name.lowercase(), style = MaterialTheme.typography.bodySmall, color = FitakaTheme.colors.ink)
                             }
                         }
                     }

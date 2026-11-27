@@ -12,7 +12,7 @@ import com.pitakaview.app.ui.onboarding.OnboardingContent
 import com.pitakaview.app.ui.onboarding.OnboardingWallets
 import com.pitakaview.app.ui.settings.LockSettingsUi
 import com.pitakaview.app.ui.settings.SettingsScreen
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.wallets.WalletPreset
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,7 +37,7 @@ class WelcomeAndLockScreenshotTest {
     }
 
     private fun shot(name: String, theme: ThemeId, mode: DarkModePref, content: @Composable () -> Unit) =
-        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { PitakaTheme(theme, mode) { content() } }
+        captureRoboImage("build/outputs/roborazzi/screen_$name.png") { FitakaTheme(theme, mode) { content() } }
 
     @Test
     fun welcomeStepOne() = shot("welcome_1_mango_light", ThemeId.MANGO, DarkModePref.LIGHT) { Welcome(0) }

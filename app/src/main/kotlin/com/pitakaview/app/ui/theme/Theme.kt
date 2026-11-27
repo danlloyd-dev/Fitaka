@@ -20,7 +20,7 @@ import com.pitakaview.app.domain.UiStyle
 import com.pitakaview.app.domain.ThemeId
 
 /** Sizes shared by the sketch-style components. */
-object PitakaDimens {
+object FitakaDimens {
     val border = 2.5.dp
     val borderThin = 2.dp
     val shadow = 4.dp
@@ -29,20 +29,20 @@ object PitakaDimens {
     val cornerSmall = 10.dp
 }
 
-val PitakaShapes = Shapes(
+val FitakaShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(PitakaDimens.cornerSmall),
-    medium = RoundedCornerShape(PitakaDimens.corner),
-    large = RoundedCornerShape(PitakaDimens.cornerLarge),
+    small = RoundedCornerShape(FitakaDimens.cornerSmall),
+    medium = RoundedCornerShape(FitakaDimens.corner),
+    large = RoundedCornerShape(FitakaDimens.cornerLarge),
     extraLarge = RoundedCornerShape(24.dp),
 )
 
 /**
  * Applies a theme app-wide: a Material 3 ColorScheme (so stock components such as dialogs and pickers
- * match) plus [PitakaColors] through [LocalPitakaColors].
+ * match) plus [FitakaColors] through [LocalFitakaColors].
  */
 @Composable
-fun PitakaTheme(
+fun FitakaTheme(
     theme: ThemeId = ThemeId.MANGO,
     darkMode: DarkModePref = DarkModePref.SYSTEM,
     font: FontChoice = FontChoice.SHANTELL,
@@ -51,11 +51,11 @@ fun PitakaTheme(
     content: @Composable () -> Unit,
 ) {
     val dark = darkMode.resolve()
-    val colors = remember(theme, dark, style) { pitakaColors(theme, dark).let { if (style == UiStyle.GLASSY) it.forGlass() else it } }
+    val colors = remember(theme, dark, style) { fitakaColors(theme, dark).let { if (style == UiStyle.GLASSY) it.forGlass() else it } }
     val scheme = remember(colors) { colors.toColorScheme() }
-    val typography = remember(font) { pitakaTypography(font.family()) }
-    CompositionLocalProvider(LocalPitakaColors provides colors, LocalUiStyle provides style) {
-        MaterialTheme(colorScheme = scheme, typography = typography, shapes = PitakaShapes) {
+    val typography = remember(font) { fitakaTypography(font.family()) }
+    CompositionLocalProvider(LocalFitakaColors provides colors, LocalUiStyle provides style) {
+        MaterialTheme(colorScheme = scheme, typography = typography, shapes = FitakaShapes) {
             // Everything inside is drawn at the chosen size; the bottom bar steps back out of it (FullSize).
             ScaledUi(size, content)
         }
@@ -70,14 +70,14 @@ fun DarkModePref.resolve(): Boolean = when (this) {
     DarkModePref.DARK -> true
 }
 
-object PitakaTheme {
-    val colors: PitakaColors
+object FitakaTheme {
+    val colors: FitakaColors
         @Composable @ReadOnlyComposable
-        get() = LocalPitakaColors.current
+        get() = LocalFitakaColors.current
 }
 
 /** The theme pair as Material 3 schemes: flat surfaces (no tonal tint), ink outlines, Gastos red for errors. */
-fun PitakaColors.toColorScheme(): ColorScheme {
+fun FitakaColors.toColorScheme(): ColorScheme {
     val base = if (isDark) darkColorScheme() else lightColorScheme()
     return base.copy(
         primary = primary,

@@ -1,6 +1,6 @@
 package com.pitakaview.app.data
 
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.WalletEntity
 import com.pitakaview.app.domain.CategoryKind
@@ -31,7 +31,7 @@ object DefaultData {
     )
 
     /** Safe to call on every start: each part is only added when its table is empty. */
-    suspend fun seedIfEmpty(db: PitakaDatabase, now: Instant) {
+    suspend fun seedIfEmpty(db: FitakaDatabase, now: Instant) {
         val categories = db.categoryDao()
         if (categories.count() == 0) {
             categories.insertAll(

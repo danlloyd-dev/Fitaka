@@ -2,7 +2,7 @@ package com.pitakaview.app.ui.components
 
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.ui.theme.Section
-import com.pitakaview.app.ui.theme.pitakaColors
+import com.pitakaview.app.ui.theme.fitakaColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -12,7 +12,7 @@ import org.junit.Test
  * fill colour alone, so it has to come out right for every theme, light and dark.
  */
 class GlossTest {
-    private val all = ThemeId.entries.flatMap { theme -> listOf(false, true).map { pitakaColors(theme, it) } }
+    private val all = ThemeId.entries.flatMap { theme -> listOf(false, true).map { fitakaColors(theme, it) } }
 
     @Test
     fun solidColoursAlwaysTakeTheFullGloss() {

@@ -29,13 +29,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.icons.sizeFor
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
-/** One row in a list (usually inside a [PitakaCard]): leading badge, title + subtitle, trailing amount. */
+/** One row in a list (usually inside a [FitakaCard]): leading badge, title + subtitle, trailing amount. */
 @Composable
-fun PitakaListItem(
+fun FitakaListItem(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
@@ -43,7 +43,7 @@ fun PitakaListItem(
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     Row(
         modifier = modifier
@@ -68,11 +68,11 @@ fun PitakaListItem(
 /** A section's icon on a solid section-colour square with an ink outline. */
 @Composable
 fun SectionBadge(section: Section, icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Box(
         modifier = modifier
             .size(size)
-            .sketchBox(RoundedCornerShape(12.dp), fill = c.fill(section), border = c.ink, borderWidth = PitakaDimens.borderThin, gloss = Gloss.Badge),
+            .sketchBox(RoundedCornerShape(12.dp), fill = c.fill(section), border = c.ink, borderWidth = FitakaDimens.borderThin, gloss = Gloss.Badge),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = null, tint = c.onSectionFill, modifier = Modifier.size(icon.sizeFor(size * 0.55f)))
@@ -82,13 +82,13 @@ fun SectionBadge(section: Section, icon: ImageVector, modifier: Modifier = Modif
 /** A small pill label on a pale section tint, e.g. "Gastos". */
 @Composable
 fun SectionTag(text: String, section: Section, modifier: Modifier = Modifier) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
         color = c.ink,
         modifier = modifier
-            .sketchBox(RoundedCornerShape(50), fill = c.tint(section), border = c.ink, borderWidth = PitakaDimens.borderThin)
+            .sketchBox(RoundedCornerShape(50), fill = c.tint(section), border = c.ink, borderWidth = FitakaDimens.borderThin)
             .padding(horizontal = 12.dp, vertical = 4.dp),
     )
 }
@@ -102,13 +102,13 @@ fun AmountText(
     style: TextStyle = MaterialTheme.typography.titleMedium,
 ) {
     val text = if (signed && centavos > 0) "+${Peso.format(centavos)}" else Peso.format(centavos)
-    Text(text, modifier = modifier, style = style, color = PitakaTheme.colors.ink, maxLines = 1)
+    Text(text, modifier = modifier, style = style, color = FitakaTheme.colors.ink, maxLines = 1)
 }
 
 /** A hand-drawn-looking dashed divider for between list rows. */
 @Composable
-fun PitakaDivider(modifier: Modifier = Modifier) {
-    val color = PitakaTheme.colors.ink.copy(alpha = 0.35f)
+fun FitakaDivider(modifier: Modifier = Modifier) {
+    val color = FitakaTheme.colors.ink.copy(alpha = 0.35f)
     Canvas(modifier.fillMaxWidth().height(2.dp)) {
         val y = size.height / 2
         drawLine(

@@ -6,7 +6,7 @@ import com.pitakaview.app.data.db.dao.MonthPurposeTotal
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
 import com.pitakaview.app.domain.TxPurpose
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -40,7 +40,7 @@ class SummaryScreenshotTest {
 
     private fun shot(name: String, theme: ThemeId, mode: DarkModePref, summary: MonthSummary) =
         captureRoboImage("build/outputs/roborazzi/screen_$name.png") {
-            PitakaTheme(theme, mode) { SummaryContent(summary, {}, {}, {}, {}) }
+            FitakaTheme(theme, mode) { SummaryContent(summary, {}, {}, {}, {}) }
         }
 
     @Test

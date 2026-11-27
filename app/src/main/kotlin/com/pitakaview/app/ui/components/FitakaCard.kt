@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.pitakaview.app.ui.theme.PitakaDimens
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaDimens
+import com.pitakaview.app.ui.theme.FitakaTheme
 import com.pitakaview.app.ui.theme.Section
 
 /**
@@ -20,19 +20,19 @@ import com.pitakaview.app.ui.theme.Section
  * (e.g. the Kita summary card), which also gets a streak of light along its top edge; otherwise it uses
  * the theme's card colour and stays plain.
  *
- * Small text on a tinted card takes [com.pitakaview.app.ui.theme.PitakaColors.captionOnTint], not muted ink.
+ * Small text on a tinted card takes [com.pitakaview.app.ui.theme.FitakaColors.captionOnTint], not muted ink.
  */
 @Composable
-fun PitakaCard(
+fun FitakaCard(
     modifier: Modifier = Modifier,
     section: Section? = null,
     onClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val c = PitakaTheme.colors
-    val shape = RoundedCornerShape(PitakaDimens.cornerLarge)
-    val shadow = PitakaDimens.shadow
+    val c = FitakaTheme.colors
+    val shape = RoundedCornerShape(FitakaDimens.cornerLarge)
+    val shadow = FitakaDimens.shadow
     Column(
         modifier = modifier
             .padding(end = shadow, bottom = shadow)

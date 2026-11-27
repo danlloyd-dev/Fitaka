@@ -7,7 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pitakaview.app.data.db.PitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.TransactionEntity
@@ -34,7 +34,7 @@ import java.time.LocalDate
  * ledger. [transactionId] null means a new entry; otherwise that row is loaded for editing.
  */
 class EntryEditorViewModel(
-    private val db: PitakaDatabase,
+    private val db: FitakaDatabase,
     private val ledger: LedgerRepository,
     private val settings: SettingsRepository,
     today: LocalDate,

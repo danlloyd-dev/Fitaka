@@ -38,19 +38,19 @@ import com.pitakaview.app.domain.EntryProblem
 import com.pitakaview.app.domain.Peso
 import com.pitakaview.app.ui.components.DateChoice
 import com.pitakaview.app.ui.components.MoneyInput
-import com.pitakaview.app.ui.components.PitakaButton
-import com.pitakaview.app.ui.components.PitakaConfirmDialog
-import com.pitakaview.app.ui.components.PitakaButtonStyle
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaChip
-import com.pitakaview.app.ui.components.PitakaScreen
-import com.pitakaview.app.ui.components.PitakaSegmented
-import com.pitakaview.app.ui.components.PitakaTextField
+import com.pitakaview.app.ui.components.FitakaButton
+import com.pitakaview.app.ui.components.FitakaConfirmDialog
+import com.pitakaview.app.ui.components.FitakaButtonStyle
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaChip
+import com.pitakaview.app.ui.components.FitakaScreen
+import com.pitakaview.app.ui.components.FitakaSegmented
+import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.ProblemText
 import com.pitakaview.app.ui.components.SectionHeader
-import com.pitakaview.app.ui.icons.PitakaIcons
+import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.MoveEditorRoute
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.theme.FitakaTheme
 import java.time.LocalDate
 
 /** Everything the quick-entry screen draws, apart from the two text fields. */
@@ -98,7 +98,7 @@ fun EntryEditorRoute(
     LaunchedEffect(vm.done) { if (vm.done) onDone() }
 
     if (!vm.loaded) {
-        Box(Modifier.fillMaxSize().background(PitakaTheme.colors.background))
+        Box(Modifier.fillMaxSize().background(FitakaTheme.colors.background))
         return
     }
     // A loan payment, a savings entry or a baon entry has its own, simpler form.
@@ -138,14 +138,14 @@ fun EntryEditorContent(
     onOpenWallets: () -> Unit,
     onBaon: (Long?) -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
 
     // A question about something that cannot be undone is asked over the whole screen, not in the footer.
     if (confirmDelete) {
-        PitakaConfirmDialog(
+        FitakaConfirmDialog(
             title = "Delete this entry?",
             lines = listOf("It is removed from your totals. This cannot be undone."),
             confirmLabel = "Yes, delete",
@@ -155,7 +155,7 @@ fun EntryEditorContent(
         )
     }
 
-    PitakaScreen(
+    FitakaScreen(
         title = if (ui.isEdit) "Edit entry" else "Add entry",
         // What the entry is tied to, said at the top where it cannot scroll under the keyboard.
         subtitle = ui.paydayName?.let { "Pay received · $it" }
@@ -165,18 +165,18 @@ fun EntryEditorContent(
         pinnedAction = {
             Column {
                 if (ui.saveError != null) ProblemText(ui.saveError)
-                PitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = PitakaButtonStyle.Primary, icon = PitakaIcons.Check)
+                FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)
             }
         },
     ) {
         if (!ui.kindLocked) {
             item(key = "kind") {
-                PitakaSegmented(EntryKind.entries.map { it.label }, ui.kind.ordinal, onSelect = { onKind(EntryKind.entries[it]) })
+                FitakaSegmented(EntryKind.entries.map { it.label }, ui.kind.ordinal, onSelect = { onKind(EntryKind.entries[it]) })
             }
         }
 
         item(key = "amount") {
-            PitakaTextField(
+            FitakaTextField(
                 state = amount,
                 label = "Amount",
                 modifier = Modifier.focusRequester(amountFocus),
@@ -197,7 +197,7 @@ fun EntryEditorContent(
                     SectionHeader("Category")
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ui.categories.forEach { PitakaChip(it.name, selected = it.id == ui.categoryId, onClick = { onCategory(it.id) }) }
+                        ui.categories.forEach { FitakaChip(it.name, selected = it.id == ui.categoryId, onClick = { onCategory(it.id) }) }
                     }
                     if (EntryProblem.CATEGORY in ui.problems) ProblemText("Pick a category")
                 }
@@ -213,10 +213,10 @@ fun EntryEditorContent(
             }
             EntryKind.TRANSFER -> if (ui.wallets.size < 2) {
                 item(key = "need-two") {
-                    PitakaCard(Modifier.fillMaxWidth()) {
+                    FitakaCard(Modifier.fillMaxWidth()) {
                         Text("You need two wallets to move money between them.", style = type.bodyMedium, color = c.ink)
                         Spacer(Modifier.height(10.dp))
-                        PitakaButton("Add a wallet", onClick = onOpenWallets, icon = PitakaIcons.Add)
+                        FitakaButton("Add a wallet", onClick = onOpenWallets, icon = FitakaIcons.Add)
                     }
                 }
             } else {
@@ -239,8 +239,8 @@ fun EntryEditorContent(
                     SectionHeader("From baon")
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PitakaChip("Not from baon", selected = ui.baonId == null, onClick = { onBaon(null) })
-                        ui.baons.forEach { PitakaChip(it.name, selected = it.id == ui.baonId, onClick = { onBaon(it.id) }) }
+                        FitakaChip("Not from baon", selected = ui.baonId == null, onClick = { onBaon(null) })
+                        ui.baons.forEach { FitakaChip(it.name, selected = it.id == ui.baonId, onClick = { onBaon(it.id) }) }
                     }
                 }
             }
@@ -249,12 +249,12 @@ fun EntryEditorContent(
         item(key = "date") { DateChoice(ui.date, ui.today, onDate) }
 
         item(key = "note") {
-            PitakaTextField(state = note, label = "Note", placeholder = "Optional")
+            FitakaTextField(state = note, label = "Note", placeholder = "Optional")
         }
 
         if (ui.isEdit) {
             item(key = "delete") {
-                PitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
+                FitakaButton("Delete entry", onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -267,7 +267,7 @@ private fun WalletChoice(title: String, wallets: List<WalletEntity>, selectedId:
         SectionHeader(title)
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            wallets.forEach { PitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
+            wallets.forEach { FitakaChip(it.name, selected = it.id == selectedId, onClick = { onSelect(it.id) }) }
         }
         if (problem) ProblemText("Pick a wallet")
     }

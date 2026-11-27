@@ -2,8 +2,8 @@ package com.pitakaview.app.data
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.pitakaview.app.data.db.PitakaDatabase
-import com.pitakaview.app.data.db.PitakaDatabase_Impl
+import com.pitakaview.app.data.db.FitakaDatabase
+import com.pitakaview.app.data.db.FitakaDatabase_Impl
 import com.pitakaview.app.data.db.entity.BaonEntity
 import com.pitakaview.app.data.db.entity.CategoryEntity
 import com.pitakaview.app.data.db.entity.LoanEntity
@@ -37,7 +37,7 @@ import java.time.LocalDate
 
 /** The M4 queries against real SQL: loans with what is paid, goals with what is saved, and each one's entries. */
 class SectionQueriesTest {
-    private lateinit var db: PitakaDatabase
+    private lateinit var db: FitakaDatabase
     private lateinit var ledger: LedgerRepository
     private val now = Instant.parse("2026-11-26T04:00:00Z")
     private val day = LocalDate.of(2026, 11, 26)
@@ -47,7 +47,7 @@ class SectionQueriesTest {
 
     @Before
     fun open() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder { PitakaDatabase_Impl() }
+        db = Room.inMemoryDatabaseBuilder { FitakaDatabase_Impl() }
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

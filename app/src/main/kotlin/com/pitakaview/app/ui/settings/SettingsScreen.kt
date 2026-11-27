@@ -1,7 +1,9 @@
 package com.pitakaview.app.ui.settings
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pitakaview.app.APP_NAME
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.FontChoice
@@ -22,17 +25,30 @@ import com.pitakaview.app.ui.components.DarkModePicker
 import com.pitakaview.app.ui.components.FontPicker
 import com.pitakaview.app.ui.components.SizePicker
 import com.pitakaview.app.ui.components.StylePicker
-import com.pitakaview.app.ui.components.PitakaCard
-import com.pitakaview.app.ui.components.PitakaDivider
-import com.pitakaview.app.ui.components.PitakaListItem
-import com.pitakaview.app.ui.components.PitakaScreen
+import com.pitakaview.app.ui.components.FitakaCard
+import com.pitakaview.app.ui.components.FitakaDivider
+import com.pitakaview.app.ui.components.FitakaListItem
+import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.ThemePicker
-import com.pitakaview.app.ui.icons.PitakaIcons
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.icons.FitakaIcons
+import com.pitakaview.app.ui.theme.FitakaTheme
 
 /** The credit lines in the About card, here so a test can hold them to the licences' wording. */
 object AboutText {
+    /**
+     * What the app is, in the owner's own words (2026-11-27). README.md carries the same words, and
+     * AppNameTest keeps the two the same and the version in it true.
+     */
+    const val DESCRIPTION = "$APP_NAME (Financial + Pitaka) is an Android app I'm building to keep track of my money in pesos. " +
+        "Like Lola's pitaka with a fold for every purpose, it sorts everything into five parts: Kita (income and paydays), " +
+        "Baon (allowance), Ipon (savings and goals), Gastos (spending) and Utang (loans, both ways). " +
+        "It also shows how much sits in each wallet, such as Cash, GCash, Maya and MariBank. " +
+        "You can log an entry in a few taps, bring in entries from a GCash or MariBank statement, get reminders for paydays " +
+        "and loan due dates, and see a monthly summary with a chart. " +
+        "Everything stays on your phone, with no account and no sign-up, plus an optional fingerprint lock and a backup file " +
+        "you keep yourself. It has a playful hand-drawn look with six colour themes in light and dark. " +
+        "It's still an early version (0.1.0), so feedback is very welcome."
     const val FONT = "Fonts: Shantell Sans, Mali, Pangolin, Fuzzy Bubbles, Itim. SIL Open Font License 1.1"
     const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
 }
@@ -65,37 +81,37 @@ fun SettingsScreen(
     onStyleChange: (UiStyle) -> Unit = {},
     onFontChange: (FontChoice) -> Unit = {},
 ) {
-    val c = PitakaTheme.colors
+    val c = FitakaTheme.colors
     val type = MaterialTheme.typography
-    PitakaScreen(title = "Settings", onBack = onBack) {
+    FitakaScreen(title = "Settings", onBack = onBack) {
         item(key = "money-title") { SectionHeader("Money set-up") }
         item(key = "money") {
-            PitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
-                PitakaListItem(
+            FitakaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+                FitakaListItem(
                     title = "Wallets",
                     subtitle = "Cash, GCash, bank accounts",
-                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    trailing = { Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenWallets,
                 )
-                PitakaDivider()
-                PitakaListItem(
+                FitakaDivider()
+                FitakaListItem(
                     title = "Categories",
                     subtitle = "What you spend on and earn from",
-                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    trailing = { Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenCategories,
                 )
-                PitakaDivider()
-                PitakaListItem(
+                FitakaDivider()
+                FitakaListItem(
                     title = "Backup",
                     subtitle = "Save a copy, bring one back, or export",
-                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    trailing = { Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenBackup,
                 )
-                PitakaDivider()
-                PitakaListItem(
+                FitakaDivider()
+                FitakaListItem(
                     title = "Import",
                     subtitle = "Bring in entries from a file",
-                    trailing = { Icon(PitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
+                    trailing = { Icon(FitakaIcons.ChevronRight, contentDescription = null, tint = c.inkMuted, modifier = Modifier.size(20.dp)) },
                     onClick = onOpenImport,
                 )
             }
@@ -121,10 +137,11 @@ fun SettingsScreen(
         }
         item(key = "about-title") { SectionHeader("About") }
         item(key = "about") {
-            PitakaCard(Modifier.fillMaxWidth()) {
-                Text("PitakaView $version", style = type.titleSmall, color = c.ink)
-                Text("Your whole wallet, one view.", style = type.bodyMedium, color = c.inkMuted)
-                Text("All your data stays on this phone.", style = type.bodyMedium, color = c.inkMuted)
+            FitakaCard(Modifier.fillMaxWidth()) {
+                Text("$APP_NAME $version", style = type.titleSmall, color = c.ink)
+                Text(AboutText.DESCRIPTION, style = type.bodyMedium, color = c.inkMuted)
+                // A little air between the description and the small print under it.
+                Spacer(Modifier.height(8.dp))
                 Text(AboutText.FONT, style = type.bodySmall, color = c.inkMuted)
                 // The icon set's licence (CC BY 4.0) asks for this line: who made them, where, and that some were changed.
                 Text(AboutText.ICONS, style = type.bodySmall, color = c.inkMuted)

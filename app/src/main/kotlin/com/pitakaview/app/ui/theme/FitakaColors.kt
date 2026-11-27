@@ -7,13 +7,13 @@ import com.pitakaview.app.domain.ThemeId
 
 /**
  * Colours Material 3 has no slot for: ink, the offset shadow, and the section colours with their
- * pale tints. Read them with `PitakaTheme.colors`.
+ * pale tints. Read them with `FitakaTheme.colors`.
  *
  * Section colours are decoration: they always sit with an ink outline or ink text, never carry meaning
  * alone (Baon yellow is only 1.7:1 against a white card).
  */
 @Immutable
-data class PitakaColors(
+data class FitakaColors(
     val theme: ThemeId,
     val isDark: Boolean,
     val background: Color,
@@ -54,7 +54,7 @@ data class PitakaColors(
      * patch of colour is not as plain a ground as the card colour, and at the usual 72% the text fell
      * to 3.8:1 on it; at 80% it keeps 4.5 everywhere (ThemeContrastTest).
      */
-    fun forGlass(): PitakaColors = copy(inkMuted = mix(ink, card, MUTED_INK_ON_GLASS))
+    fun forGlass(): FitakaColors = copy(inkMuted = mix(ink, card, MUTED_INK_ON_GLASS))
 }
 
 /**
@@ -69,11 +69,11 @@ internal const val MUTED_INK_ON_GLASS = 0.80f
 /** Share of the primary colour in a round icon button. */
 internal const val ICON_BUTTON_TINT = 0.26f
 
-fun pitakaColors(theme: ThemeId, dark: Boolean): PitakaColors {
+fun fitakaColors(theme: ThemeId, dark: Boolean): FitakaColors {
     val base = Palette.base(theme, dark)
     val tintShare = if (dark) TINT_DARK else TINT_LIGHT
     val fills = Section.entries.map { Palette.section(it, dark) }
-    return PitakaColors(
+    return FitakaColors(
         theme = theme,
         isDark = dark,
         background = base.background,
@@ -99,4 +99,4 @@ internal fun mix(top: Color, bottom: Color, fraction: Float): Color = Color(
     alpha = 1f,
 )
 
-val LocalPitakaColors = staticCompositionLocalOf { pitakaColors(ThemeId.MANGO, dark = false) }
+val LocalFitakaColors = staticCompositionLocalOf { fitakaColors(ThemeId.MANGO, dark = false) }

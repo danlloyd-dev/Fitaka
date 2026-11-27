@@ -130,7 +130,7 @@ class AccessibilityAuditTest : FlowTestBase() {
         auditAll("Settings")
         // About shows the version that is really installed, not a number typed into the screen.
         val installed = rule.activity.packageManager.getPackageInfo(rule.activity.packageName, 0).versionName
-        assertTrue("About should show version $installed", shows("PitakaView $installed"))
+        assertTrue("About should show version $installed", shows("Fitaka $installed"))
         for ((row, landmark) in listOf("Wallets" to "Add wallet", "Categories" to "category", "Backup" to "Keep a copy of your data", "Import" to "Which wallet is the file for")) {
             scrollTo(row)
             tapButton(row)

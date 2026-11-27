@@ -14,13 +14,13 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.pitakaview.app.PitakaApp
+import com.pitakaview.app.FitakaApp
 import com.pitakaview.app.di.LocalAppContainer
 import com.pitakaview.app.domain.AppearanceSettings
 import com.pitakaview.app.domain.DarkModePref
 import com.pitakaview.app.domain.ThemeId
-import com.pitakaview.app.ui.navigation.PitakaRoot
-import com.pitakaview.app.ui.theme.PitakaTheme
+import com.pitakaview.app.ui.navigation.FitakaRoot
+import com.pitakaview.app.ui.theme.FitakaTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,10 +44,10 @@ class NavigationFlowTest {
 
     @Composable
     private fun App() {
-        val container = (LocalContext.current.applicationContext as PitakaApp).container
+        val container = (LocalContext.current.applicationContext as FitakaApp).container
         CompositionLocalProvider(LocalAppContainer provides container) {
-            PitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
-                PitakaRoot(AppearanceSettings(), onThemeChange = {}, onDarkModeChange = {})
+            FitakaTheme(ThemeId.MANGO, DarkModePref.LIGHT) {
+                FitakaRoot(AppearanceSettings(), onThemeChange = {}, onDarkModeChange = {})
             }
         }
     }
