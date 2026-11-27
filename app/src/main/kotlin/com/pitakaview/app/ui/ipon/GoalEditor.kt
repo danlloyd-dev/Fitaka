@@ -17,7 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,6 +46,7 @@ import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
@@ -72,7 +75,13 @@ class GoalEditorViewModel(
         private set
 
     /** Shown only after a Save attempt. */
-    var problems by mutableStateOf(emptySet<GoalProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<GoalProblem> by derivedStateOf { if (tried) GoalFormLogic.problems(GoalForm(name.text.toString(), target.text.toString(), targetDate, walletId)) else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var loaded by mutableStateOf(false)
         private set
@@ -119,8 +128,11 @@ class GoalEditorViewModel(
 
     fun save() {
         val form = GoalForm(name.text.toString(), target.text.toString(), targetDate, walletId)
-        problems = GoalFormLogic.problems(form)
-        if (problems.isNotEmpty()) return
+        tried = true
+        if (problems.isNotEmpty()) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val goal = GoalFormLogic.toEntity(form, existing, now(), walletFixed = hasEntries)
             if (existing == null) db.savingsGoalDao().insert(goal) else db.savingsGoalDao().update(goal)
@@ -161,6 +173,8 @@ data class GoalEditorUi(
     /** Something is logged for the goal: its wallet is shown, not offered ([keptIn] is its name, null for No wallet). */
     val walletFixed: Boolean = false,
     val keptIn: String? = null,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -176,6 +190,7 @@ fun GoalEditorRoute(goalId: Long?, onDone: () -> Unit) {
     }
     GoalEditorContent(
         ui = GoalEditorUi(
+            refusedSaves = vm.refusedSaves,
             isEdit = vm.isEdit, targetDate = vm.targetDate, wallets = wallets, walletId = vm.walletId, today = today,
             problems = vm.problems, hidden = vm.existing?.isArchived == true, canDelete = vm.isEdit && !vm.hasEntries,
             walletFixed = vm.isEdit && vm.hasEntries, keptIn = vm.keptIn,
@@ -216,6 +231,11 @@ fun GoalEditorContent(
 
     FitakaScreen(
         title = if (ui.isEdit) "Edit goal" else "Add a goal",
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "name".takeIf { GoalProblem.NAME in ui.problems },
+            "target".takeIf { GoalProblem.TARGET in ui.problems },
+        ),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

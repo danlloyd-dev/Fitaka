@@ -18,7 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -53,6 +55,7 @@ import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.OptionalDateChoice
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
@@ -110,10 +113,16 @@ class LoanEditorViewModel(
         private set
 
     /** Shown only after a Save attempt. */
-    var problems by mutableStateOf(emptySet<LoanProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<LoanProblem> by derivedStateOf { if (tried) LoanFormLogic.problems(form()) else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
-    var moneyProblem by mutableStateOf(false)
-        private set
+    /** A new loan must say where the money went, so a wallet is never left wrong by a default. */
+    val moneyProblem: Boolean by derivedStateOf { tried && !isEdit && !moneyChosen }
     var loaded by mutableStateOf(false)
         private set
     var done by mutableStateOf(false)
@@ -185,15 +194,15 @@ class LoanEditorViewModel(
     fun selectMoney(id: Long?) {
         walletId = id
         moneyChosen = true
-        moneyProblem = false
     }
 
     fun save() {
         val form = form()
-        problems = LoanFormLogic.problems(form)
-        // A new loan must say where the money went, so a wallet is never left wrong by a default.
-        moneyProblem = !isEdit && !moneyChosen
-        if (problems.isNotEmpty() || moneyProblem) return
+        tried = true
+        if (problems.isNotEmpty() || moneyProblem) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val current = existing
             val loan = LoanFormLogic.toEntity(form, current, now())
@@ -246,6 +255,8 @@ data class LoanEditorUi(
     val remind: Boolean = true,
     /** Whether reminders as a whole are switched on in Settings. */
     val remindersOn: Boolean = true,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -262,6 +273,7 @@ fun LoanEditorRoute(loanId: Long?, onDone: () -> Unit) {
     }
     LoanEditorContent(
         ui = LoanEditorUi(
+            refusedSaves = vm.refusedSaves,
             isEdit = vm.isEdit, direction = vm.direction, startDate = vm.startDate, plan = vm.plan, dueDate = vm.dueDate,
             wallets = wallets, walletId = vm.walletId, moneyChosen = vm.moneyChosen, today = today,
             problems = vm.problems, moneyProblem = vm.moneyProblem,
@@ -316,6 +328,15 @@ fun LoanEditorContent(
 
     FitakaScreen(
         title = if (ui.isEdit) "Edit loan" else "Add a loan",
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "who".takeIf { LoanProblem.WHO in ui.problems },
+            "amount".takeIf { LoanProblem.AMOUNT in ui.problems },
+            "total".takeIf { LoanProblem.TOTAL in ui.problems },
+            "money".takeIf { ui.moneyProblem },
+            "installment".takeIf { LoanProblem.INSTALLMENT in ui.problems },
+            "due".takeIf { LoanProblem.DUE_DATE in ui.problems },
+        ),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

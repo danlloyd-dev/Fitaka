@@ -19,7 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -49,6 +51,7 @@ import com.pitakaview.app.ui.components.FitakaConfirmDialog
 import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.MoneyInput
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.WalletChoice
@@ -102,7 +105,13 @@ class BaonEditorViewModel(
         private set
 
     /** Shown only after a Save attempt. */
-    var problems by mutableStateOf(emptySet<BaonProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<BaonProblem> by derivedStateOf { if (tried) BaonFormLogic.problems(BaonForm(direction, name.text.toString(), amount.text.toString(), period, startDate, walletId)) else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var loaded by mutableStateOf(false)
         private set
@@ -154,8 +163,11 @@ class BaonEditorViewModel(
 
     fun save() {
         val form = BaonForm(direction, name.text.toString(), amount.text.toString(), period, startDate, walletId)
-        problems = BaonFormLogic.problems(form)
-        if (problems.isNotEmpty()) return
+        tried = true
+        if (problems.isNotEmpty()) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val baon = BaonFormLogic.toEntity(form, existing, now())
             if (existing == null) db.baonDao().insert(baon) else db.baonDao().update(baon)
@@ -195,6 +207,8 @@ data class BaonEditorUi(
     val problems: Set<BaonProblem> = emptySet(),
     val stopped: Boolean = false,
     val canDelete: Boolean = false,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -210,6 +224,7 @@ fun BaonEditorRoute(baonId: Long?, onDone: () -> Unit) {
     }
     BaonEditorContent(
         ui = BaonEditorUi(
+            refusedSaves = vm.refusedSaves,
             isEdit = vm.isEdit, direction = vm.direction, period = vm.period, startDate = vm.startDate,
             wallets = wallets, walletId = vm.walletId, today = today, problems = vm.problems,
             stopped = vm.existing?.isActive == false, canDelete = vm.isEdit && !vm.hasEntries,
@@ -255,6 +270,11 @@ fun BaonEditorContent(
 
     FitakaScreen(
         title = if (ui.isEdit) "Edit baon" else "Add a baon",
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "name".takeIf { BaonProblem.NAME in ui.problems },
+            "amount".takeIf { BaonProblem.AMOUNT in ui.problems },
+        ),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

@@ -69,7 +69,7 @@ sealed interface StatementRead {
 object Csv {
     /** The separator this file uses: whichever of comma, semicolon and tab is most common in its first line. */
     fun detectDelimiter(text: String): Char {
-        val firstLine = text.removePrefix("﻿").lineSequence().firstOrNull { it.isNotBlank() }.orEmpty()
+        val firstLine = text.removePrefix("\uFEFF").lineSequence().firstOrNull { it.isNotBlank() }.orEmpty()
         return listOf(',', ';', '\t').maxBy { candidate -> firstLine.count { it == candidate } }
     }
 
@@ -82,7 +82,7 @@ object Csv {
         var row = ArrayList<String>()
         val cell = StringBuilder()
         var quoted = false
-        var i = if (text.startsWith("﻿")) 1 else 0
+        var i = if (text.startsWith("\uFEFF")) 1 else 0
 
         fun endRow() {
             row.add(cell.toString())

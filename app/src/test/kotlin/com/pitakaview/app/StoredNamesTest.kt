@@ -8,6 +8,7 @@ import com.pitakaview.app.data.prefs.SettingsRepository
 import com.pitakaview.app.reminders.AndroidReminderNotifier
 import com.pitakaview.app.reminders.ReminderIntents
 import com.pitakaview.app.reminders.ReminderWorker
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY
 import com.pitakaview.app.reminders.WorkManagerReminderAlarm
 import com.pitakaview.app.ui.backup.backupFileName
 import com.pitakaview.app.ui.backup.sheetFileName
@@ -53,6 +54,8 @@ class StoredNamesTest {
     fun theDatabaseLayoutOfVersionOneIsUnchanged() {
         val layout = File("schemas/com.pitakaview.app.data.db.FitakaDatabase/1.json").readText()
         assertTrue(layout.contains("\"identityHash\": \"dcffe3a34ad6eab4e0ceef41a2738b77\""))
+        // And the fingerprint a restore checks a backup against is that same one.
+        assertTrue(layout.contains("\"identityHash\": \"$FITAKA_DB_IDENTITY\""))
     }
 
     /** The theme, size, style, font, reminders and the app lock's switch. Under another name they all reset, and the lock turns off. */

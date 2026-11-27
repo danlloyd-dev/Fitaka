@@ -48,7 +48,7 @@ object AboutText {
         "and loan due dates, and see a monthly summary with a chart. " +
         "Everything stays on your phone, with no account and no sign-up, plus an optional fingerprint lock and a backup file " +
         "you keep yourself. It has a playful hand-drawn look with six colour themes in light and dark. " +
-        "It's still an early version (0.1.0), so feedback is very welcome."
+        "This is the first full version (1.0.0), and feedback is very welcome."
     const val FONT = "Fonts: Shantell Sans, Mali, Pangolin, Fuzzy Bubbles, Itim. SIL Open Font License 1.1"
     const val ICONS = "Icons: Streamline Freehand (streamlinehq.com), CC BY 4.0, some redrawn"
 }

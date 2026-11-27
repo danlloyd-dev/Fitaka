@@ -2,7 +2,9 @@ package com.pitakaview.app.ui.entry
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -63,7 +65,13 @@ class EntryEditorViewModel(
         private set
 
     /** Shown only after a Save attempt, so the form does not nag while you are still typing. */
-    var problems by mutableStateOf(emptySet<EntryProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<EntryProblem> by derivedStateOf { if (tried) EntryFormLogic.problems(form()) else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var saveError by mutableStateOf<String?>(null)
         private set
@@ -175,7 +183,8 @@ class EntryEditorViewModel(
                 toWalletId = wallets.value.firstOrNull { it.id != current }?.id
             }
         }
-        problems = emptySet()
+        // Another kind of entry starts fresh: its problems are shown after its own Save.
+        tried = false
     }
 
     fun selectCategory(id: Long) {
@@ -199,16 +208,22 @@ class EntryEditorViewModel(
         baonId = id
     }
 
+    /** What is on the form right now. */
+    private fun form() = EntryForm(
+        kind = kind, amountText = amount.text.toString(), categoryId = categoryId,
+        fromWalletId = fromWalletId, toWalletId = toWalletId, date = date, note = note.text.toString(),
+        payScheduleId = linkedScheduleId,
+        baonId = if (kind == EntryKind.EXPENSE) baonId else null,
+        ownMove = ownMove == true,
+    )
+
     fun save() {
-        val form = EntryForm(
-            kind = kind, amountText = amount.text.toString(), categoryId = categoryId,
-            fromWalletId = fromWalletId, toWalletId = toWalletId, date = date, note = note.text.toString(),
-            payScheduleId = linkedScheduleId,
-            baonId = if (kind == EntryKind.EXPENSE) baonId else null,
-            ownMove = ownMove == true,
-        )
-        problems = EntryFormLogic.problems(form)
-        if (problems.isNotEmpty()) return
+        val form = form()
+        tried = true
+        if (problems.isNotEmpty()) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val tx = EntryFormLogic.toTransaction(form, existing, now())
             try {

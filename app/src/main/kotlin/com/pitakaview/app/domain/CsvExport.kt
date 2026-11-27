@@ -27,7 +27,7 @@ object CsvExport {
     val HEADER = listOf("Date", "Type", "Category", "Amount", "In or out", "From wallet", "To wallet", "For", "Note")
 
     /** Tells Excel the file is UTF-8, so "₱" and "ñ" in notes survive. */
-    const val BYTE_ORDER_MARK = "﻿"
+    const val BYTE_ORDER_MARK = "\uFEFF"
     private const val LINE_END = "\r\n"
 
     /** Writes the header and one line per row to [out]. [typeLabel] names each kind of entry. Returns the row count. */

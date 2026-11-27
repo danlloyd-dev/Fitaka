@@ -20,7 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,6 +56,7 @@ import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.FitakaToggleRow
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.home.friendlyDate
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -116,7 +119,13 @@ class PayScheduleEditorViewModel(
         private set
 
     /** Shown only after a Save attempt. */
-    var problems by mutableStateOf(emptySet<PayScheduleProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<PayScheduleProblem> by derivedStateOf { if (tried) PayScheduleFormLogic.problems(form()) else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var loaded by mutableStateOf(false)
         private set
@@ -192,8 +201,11 @@ class PayScheduleEditorViewModel(
 
     fun save() {
         val form = form()
-        problems = PayScheduleFormLogic.problems(form)
-        if (problems.isNotEmpty()) return
+        tried = true
+        if (problems.isNotEmpty()) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val row = PayScheduleFormLogic.toEntity(form, existing, now())
             if (existing == null) db.payScheduleDao().insert(row) else db.payScheduleDao().update(row)
@@ -229,6 +241,8 @@ data class PayScheduleEditorUi(
     val remind: Boolean = true,
     /** Whether reminders as a whole are switched on in Settings. */
     val remindersOn: Boolean = true,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -247,6 +261,7 @@ fun PayScheduleEditorRoute(scheduleId: Long?, onDone: () -> Unit) {
     val rule = PayScheduleFormLogic.rule(vm.form())
     PayScheduleEditorContent(
         ui = PayScheduleEditorUi(
+            refusedSaves = vm.refusedSaves,
             isEdit = vm.isEdit, frequency = vm.frequency, dayOfWeek = vm.dayOfWeek, weekendRule = vm.weekendRule,
             wallets = wallets, categories = categories, walletId = vm.walletId, categoryId = vm.categoryId, today = today,
             nextPaydays = if (rule == null) emptyList() else PayCalendar.upcoming(rule, from = today, count = 3),
@@ -296,6 +311,15 @@ fun PayScheduleEditorContent(
 
     FitakaScreen(
         title = if (ui.isEdit) "Edit payday" else "Add a payday",
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "name".takeIf { PayScheduleProblem.NAME in ui.problems },
+            "amount".takeIf { PayScheduleProblem.AMOUNT in ui.problems },
+            "first-day".takeIf { PayScheduleProblem.FIRST_DAY in ui.problems },
+            "second-day".takeIf { PayScheduleProblem.SECOND_DAY in ui.problems || PayScheduleProblem.SAME_DAYS in ui.problems },
+            "wallet".takeIf { PayScheduleProblem.WALLET in ui.problems },
+            "category".takeIf { PayScheduleProblem.CATEGORY in ui.problems },
+        ),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

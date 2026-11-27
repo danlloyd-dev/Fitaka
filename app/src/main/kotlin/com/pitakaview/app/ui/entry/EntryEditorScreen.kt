@@ -47,6 +47,7 @@ import com.pitakaview.app.ui.components.FitakaSegmented
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.sections.MoveEditorRoute
@@ -75,6 +76,8 @@ data class EntryEditorUi(
     val kindLocked: Boolean = false,
     /** Null unless this entry is half of a move between the owner's own wallets; then whether it stays one. */
     val ownMove: Boolean? = null,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -110,6 +113,7 @@ fun EntryEditorRoute(
     }
     EntryEditorContent(
         ui = EntryEditorUi(
+            refusedSaves = vm.refusedSaves,
             isEdit = vm.isEdit, kind = vm.kind,
             categories = if (vm.kind == EntryKind.INCOME) income else expense,
             wallets = wallets, categoryId = vm.categoryId, fromWalletId = vm.fromWalletId, toWalletId = vm.toWalletId,
@@ -163,6 +167,13 @@ fun EntryEditorContent(
 
     FitakaScreen(
         title = if (ui.isEdit) "Edit entry" else "Add entry",
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "amount".takeIf { EntryProblem.AMOUNT in ui.problems },
+            "category".takeIf { EntryProblem.CATEGORY in ui.problems },
+            (if (ui.kind == EntryKind.TRANSFER) "from" else "wallet").takeIf { EntryProblem.WALLET in ui.problems },
+            "to".takeIf { EntryProblem.SAME_WALLET in ui.problems },
+        ),
         // What the entry is tied to, said at the top where it cannot scroll under the keyboard.
         subtitle = ui.paydayName?.let { "Pay received · $it" }
             ?: ui.baons.firstOrNull { it.id == ui.baonId && ui.kind == EntryKind.EXPENSE }?.let { "From baon · ${it.name}" },

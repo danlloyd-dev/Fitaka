@@ -4,6 +4,7 @@ import androidx.room3.Transactor
 import androidx.room3.useWriterConnection
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
+import com.pitakaview.app.data.db.FITAKA_DB_IDENTITY
 import com.pitakaview.app.data.db.FITAKA_DB_VERSION
 import com.pitakaview.app.data.db.FitakaDatabase
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +117,10 @@ class BackupManager(
                     version > FITAKA_DB_VERSION -> BackupCheck.TooNew
                     version < 1 -> BackupCheck.NotABackup
                     connection.text("PRAGMA quick_check") != "ok" -> BackupCheck.NotABackup
+                    // The layout Room will check when the app opens it after the restore. A file without
+                    // Room's table throws here, and is refused below like any file that cannot be read.
+                    connection.text("SELECT identity_hash FROM room_master_table WHERE id = 42") != FITAKA_DB_IDENTITY ->
+                        BackupCheck.NotABackup
                     else -> BackupCheck.Ok(
                         BackupInfo(
                             schemaVersion = version,

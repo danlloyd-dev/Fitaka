@@ -17,7 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,6 +57,7 @@ import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.icons.FitakaIcons
 import com.pitakaview.app.ui.theme.FitakaTheme
 import java.time.Instant
@@ -119,7 +122,13 @@ class MoveEditorViewModel(
         private set
     var date by mutableStateOf(today)
         private set
-    var problems by mutableStateOf(emptySet<MoveProblem>())
+    // Worked out again as the owner types and picks, once Save has been tried: a mistake put right
+    // stops being shown at once (until 2026-11-27 it stayed until the next Save).
+    private var tried by mutableStateOf(false)
+    val problems: Set<MoveProblem> by derivedStateOf { if (tried) target?.let { MoveFormLogic.problems(MoveForm(amount.text.toString(), walletId, date, note.text.toString()), it.purpose, mostCentavos, leastCentavos) }.orEmpty() else emptySet() }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var saveError by mutableStateOf<String?>(null)
         private set
@@ -246,8 +255,11 @@ class MoveEditorViewModel(
     fun save() {
         val to = target ?: return
         val form = MoveForm(amount.text.toString(), walletId, date, note.text.toString())
-        problems = MoveFormLogic.problems(form, to.purpose, mostCentavos, leastCentavos)
-        if (problems.isNotEmpty()) return
+        tried = true
+        if (problems.isNotEmpty()) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val tx = MoveFormLogic.toTransaction(form, to, existing, now())
             try {
@@ -295,6 +307,8 @@ data class MoveEditorUi(
     val canDelete: Boolean = true,
     val problems: Set<MoveProblem> = emptySet(),
     val saveError: String? = null,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    val refusedSaves: Int = 0,
 )
 
 @Composable
@@ -313,6 +327,7 @@ fun MoveEditorRoute(transactionId: Long?, purpose: TxPurpose?, linkId: Long?, on
     }
     MoveEditorContent(
         ui = MoveEditorUi(
+            refusedSaves = vm.refusedSaves,
             title = MoveText.title(target.purpose, target.loanDirection, vm.isEdit),
             subtitle = vm.targetName,
             walletLabel = MoveText.walletLabel(target.purpose, target.loanDirection),
@@ -356,6 +371,11 @@ fun MoveEditorContent(
     FitakaScreen(
         title = ui.title,
         subtitle = ui.subtitle,
+        reveal = RevealRequest.firstOf(
+            ui.refusedSaves,
+            "amount".takeIf { ui.problems.any { it != MoveProblem.WALLET } },
+            "wallet".takeIf { MoveProblem.WALLET in ui.problems },
+        ),
         onBack = onBack,
         pinnedAction = {
             Column {

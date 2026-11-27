@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +60,8 @@ fun FitakaScreen(
     showLogo: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
     pinnedAction: (@Composable () -> Unit)? = null,
+    /** An item of the list to bring into view: on a form, the first field with a problem after a refused Save. */
+    reveal: RevealRequest? = null,
     content: LazyListScope.() -> Unit,
 ) {
     val c = FitakaTheme.colors
@@ -68,6 +72,20 @@ fun FitakaScreen(
     val keyboard: Dp = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
     // Without a footer the list itself must scroll clear of the tab bar or the keyboard, whichever is taller.
     val clearBelow = if (pinnedAction != null) 0.dp else maxOf(tabBar, keyboard)
+    // The keys of the list's items in order, noted as the content declares them, so [reveal] can find its item.
+    val keys = remember { ArrayList<Any?>() }
+    if (reveal != null) {
+        LaunchedEffect(reveal.tick) {
+            if (reveal.tick == 0) return@LaunchedEffect
+            val index = keys.indexOf(reveal.key)
+            if (index < 0) return@LaunchedEffect
+            val layout = listState.layoutInfo
+            val shown = layout.visibleItemsInfo.firstOrNull { it.index == index }
+            // Offsets count from below the top bar's padding; the end is above the padding at the bottom.
+            val whole = shown != null && shown.offset >= 0 && shown.offset + shown.size <= layout.viewportEndOffset - layout.afterContentPadding
+            if (!whole) listState.animateScrollToItem(index)
+        }
+    }
 
     Column(modifier.fillMaxSize().background(c.background).glassyPage(skipTop = topBarHeight)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -76,7 +94,10 @@ fun FitakaScreen(
                 modifier = Modifier.fillMaxSize().glassSource(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = topBarHeight + 8.dp, bottom = clearBelow + 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                content = content,
+                content = {
+                    keys.clear()
+                    KeyNotingScope(this, keys).content()
+                },
             )
             FitakaTopBar(
                 title = title,
@@ -119,4 +140,30 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
         // Marked as a heading, so a screen reader can jump from group to group.
         modifier = modifier.padding(top = 4.dp).semantics { heading() },
     )
+}
+
+/** Bring the list item with [key] into view; asked again each time [tick] goes up (0: not yet). */
+data class RevealRequest(val key: Any, val tick: Int) {
+    companion object {
+        /** The first of [keys] that is not null (the fields in the order they are shown), or null when none is. */
+        fun firstOf(tick: Int, vararg keys: Any?): RevealRequest? = keys.firstOrNull { it != null }?.let { RevealRequest(it, tick) }
+    }
+}
+
+/** Passes everything on to the list, and notes each item's key in order. */
+private class KeyNotingScope(private val list: LazyListScope, private val keys: MutableList<Any?>) : LazyListScope by list {
+    override fun item(key: Any?, contentType: Any?, content: @Composable LazyItemScope.() -> Unit) {
+        keys += key
+        list.item(key, contentType, content)
+    }
+
+    override fun items(
+        count: Int,
+        key: ((index: Int) -> Any)?,
+        contentType: (index: Int) -> Any?,
+        itemContent: @Composable LazyItemScope.(index: Int) -> Unit,
+    ) {
+        repeat(count) { keys += key?.invoke(it) }
+        list.items(count, key, contentType, itemContent)
+    }
 }

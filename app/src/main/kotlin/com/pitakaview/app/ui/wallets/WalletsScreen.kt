@@ -22,8 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +57,7 @@ import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.MoneyInput
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
 import com.pitakaview.app.ui.icons.FitakaIcons
@@ -149,9 +152,16 @@ class WalletEditorViewModel(
         private set
     var current by mutableStateOf<WalletWithBalance?>(null)
         private set
-    var nameProblem by mutableStateOf(false)
-        private set
-    var balanceProblem by mutableStateOf(false)
+    // Worked out again as the owner types, once Save has been tried (see the editors' problems).
+    private var tried by mutableStateOf(false)
+    val nameProblem: Boolean by derivedStateOf { tried && name.text.toString().isBlank() }
+    val balanceProblem: Boolean by derivedStateOf {
+        val typed = balance.text.toString().trim()
+        tried && typed.isNotEmpty() && Peso.parse(typed) == null
+    }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the first one into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var hideBlocked by mutableStateOf(false)
         private set
@@ -184,9 +194,11 @@ class WalletEditorViewModel(
         val trimmedName = name.text.toString().trim()
         val typedBalance = balance.text.toString().trim()
         val amount = if (typedBalance.isEmpty()) null else Peso.parse(typedBalance)
-        nameProblem = trimmedName.isEmpty()
-        balanceProblem = typedBalance.isNotEmpty() && amount == null
-        if (nameProblem || balanceProblem) return
+        tried = true
+        if (nameProblem || balanceProblem) {
+            refusedSaves++
+            return
+        }
         saving.launch(viewModelScope) {
             val row = current
             if (row == null) {
@@ -239,7 +251,7 @@ fun WalletEditorRoute(walletId: Long?, onDone: () -> Unit) {
     }
     WalletEditorContent(
         isEdit = vm.isEdit, name = vm.name, balance = vm.balance, preset = vm.preset, current = vm.current,
-        nameProblem = vm.nameProblem, balanceProblem = vm.balanceProblem, hideBlocked = vm.hideBlocked,
+        nameProblem = vm.nameProblem, balanceProblem = vm.balanceProblem, hideBlocked = vm.hideBlocked, refusedSaves = vm.refusedSaves,
         onPreset = vm::selectPreset, onSave = vm::save, onToggleHidden = vm::toggleHidden, onBack = onDone,
     )
 }
@@ -255,6 +267,8 @@ fun WalletEditorContent(
     nameProblem: Boolean,
     balanceProblem: Boolean,
     hideBlocked: Boolean,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    refusedSaves: Int = 0,
     onPreset: (WalletPreset) -> Unit,
     onSave: () -> Unit,
     onToggleHidden: () -> Unit,
@@ -263,6 +277,7 @@ fun WalletEditorContent(
     val c = FitakaTheme.colors
     FitakaScreen(
         title = if (isEdit) "Edit wallet" else "Add wallet",
+        reveal = RevealRequest.firstOf(refusedSaves, "name".takeIf { nameProblem }, "balance".takeIf { balanceProblem }),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

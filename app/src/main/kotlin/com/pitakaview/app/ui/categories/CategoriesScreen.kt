@@ -21,8 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +50,7 @@ import com.pitakaview.app.ui.components.FitakaScreen
 import com.pitakaview.app.ui.components.FitakaTextField
 import com.pitakaview.app.ui.components.Gloss
 import com.pitakaview.app.ui.components.ProblemText
+import com.pitakaview.app.ui.components.RevealRequest
 import com.pitakaview.app.ui.components.SectionBadge
 import com.pitakaview.app.ui.components.SectionHeader
 import com.pitakaview.app.ui.components.sketchBox
@@ -145,7 +148,23 @@ class CategoryEditorViewModel(
     /** The icon picked for the category. A stored key this version does not know is shown, and saved, as the three dots. */
     var iconKey by mutableStateOf(CategoryIcons.DEFAULT)
         private set
-    var nameProblem by mutableStateOf<String?>(null)
+    // Worked out again as the owner types, once Save has been tried (see the editors' problems).
+    private var tried by mutableStateOf(false)
+
+    /** A name Save found already in use: its problem shows while the name typed is still that one. */
+    private var takenName by mutableStateOf<String?>(null)
+    val nameProblem: String? by derivedStateOf {
+        val typed = name.text.toString().trim()
+        when {
+            !tried -> null
+            typed.isEmpty() -> "Give the category a name"
+            takenName?.equals(typed, ignoreCase = true) == true -> "You already have this category"
+            else -> null
+        }
+    }
+
+    /** Goes up at each Save refused for a problem: the screen then brings the name into view. */
+    var refusedSaves by mutableIntStateOf(0)
         private set
     var loaded by mutableStateOf(false)
         private set
@@ -176,8 +195,9 @@ class CategoryEditorViewModel(
 
     fun save() {
         val trimmed = name.text.toString().trim()
+        tried = true
         if (trimmed.isEmpty()) {
-            nameProblem = "Give the category a name"
+            refusedSaves++
             return
         }
         // Through the guard: two taps would both pass the check below before either had stored anything,
@@ -186,7 +206,8 @@ class CategoryEditorViewModel(
             val all = db.categoryDao().observeAll(kind).first()
             // The database also refuses a duplicate (unique kind + name); checking first lets us say why.
             if (all.any { it.name.equals(trimmed, ignoreCase = true) && it.id != current?.id }) {
-                nameProblem = "You already have this category"
+                takenName = trimmed
+                refusedSaves++
                 return@launch false
             }
             val row = current
@@ -228,6 +249,7 @@ fun CategoryEditorRoute(categoryId: Long?, kind: CategoryKind, onDone: () -> Uni
         vm.isEdit, vm.kind, vm.name, vm.current, vm.nameProblem, vm.iconKey,
         onIcon = vm::pickIcon, onSave = vm::save, onToggleHidden = vm::toggleHidden, onBack = onDone,
         hideBlocked = vm.hideBlocked,
+        refusedSaves = vm.refusedSaves,
     )
 }
 
@@ -268,10 +290,13 @@ fun CategoryEditorContent(
     onToggleHidden: () -> Unit,
     onBack: () -> Unit,
     hideBlocked: Boolean = false,
+    /** Goes up at each Save refused for a problem (see FitakaScreen's reveal). */
+    refusedSaves: Int = 0,
 ) {
     val c = FitakaTheme.colors
     FitakaScreen(
         title = if (isEdit) "Edit category" else "Add ${kind.sectionLabel} category",
+        reveal = RevealRequest.firstOf(refusedSaves, "name".takeIf { nameProblem != null }),
         onBack = onBack,
         pinnedAction = {
             FitakaButton("Save", onClick = onSave, modifier = Modifier.fillMaxWidth(), style = FitakaButtonStyle.Primary, icon = FitakaIcons.Check)

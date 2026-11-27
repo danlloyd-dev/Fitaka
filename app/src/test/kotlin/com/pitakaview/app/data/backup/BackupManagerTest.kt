@@ -155,6 +155,28 @@ class BackupManagerTest {
             manager.inspect(sqlite("fake.db", "CREATE TABLE notes (body TEXT)", "PRAGMA user_version = $FITAKA_DB_VERSION")),
         )
         assertEquals(
+            "our version number and our table names, but not Room's layout (added 2026-11-27: it used to pass)",
+            BackupCheck.NotABackup,
+            manager.inspect(
+                sqlite(
+                    "lookalike.db", "CREATE TABLE transactions (id INTEGER, occurredOn INTEGER)", "CREATE TABLE wallets (id INTEGER)",
+                    "PRAGMA user_version = $FITAKA_DB_VERSION",
+                ),
+            ),
+        )
+        assertEquals(
+            "the same with Room's table, but another layout's fingerprint",
+            BackupCheck.NotABackup,
+            manager.inspect(
+                sqlite(
+                    "otherlayout.db", "CREATE TABLE transactions (id INTEGER, occurredOn INTEGER)", "CREATE TABLE wallets (id INTEGER)",
+                    "CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)",
+                    "INSERT INTO room_master_table VALUES (42, '00000000000000000000000000000000')",
+                    "PRAGMA user_version = $FITAKA_DB_VERSION",
+                ),
+            ),
+        )
+        assertEquals(
             "a backup from a newer app",
             BackupCheck.TooNew,
             manager.inspect(sqlite("future.db", "CREATE TABLE transactions (id INTEGER)", "PRAGMA user_version = ${FITAKA_DB_VERSION + 1}")),
